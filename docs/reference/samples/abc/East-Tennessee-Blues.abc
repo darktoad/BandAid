@@ -1,0 +1,20 @@
+X:1
+T:East Tennessee Blues
+C:arr. after Al Lester
+M:2/4
+L:1/16
+Q:1/4=126
+R:breakdown in the key of C
+K:C
+% ===== A PART — transcribed from photo, verified =====
+ef^f |"C" gage gage | gagd edcA |"F" cdcA cdcA | cdcG AGFD |
+"C" EGAB cAcd | edef gage |"D" d^cde ^fdfa |"G" g8 |
+%
+% ===== B PART — DRAFT, NOT VERIFIED =====
+% Soundslice OMR of the B part is broken (impossible durations, e.g. two
+% half-notes in a 2/4 bar) and the photo needs a render+listen pass to fix.
+% Alternate chords appear in parens on the page: (A) (D) (G).
+% Raw auto-conversion left below for reference only — DO NOT trust rhythms:
+% "C" c2 EGAB cd | "C" e8 | g8 | ... (F) ... (C) ... D G C F ...
+%
+% TODO: re-transcribe B part with ABC->audio verification.
