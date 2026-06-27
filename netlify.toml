@@ -1,6 +1,0 @@
-# Static-host build config for BandAid (Svelte + Vite SPA).
-# Lets Netlify (or any host reading this) build and publish without manual setup.
-# The app is served at the domain root, so no Vite `base` override is needed.
-[build]
-  command = "npm run build"
-  publish = "dist"
