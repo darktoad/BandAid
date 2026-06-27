@@ -8,20 +8,39 @@
 |---|-------|----------|------|
 | 001 | renderer | alphaTab (FOSS, Path B); Soundslice retained as authoring/reference | 2026-06-25 |
 
-## Current Planning Phase
+## Current Phase
 
-**Phase:** Roadmap Defined
+**Phase:** M1 Build Started — renderer-playhead foundation runs.
 
-MVP defined as "Session of One" (~2-week target): unified music model + library/set-list/song browsing + renderer with local playhead + chord-changes-in-time view + local transport, all built session-shaped so join is additive. 8 feature areas across 4 milestones (M1 MVP, M2 Join, M3 Presentation Templates, M4 Tighten When Needed). Ready to spec features with `/design-feature` and capture the renderer + sync-stack decisions with `/decide`.
+All five M1 specs written; stack chosen (Svelte/TS/Vite). The app scaffold + the
+`renderer-playhead` foundation are built and run: a sample tune renders in notation/tab
+via alphaTab, with the session store and `projectBar` playhead math (17 tests passing).
+See [Implementation Status](#implementation-status) below and `README.md` for how to run.
 
 **Core architecture principle:** No modes — only a session (1..N participants, join is additive) + locally-chosen presentation templates over one shared playhead. "Solo" = session of one; "jam panels" = more templates, not a subsystem.
 
+## Implementation Status
+
+| Feature | Spec | Implementation | Notes |
+|---------|------|----------------|-------|
+| unified-music-model | Specified | Consumed | Canonical contract; no separate code module yet |
+| renderer-playhead | Specified | **In progress** | Tasks 1–3 done, Task 4 current. 6/8 ACs; playback cursor pending real-browser check |
+| local-transport | Specified | Not started | Minimal play/tempo demoed inside App; real feature next |
+| chord-changes-view | Specified | Not started | |
+| library-browsing | Specified | Not started | |
+
+**App entry:** `npm run dev` → http://localhost:5173 (renders Big John McNeil in guitar tab).
+**Tests:** `npm test` (17 passing). **Build/typecheck:** `npm run build` / `npm run check`.
+**Active tasks file:** `docs/project/features/renderer-playhead-tasks.md`.
+**One open verification:** does clicking Play sweep the cursor + play audio in a real
+browser? Headless couldn't drive the AudioContext.
+
 ## Roadmap Status
 
-- **MVP (M1) features:** 6 areas (0 specified)
+- **MVP (M1) features:** 5 areas (all specified; building started)
 - **Milestones:** 4 (M1 MVP → M2 Join → M3 Templates → M4 Tighten)
-- **Decided:** renderer → alphaTab (ADR-001)
-- **Open decisions:** sync-stack (P2P vs LAN relay), drift tolerance, setup-friction target — see `roadmap.md`
+- **Decided:** renderer → alphaTab (ADR-001); stack → Svelte/TS/Vite (ADR-003 pending capture)
+- **Open decisions:** sync-stack (P2P vs LAN relay, ADR-002), drift tolerance, setup-friction target — see `roadmap.md`
 
 ## Vision Summary
 
