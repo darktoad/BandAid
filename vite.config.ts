@@ -7,7 +7,10 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 // see renderer-playhead spec AC-2 / NFR-1 (network-free practice loop).
 const alphaTabDist = 'node_modules/@coderline/alphatab/dist';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // GitHub Pages serves this project repo under /bandaid/. The production build
+  // carries that prefix (and import.meta.env.BASE_URL with it); dev stays at /.
+  base: command === 'build' ? '/bandaid/' : '/',
   plugins: [
     svelte(),
     viteStaticCopy({
@@ -24,4 +27,4 @@ export default defineConfig({
   server: {
     port: 5173,
   },
-});
+}));

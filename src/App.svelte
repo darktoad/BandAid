@@ -7,7 +7,7 @@
   // Hardcoded for the first observable cut; library-browsing will set this later.
   const SONG = {
     id: 'big-john-mcneil',
-    url: '/songs/big-john-mcneil.musicxml',
+    url: `${import.meta.env.BASE_URL}songs/big-john-mcneil.musicxml`,
     title: 'Big John McNeil',
     timeSignature: '4/4',
     defaultTempoBpm: 120,
