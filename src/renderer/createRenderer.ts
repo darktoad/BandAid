@@ -35,7 +35,9 @@ export interface RendererController {
   destroy(): void;
 }
 
-const ALPHATAB_ASSET_BASE = '/alphatab';
+// Respect Vite's base path (/ in dev, /bandaid/ on GitHub Pages) so the bundled
+// fonts/soundfont resolve under the deployed subpath. BASE_URL always ends in '/'.
+const ALPHATAB_ASSET_BASE = `${import.meta.env.BASE_URL}alphatab`;
 
 export async function createRenderer(
   element: HTMLElement,
