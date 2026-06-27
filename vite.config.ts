@@ -8,9 +8,10 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 const alphaTabDist = 'node_modules/@coderline/alphatab/dist';
 
 export default defineConfig(({ command }) => ({
-  // GitHub Pages serves this project repo under /bandaid/. The production build
+  // GitHub Pages serves this project repo under /BandAid/ — the path is
+  // case-sensitive and must match the repo name exactly. The production build
   // carries that prefix (and import.meta.env.BASE_URL with it); dev stays at /.
-  base: command === 'build' ? '/bandaid/' : '/',
+  base: command === 'build' ? '/BandAid/' : '/',
   plugins: [
     svelte(),
     viteStaticCopy({
