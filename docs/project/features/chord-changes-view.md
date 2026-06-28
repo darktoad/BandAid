@@ -25,9 +25,11 @@ Consistent with "no modes, only a session + local presentation templates": this 
 |---|----------|-----------|
 | D1 | **The view IS alphaTab's native render** — notation/tab staff with MusicXML `<harmony>` chord symbols above it, alphaTab's built-in cursor as the playhead. No separate custom timeline. | ADR-001: "chord symbols + moving cursor means the chord-changes view can BE alphaTab." Least code; chord layout/timing handled by alphaTab. |
 | D2 | **Audio is toggleable: synth playback + metronome click**, chosen locally. | Solo drilling wants to *hear* the changes; a click lets you drill against a beat. Both are local-only presentation choices, never synced. |
-| D3 | **Backing staff is selectable (local), default guitar tab.** | Player picks which part shows under the chords; defaults to the guitarist's instrument. Exercises the part-selection plumbing M3 templates need anyway. Falls back gracefully when a part is absent. |
+| D3 | **~~Backing staff is selectable (local), default guitar tab.~~ REVISED 2026-06-28 → The shared MELODY is the default staff; a player adds their own instrument as a toggleable stacked staff ("My part").** | Original guitar-tab default was reconsidered on-device: the band is more likely to want everyone seeing the shared melody, with each player toggling their individual part as an overlay — rather than a row of mutually-exclusive instrument buttons (which also ate horizontal space on phones). Both staves are driven by the one alphaTab player so cursors stay in lockstep (no second clock). Confirmed by user testing; stacked notation accepted into M1. Falls back to the first available part when one is absent. |
 | D4 | **Chord emphasis = alphaTab cursor only.** No custom active/next-chord overlay or banner in MVP. | Keep the MVP lean; timing is read from the cursor position over the chord symbols. A highlight/banner is a clean fast-follow if drilling proves it's wanted. |
 | D5 | **alphaTab's player is the local time source.** Transport changes write a thin session object `{ startBar, startTimestamp, tempo }`. M2 join projects an incoming change to "now" and seeks the local player. | Least M1 code, audio "just works," and the session object exists from day one so join is additive, not a rewrite. Local "now" = alphaTab's clock (fine solo; M4 clock-sync gate tightens it only if measured drift is too loose). |
+| D6 | **Mobile layout (2026-06-28, accepted into M1):** compact always-visible transport (Play + scrubber) with tempo/size/audio/my-part folded into a "More" overflow sheet; notation reflows bars-per-row by container width (2 phone / 3 tablet / 4 desktop). | On-device the control bar grew taller to fit horizontally-hungry controls, starving the score; and 4 bars/row crowded the notes on a phone. Keeps the music tall and legible without a per-device code path. |
+| D7 | **A fully independent split surface for "my part" is the M3 form, not M1.** M1 uses the single-player stacked staff (D3). | The stacked staff gives the shared-melody-plus-my-part experience with zero sync risk; a second render surface implies a second clock (the M4 problem). Revisit in M3 presentation templates if stacked proves insufficient — user judged it sufficient for M1. |
 
 ## User Flow
 
@@ -76,7 +78,8 @@ User Action                         System Response
 | FR-1 | Render a song via alphaTab showing chord symbols (from MusicXML `<harmony>`) above an instrument staff | Must |
 | FR-2 | Drive alphaTab's built-in cursor as the playhead; cursor advances in time during playback | Must |
 | FR-3 | Offer this template only when the song's `content.hasChords` is true | Must |
-| FR-4 | Let the player select which part's staff backs the chords (local-only); default to guitar tab when present | Must |
+| FR-4 | Show the shared melody by default; let the player add their own instrument as a toggleable stacked staff (local-only); fall back gracefully when a part is absent (revised D3) | Must |
+| FR-4b | Notation reflows bars-per-row by container width; controls stay compact (Play + scrubber) with the rest in a "More" sheet (D6) | Must |
 | FR-5 | Toggle audio locally: synth playback of the arrangement and/or a metronome click; or silent | Must |
 | FR-6 | On every transport change, write `{ playing, startBar, startTimestamp, tempo }` to the session state object | Must |
 | FR-7 | Consume transport controls (play/pause/tempo/seek) from the separate local-transport feature; do not implement its own controls | Must |
@@ -166,13 +169,13 @@ interface ChordChangesView {
 
 ## Acceptance Criteria
 
-- [ ] A real toolkit MusicXML song loads into alphaTab and shows chord symbols above a staff.
-- [ ] Pressing play (via local-transport) sweeps alphaTab's cursor across the chords in time.
-- [ ] Audio toggle works: synth playback, metronome click, both, and silent are all selectable locally.
-- [ ] Backing part is switchable and defaults to guitar tab when present; absent parts degrade gracefully.
-- [ ] A song with `hasChords=false` does not offer this template.
-- [ ] Every transport change writes `{ playing, startBar, startTimestamp, tempo }` to the session object; no local presentation choice is ever written there.
-- [ ] The view runs on iPhone, Android, iPad, and laptop (web) with no per-device code path.
+- [x] A real toolkit MusicXML song loads into alphaTab and shows chord symbols above a staff.
+- [x] Pressing play (via local-transport) sweeps alphaTab's cursor across the chords in time.
+- [x] Audio toggle works: synth playback, metronome click, both, and silent are all selectable locally.
+- [x] Shared melody shows by default; the player's own part toggles in as a stacked staff (revised D3); absent parts degrade gracefully.
+- [ ] A song with `hasChords=false` does not offer this template. *(Deferred to library-browsing — cannot be exercised until there are multiple songs to gate; no behaviour to test with a single hardcoded tune.)*
+- [x] Every transport change writes `{ playing, startBar, startTimestamp, tempo }` to the session object; no local presentation choice is ever written there.
+- [x] The view runs on iPhone, Android, iPad, and laptop (web) with no per-device code path. *(Confirmed by user on-device, 2026-06-28; responsive bars-per-row + compact controls.)*
 - [ ] A simulated remote transport change can seek the local player to a projected position using `applyTransport` without modifying this view (proves M2-additive).
 
 ## Dependencies
@@ -196,24 +199,28 @@ interface ChordChangesView {
 
 ## Implementation Status
 
-**Status:** In Progress
+**Status:** Done for M1 (7/8 ACs; the 8th — `hasChords` gating — is deferred to library-browsing, see below)
 **Last Worked:** 2026-06-28
-**Progress:** ~4/8 acceptance criteria (alphaTab render with chord symbols + cursor playhead; backing-part select with guitar-tab default; **audio toggle** synth/click over native volumes; transport stamped to session via local-transport). `hasChords` gating and on-device test remain.
+**Progress:** 7/8 acceptance criteria met and **accepted into M1** after on-device confirmation. Render + chord symbols + cursor playhead; **shared-melody default with a toggleable stacked "My part" staff** (revised D3); audio toggle (synth/click/count-in over native volumes); compact controls + responsive bars-per-row (D6); transport stamped to session via local-transport; runs on phone/tablet/laptop (user-confirmed). Remaining: `hasChords` gating (deferred to library-browsing — needs multiple songs to gate) and the M2-additive `applyTransport` proof (a "Should", exercised at the transport layer).
 
 ### Implementation Notes
 - The view IS alphaTab's native render (D1): `ChordChangesView.svelte` mounts the renderer, shows MusicXML `<harmony>` chords above a selectable staff, cursor as playhead.
 - Transport is owned by **local-transport**, not this view: the view creates the `LocalTransport` controller and reflects play/seek; every change stamps `{playing,startBar,startTimestamp,tempo}` to the session store (FR-6).
-- Audio toggle (FR-5) maps to the renderer's native `setMasterVolume`/`setMetronomeVolume` (spike-confirmed); default synth-on/click-off, applied on load and on each toggle. Never written to session state.
+- Audio toggle (FR-5) maps to the renderer's native `setMasterVolume`/`setMetronomeVolume` (spike-confirmed); default synth-on/click-off, applied on load and on each toggle. Count-in toggle calls `transport.setCountIn` (default on). Never written to session state.
+- **Shared-melody default + "My part" overlay (D3):** default render is the first track (the melody everyone shares); selecting a part calls `renderTracks([melody, part])` so the player's instrument stacks beneath, driven by the one player → cursors synced. Replaces the old mutually-exclusive instrument-button row.
+- **Mobile layout (D6):** compact transport (Play + scrubber) always visible; tempo/size/audio/my-part in a "More" sheet. A `ResizeObserver` drives `renderer.setBarsPerRow` (2 phone / 3 tablet / 4 desktop).
 
-### Files Created
-- `src/views/ChordChangesView.svelte` — the view (renderer mount + part selector + transport controls + audio toggle + scrubber).
+### Files Created / Touched
+- `src/views/ChordChangesView.svelte` — the view (renderer mount + melody-default + "My part" overlay + compact controls + More sheet + scrubber + audio/count-in toggles + responsive reflow).
+- `src/renderer/createRenderer.ts` — added `renderTracks()` (stacked staves), `setBarsPerRow()`, `rerenderCurrent()`.
 
 ## Changelog
 
 | Date | Change | Reason |
 |------|--------|--------|
 | 2026-06-26 | Initial specification | Created via /design-feature; 5 design decisions captured (alphaTab-native view, toggleable audio, selectable backing part, cursor-only emphasis, alphaTab-player-as-clock with thin session state) |
+| 2026-06-28 | Implemented (render + chords + cursor + audio toggle + count-in). **D3 revised** (default guitar tab → shared melody + stacked "My part" overlay); **D6/D7 added** (compact controls + responsive bars-per-row; independent split surface deferred to M3). Marked **Done for M1** after on-device confirmation. | User feedback + brainstorm: melody-default with per-player overlays; phone layout reclaimed music height. "Document after" prototype now closed out. |
 
 ---
 
-_Last updated: 2026-06-26_
+_Last updated: 2026-06-28_
