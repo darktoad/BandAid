@@ -190,21 +190,23 @@ interface ChordChangesView {
 ## Open Questions
 
 - [ ] Soundfont choice/size for acceptable acoustic-ish playback across the 8-tune set (bundle vs cache).
-- [ ] Does alphaTab's metronome/click come free with its player, or does it need a small custom click synced to beat callbacks?
+- [x] Does alphaTab's metronome/click come free with its player? **Resolved (2026-06-28 spike):** yes — `api.metronomeVolume` (and `api.countInVolume`) are native, no custom click synth. Audio toggle will map to these volumes.
 - [ ] Backing-part selector placement/UX (deferred to the browsing/shell UI spec).
 - [ ] Confirm alphaTab cursor granularity is smooth enough at slowed tempo (note: this is also the M4 clock-sync reconsideration trigger from ADR-001).
 
 ## Implementation Status
 
-**Status:** Not Started
-**Last Worked:** -
-**Progress:** 0/8 acceptance criteria
+**Status:** In Progress
+**Last Worked:** 2026-06-28
+**Progress:** ~4/8 acceptance criteria (alphaTab render with chord symbols + cursor playhead; backing-part select with guitar-tab default; **audio toggle** synth/click over native volumes; transport stamped to session via local-transport). `hasChords` gating and on-device test remain.
 
 ### Implementation Notes
-_Notes will be added here as implementation progresses via `/impl-feature`._
+- The view IS alphaTab's native render (D1): `ChordChangesView.svelte` mounts the renderer, shows MusicXML `<harmony>` chords above a selectable staff, cursor as playhead.
+- Transport is owned by **local-transport**, not this view: the view creates the `LocalTransport` controller and reflects play/seek; every change stamps `{playing,startBar,startTimestamp,tempo}` to the session store (FR-6).
+- Audio toggle (FR-5) maps to the renderer's native `setMasterVolume`/`setMetronomeVolume` (spike-confirmed); default synth-on/click-off, applied on load and on each toggle. Never written to session state.
 
 ### Files Created
-_Tracked here as created._
+- `src/views/ChordChangesView.svelte` — the view (renderer mount + part selector + transport controls + audio toggle + scrubber).
 
 ## Changelog
 

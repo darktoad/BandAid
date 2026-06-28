@@ -15,9 +15,23 @@ export interface TrackInfo {
   name: string;
 }
 
+/**
+ * Song timing read straight off the loaded alphaTab score (M1 decision: no separate
+ * Song metadata layer yet — the unified-music-model `Song` arrives with library-browsing).
+ * local-transport uses this for the %↔BPM mapping and scrubber range.
+ */
+export interface SongInfo {
+  title: string;
+  tempoBpm: number;
+  timeSignature: string; // "n/d" from the first master bar
+  measureCount: number;
+}
+
 export interface RendererController {
   /** Tracks available in the loaded score (for the backing-part selector). */
   getTracks(): TrackInfo[];
+  /** Timing of the loaded score (tempo/meter/length), or null before it loads. */
+  getSongInfo(): SongInfo | null;
   /** Render only the given track (per-track solo / backing-part selection). */
   soloPart(trackIndex: number): void;
   /** Current cursor bar (1-based). */
@@ -28,6 +42,12 @@ export interface RendererController {
   pause(): void;
   /** Playback speed as a fraction (0.7 = 70%). */
   setSpeed(fraction: number): void;
+  /** Synth playback volume (0 = silent, 1 = full). The arrangement audio. */
+  setMasterVolume(volume: number): void;
+  /** Metronome click volume (0 = off). Native alphaTab click; no custom synth. */
+  setMetronomeVolume(volume: number): void;
+  /** Count-in click volume (0 = off). Native alphaTab one-bar pre-roll on play. */
+  setCountInVolume(volume: number): void;
   /** Re-render at a new display scale (zoom) for legibility. 1 = 100%. */
   setScale(scale: number): void;
   onReady(cb: (tracks: TrackInfo[]) => void): void;
@@ -125,6 +145,17 @@ export async function createRenderer(
 
   return {
     getTracks: () => tracks,
+    getSongInfo() {
+      const score = api.score;
+      if (!score || score.masterBars.length === 0) return null;
+      const mb0 = score.masterBars[0];
+      return {
+        title: score.title ?? '',
+        tempoBpm: score.tempo,
+        timeSignature: `${mb0.timeSignatureNumerator}/${mb0.timeSignatureDenominator}`,
+        measureCount: score.masterBars.length,
+      };
+    },
     soloPart(trackIndex: number) {
       const score = api.score;
       if (!score || !score.tracks[trackIndex]) return;
@@ -144,6 +175,15 @@ export async function createRenderer(
     pause: () => api.pause(),
     setSpeed: (fraction: number) => {
       api.playbackSpeed = fraction;
+    },
+    setMasterVolume: (volume: number) => {
+      api.masterVolume = volume;
+    },
+    setMetronomeVolume: (volume: number) => {
+      api.metronomeVolume = volume;
+    },
+    setCountInVolume: (volume: number) => {
+      api.countInVolume = volume;
     },
     setScale(scale: number) {
       api.settings.display.scale = scale;
