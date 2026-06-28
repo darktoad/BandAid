@@ -34,6 +34,11 @@ export interface RendererController {
   getSongInfo(): SongInfo | null;
   /** Render only the given track (per-track solo / backing-part selection). */
   soloPart(trackIndex: number): void;
+  /** Render a stack of tracks together (e.g. shared melody + a player's part). One
+   *  player drives them, so every staff's cursor stays in lockstep — no second clock. */
+  renderTracks(trackIndices: number[]): void;
+  /** Bars per row — drive from container width for responsive, readable notation. */
+  setBarsPerRow(bars: number): void;
   /** Current cursor bar (1-based). */
   getPositionBar(): number;
   /** Move the cursor/player to the start of a bar (1-based). */
@@ -98,7 +103,9 @@ export async function createRenderer(
 
   let tracks: TrackInfo[] = [];
   let currentBar = 1;
-  let currentTrackIndex = 0; // the soloed/rendered track, so we can re-render it on zoom
+  // The rendered track set (1+ stacked staves), kept so zoom/bars-per-row re-render
+  // the same selection instead of dropping back to every track.
+  let currentTrackIndices: number[] = [0];
   let playbackReady = false;
   const readyCbs: Array<(t: TrackInfo[]) => void> = [];
   const errorCbs: Array<(e: Error) => void> = [];
@@ -143,6 +150,15 @@ export async function createRenderer(
   const ok = api.load(bytes);
   if (!ok) throw new Error(`alphaTab could not parse ${musicXmlUrl}`);
 
+  // Re-render the currently selected track set (after a zoom/bars-per-row change) so
+  // settings take effect without dropping back to showing every track.
+  function rerenderCurrent() {
+    const score = api.score;
+    const picked = score ? currentTrackIndices.map((i) => score.tracks[i]).filter(Boolean) : [];
+    if (picked.length > 0) api.renderTracks(picked);
+    else api.render();
+  }
+
   return {
     getTracks: () => tracks,
     getSongInfo() {
@@ -159,8 +175,21 @@ export async function createRenderer(
     soloPart(trackIndex: number) {
       const score = api.score;
       if (!score || !score.tracks[trackIndex]) return;
-      currentTrackIndex = trackIndex;
+      currentTrackIndices = [trackIndex];
       api.renderTracks([score.tracks[trackIndex]]);
+    },
+    renderTracks(trackIndices: number[]) {
+      const score = api.score;
+      if (!score) return;
+      const picked = trackIndices.map((i) => score.tracks[i]).filter(Boolean);
+      if (picked.length === 0) return;
+      currentTrackIndices = picked.map((t) => t.index);
+      api.renderTracks(picked);
+    },
+    setBarsPerRow(bars: number) {
+      api.settings.display.barsPerRow = bars;
+      api.updateSettings();
+      rerenderCurrent();
     },
     getPositionBar: () => currentBar,
     seekToBar(bar: number) {
@@ -188,14 +217,7 @@ export async function createRenderer(
     setScale(scale: number) {
       api.settings.display.scale = scale;
       api.updateSettings();
-      // Re-render the currently soloed track so the zoom takes effect without
-      // dropping back to showing every track.
-      const score = api.score;
-      if (score && score.tracks[currentTrackIndex]) {
-        api.renderTracks([score.tracks[currentTrackIndex]]);
-      } else {
-        api.render();
-      }
+      rerenderCurrent();
     },
     onReady: (cb) => readyCbs.push(cb),
     onError: (cb) => errorCbs.push(cb),
