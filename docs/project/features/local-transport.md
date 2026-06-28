@@ -185,29 +185,38 @@ interface LocalTransport {
 
 ## Open Questions
 
-- [ ] Does alphaTab expose a count-in/metronome directly, or do we build a one-bar click from beat callbacks? (Shared open question with chord-changes-view.)
-- [ ] Exact tempo range and step granularity (e.g. 50–110% in 5% steps vs continuous).
-- [ ] Scrubber granularity: snap to bar vs free scrub then snap on release.
+- [x] Does alphaTab expose a count-in/metronome directly, or do we build a one-bar click from beat callbacks? **Resolved (2026-06-28 spike):** alphaTab has both natively — `api.countInVolume` (one-bar pre-roll) and `api.metronomeVolume` (in-playback click), each 0–1, default 0/off. No custom click synth needed. Surfaced on the renderer as `setCountInVolume` / `setMetronomeVolume`.
+- [x] Exact tempo range and step granularity. **Decided:** 50–110% in 5% steps (range clamped in `createLocalTransport`; UI slider step 5).
+- [ ] Scrubber granularity: snap to bar vs free scrub then snap on release. *(Scrubber itself deferred to a fast-follow; thin slice ships tap-a-bar seek only.)*
 - [ ] Should the last-used tempo per song persist? (Tied to post-MVP storage.)
 - [ ] Control layout/placement (deferred to the shell/browsing UI spec).
 
 ## Implementation Status
 
-**Status:** Not Started
-**Last Worked:** -
-**Progress:** 0/8 acceptance criteria
+**Status:** In Progress (thin vertical slice)
+**Last Worked:** 2026-06-28
+**Progress:** ~4/8 acceptance criteria (play/pause stamp; tempo %↔BPM + continuity; tap-a-bar seek via store; sole-writer guarantee). Scrubber, count-in UI, audio toggle, and on-device test are fast-follows.
 
 ### Implementation Notes
-_Notes will be added here as implementation progresses via `/impl-feature`._
+- `createLocalTransport` is the **sole writer** of `Transport` (FR-7). It stamps the *intended* next state immediately rather than reading post-callback state, fixing the stale-stamp bug in the old inline App demo.
+- **Continuity (FR-3):** tempo change and seek restamp `{startBar:currentBar, startTimestamp:now}` so `projectBar` sees no jump — unit-tested against the real `projectBar`.
+- **Tap-a-bar (D2):** alphaTab's native click-to-seek (`enableUserInteraction`) is wired through the store by treating a position change *while paused* as a seek stamp.
+- **Pitch preserved (FR-8):** tempo is alphaTab playback rate (`setSpeed`), not audio time-stretch.
+- Count-in/metronome use the native alphaTab volumes from the spike (renderer `setCountInVolume`/`setMetronomeVolume`); the toggle UI is a fast-follow.
+- Metadata (defaultTempoBpm/measureCount/timeSignature) is read from the loaded alphaTab score via `RendererController.getSongInfo()` — no separate Song layer until library-browsing.
 
 ### Files Created
-_Tracked here as created._
+- `src/transport/localTransport.ts` — the `LocalTransport` controller + `TransportRenderer` seam.
+- `src/transport/localTransport.test.ts` — 11 tests (restamp continuity, clamps, tap-a-bar, sole-writer/M2 seam).
+- `src/renderer/createRenderer.ts` — added `getSongInfo()` + `setMasterVolume`/`setMetronomeVolume`/`setCountInVolume`.
+- `src/views/ChordChangesView.svelte` — view shell that drives the controller; `src/App.svelte` slimmed to a session host.
 
 ## Changelog
 
 | Date | Change | Reason |
 |------|--------|--------|
 | 2026-06-26 | Initial specification | Created via /design-feature; 5 design decisions (BPM+% tempo, tap-a-bar + scrubber seek, toggleable count-in, sole writer of Transport, looping deferred to M2) |
+| 2026-06-28 | Thin slice implemented; count-in/metronome spike resolved (alphaTab native); tempo step decided (5%) | Step 2 of M1 build order — controls that drive the playhead |
 
 ---
 
