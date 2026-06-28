@@ -18,6 +18,16 @@ export default defineConfig(({ command }) => ({
       targets: [
         { src: `${alphaTabDist}/font/*`, dest: 'alphatab/font' },
         { src: `${alphaTabDist}/soundfont/sonivox.sf2`, dest: 'alphatab/soundfont' },
+        // alphaTab loads its web worker + AudioWorklet at runtime via
+        // `new URL('./alphaTab.worker.mjs', import.meta.url)` relative to the
+        // built app chunk (in assets/). Vite doesn't bundle these, so copy them
+        // (and the core they import) next to the chunk. The AudioWorklet output
+        // is what makes audio work on iOS Safari.
+        { src: `${alphaTabDist}/alphaTab.worker.mjs`, dest: 'assets' },
+        { src: `${alphaTabDist}/alphaTab.worklet.mjs`, dest: 'assets' },
+        // worker/worklet import './alphaTab.core.mjs'; serve the minified core
+        // under that name to keep the worker payload smaller.
+        { src: `${alphaTabDist}/alphaTab.core.min.mjs`, dest: 'assets', rename: 'alphaTab.core.mjs' },
       ],
     }),
   ],

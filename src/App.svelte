@@ -20,6 +20,7 @@
   let backingPart = $state(1); // default: guitar tab (track index 1)
   let bar = $state(1);
   let playing = $state(false);
+  let canPlay = $state(false); // true once the soundfont/player is loaded
   let speedPct = $state(100);
   let scalePct = $state(100); // notation zoom for legibility
   let errorMsg = $state<string | null>(null);
@@ -81,7 +82,9 @@
 </header>
 
 <div class="controls">
-  <button onclick={togglePlay} disabled={!controller}>{playing ? '⏸ Pause' : '▶ Play'}</button>
+  <button onclick={togglePlay} disabled={!controller || !canPlay}>
+    {!canPlay ? '⏳ Loading…' : playing ? '⏸ Pause' : '▶ Play'}
+  </button>
 
   <label class="speed">
     Tempo
@@ -114,6 +117,7 @@
     onready={onReady}
     onposition={(b) => (bar = b)}
     onplaying={(p) => (playing = p)}
+    onplayable={() => (canPlay = true)}
     onerror={(e) => (errorMsg = e.message)}
   />
 </main>

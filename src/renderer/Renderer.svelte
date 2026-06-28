@@ -8,12 +8,14 @@
     onerror,
     onposition,
     onplaying,
+    onplayable,
   }: {
     musicXmlUrl: string;
     onready?: (controller: RendererController, tracks: TrackInfo[]) => void;
     onerror?: (err: Error) => void;
     onposition?: (bar: number) => void;
     onplaying?: (playing: boolean) => void;
+    onplayable?: () => void;
   } = $props();
 
   let host: HTMLDivElement;
@@ -25,6 +27,7 @@
       controller.onError((e) => onerror?.(e));
       controller.onPosition((bar) => onposition?.(bar));
       controller.onPlayingChanged((p) => onplaying?.(p));
+      controller.onReadyForPlayback(() => onplayable?.());
       controller.onReady((tracks) => onready?.(controller!, tracks));
       if (controller.getTracks().length > 0) {
         onready?.(controller, controller.getTracks());
