@@ -187,15 +187,15 @@ interface LocalTransport {
 
 - [x] Does alphaTab expose a count-in/metronome directly, or do we build a one-bar click from beat callbacks? **Resolved (2026-06-28 spike):** alphaTab has both natively — `api.countInVolume` (one-bar pre-roll) and `api.metronomeVolume` (in-playback click), each 0–1, default 0/off. No custom click synth needed. Surfaced on the renderer as `setCountInVolume` / `setMetronomeVolume`.
 - [x] Exact tempo range and step granularity. **Decided:** 50–110% in 5% steps (range clamped in `createLocalTransport`; UI slider step 5).
-- [ ] Scrubber granularity: snap to bar vs free scrub then snap on release. *(Scrubber itself deferred to a fast-follow; thin slice ships tap-a-bar seek only.)*
+- [x] Scrubber granularity: snap to bar vs free scrub then snap on release. **Decided:** snap-to-bar (integer `step=1` over `[1, measureCount]`); drives the same seek/restamp path as tap-a-bar.
 - [ ] Should the last-used tempo per song persist? (Tied to post-MVP storage.)
 - [ ] Control layout/placement (deferred to the shell/browsing UI spec).
 
 ## Implementation Status
 
-**Status:** In Progress (thin vertical slice)
+**Status:** In Progress
 **Last Worked:** 2026-06-28
-**Progress:** ~4/8 acceptance criteria (play/pause stamp; tempo %↔BPM + continuity; tap-a-bar seek via store; sole-writer guarantee). Scrubber, count-in UI, audio toggle, and on-device test are fast-follows.
+**Progress:** ~5/8 acceptance criteria (play/pause stamp; tempo %↔BPM + continuity; tap-a-bar **and scrubber** seek via store; sole-writer guarantee). Count-in UI toggle and on-device test remain.
 
 ### Implementation Notes
 - `createLocalTransport` is the **sole writer** of `Transport` (FR-7). It stamps the *intended* next state immediately rather than reading post-callback state, fixing the stale-stamp bug in the old inline App demo.

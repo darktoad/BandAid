@@ -8,9 +8,9 @@
    * Chord-Changes-in-Time view (M1). A presentation template over the unified music
    * model + session transport: alphaTab renders chord symbols above a selectable staff,
    * its cursor is the playhead, and the local-transport controller drives + stamps it.
-   * Local choices (part, tempo %, count-in) live here; only Transport is written to the
-   * session store. This thin slice ships play/pause + tempo + tap-a-bar seek; the
-   * scrubber and audio toggles are fast-follows.
+   * Local choices (part, tempo %, count-in, audio) live here; only Transport is written
+   * to the session store. Drives play/pause + tempo + tap-a-bar/scrubber seek, and an
+   * audio toggle over alphaTab's native synth + metronome volumes.
    */
   let { song, store }: {
     song: { id: string; url: string; title: string };
@@ -27,6 +27,11 @@
   let speedPct = $state(100);
   let scalePct = $state(100); // notation zoom (local presentation, not transport)
   let tempoBpm = $state(120); // replaced by the score's real tempo once it loads
+  let measureCount = $state(1); // scrubber range; replaced from the score once loaded
+  // Audio: local presentation, never synced. Default to hearing the arrangement
+  // (synth on) with the click off — drilling chord changes wants the sound first.
+  let synth = $state(true);
+  let click = $state(false);
   let errorMsg = $state<string | null>(null);
 
   function onReady(c: RendererController, t: TrackInfo[]) {
@@ -39,13 +44,39 @@
     // separate Song metadata layer yet — that arrives with library-browsing).
     const info = c.getSongInfo();
     tempoBpm = info?.tempoBpm ?? 120;
+    measureCount = info?.measureCount ?? 1;
     transport = createLocalTransport({
       songId: song.id,
       defaultTempoBpm: tempoBpm,
-      measureCount: info?.measureCount ?? Number.MAX_SAFE_INTEGER,
+      measureCount,
       renderer: c,
       store,
     });
+    applyAudio(); // honor the initial synth/click choice on the freshly loaded player
+  }
+
+  // Map the local audio choice onto alphaTab's native volumes (no custom click synth).
+  function applyAudio() {
+    controller?.setMasterVolume(synth ? 1 : 0);
+    controller?.setMetronomeVolume(click ? 1 : 0);
+  }
+
+  function toggleSynth() {
+    synth = !synth;
+    controller?.setMasterVolume(synth ? 1 : 0);
+  }
+
+  function toggleClick() {
+    click = !click;
+    controller?.setMetronomeVolume(click ? 1 : 0);
+  }
+
+  // Scrubber: snap-to-bar fast travel. Drives the same seek path as tap-a-bar, so it
+  // restamps the transport; keep the local bar readout in sync immediately.
+  function onScrub(e: Event) {
+    const target = Number((e.target as HTMLInputElement).value);
+    bar = target;
+    transport?.seekToBar(target);
   }
 
   function selectPart(index: number) {
@@ -109,7 +140,24 @@
     {/each}
   </div>
 
-  <span class="readout">bar {bar}</span>
+  <div class="parts" role="group" aria-label="Audio">
+    <button class:active={synth} onclick={toggleSynth} disabled={!controller}>🔊 Sound</button>
+    <button class:active={click} onclick={toggleClick} disabled={!controller}>🥁 Click</button>
+  </div>
+</div>
+
+<div class="scrubber">
+  <input
+    type="range"
+    min="1"
+    max={measureCount}
+    step="1"
+    value={bar}
+    oninput={onScrub}
+    disabled={!transport}
+    aria-label="Seek to bar"
+  />
+  <span class="readout">bar {bar} / {measureCount}</span>
 </div>
 
 {#if errorMsg}
@@ -149,6 +197,16 @@
     background: var(--panel);
   }
   .speed { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--muted); }
+
+  .scrubber {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4rem 1rem;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .scrubber input { flex: 1; }
   .parts { display: inline-flex; gap: 0.4rem; }
   .parts button { padding: 0.35rem 0.6rem; font-size: 0.85rem; }
   .parts button.active { border-color: var(--accent); color: var(--accent); }

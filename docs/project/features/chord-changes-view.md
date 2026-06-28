@@ -196,17 +196,17 @@ interface ChordChangesView {
 
 ## Implementation Status
 
-**Status:** In Progress (view shell)
+**Status:** In Progress
 **Last Worked:** 2026-06-28
-**Progress:** ~3/8 acceptance criteria (alphaTab render with chord symbols + cursor playhead; backing-part select with guitar-tab default; transport stamped to session via local-transport). Audio toggle UI, `hasChords` gating, and on-device test are fast-follows (the native metronome/synth volumes they map to already exist on the renderer).
+**Progress:** ~4/8 acceptance criteria (alphaTab render with chord symbols + cursor playhead; backing-part select with guitar-tab default; **audio toggle** synth/click over native volumes; transport stamped to session via local-transport). `hasChords` gating and on-device test remain.
 
 ### Implementation Notes
 - The view IS alphaTab's native render (D1): `ChordChangesView.svelte` mounts the renderer, shows MusicXML `<harmony>` chords above a selectable staff, cursor as playhead.
 - Transport is owned by **local-transport**, not this view: the view creates the `LocalTransport` controller and reflects play/seek; every change stamps `{playing,startBar,startTimestamp,tempo}` to the session store (FR-6).
-- Audio toggle (FR-5) maps to the renderer's native `setMasterVolume`/`setMetronomeVolume` (spike-confirmed) — wiring deferred to the fast-follow.
+- Audio toggle (FR-5) maps to the renderer's native `setMasterVolume`/`setMetronomeVolume` (spike-confirmed); default synth-on/click-off, applied on load and on each toggle. Never written to session state.
 
 ### Files Created
-- `src/views/ChordChangesView.svelte` — the view shell (renderer mount + part selector + transport controls).
+- `src/views/ChordChangesView.svelte` — the view (renderer mount + part selector + transport controls + audio toggle + scrubber).
 
 ## Changelog
 
