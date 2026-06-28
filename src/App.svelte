@@ -21,6 +21,7 @@
   let bar = $state(1);
   let playing = $state(false);
   let speedPct = $state(100);
+  let scalePct = $state(100); // notation zoom for legibility
   let errorMsg = $state<string | null>(null);
 
   function onReady(c: RendererController, t: TrackInfo[]) {
@@ -46,6 +47,11 @@
     speedPct = Number((e.target as HTMLInputElement).value);
     controller?.setSpeed(speedPct / 100);
     stampTransport();
+  }
+
+  function onScale(e: Event) {
+    scalePct = Number((e.target as HTMLInputElement).value);
+    controller?.setScale(scalePct / 100);
   }
 
   // Demonstrates the session-shaped flow: every transport change stamps the store
@@ -81,6 +87,12 @@
     Tempo
     <input type="range" min="50" max="110" step="5" value={speedPct} oninput={onSpeed} disabled={!controller} />
     <span class="readout">{speedPct}% · {Math.round((SONG.defaultTempoBpm * speedPct) / 100)} bpm</span>
+  </label>
+
+  <label class="speed">
+    Size
+    <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} />
+    <span class="readout">{scalePct}%</span>
   </label>
 
   <div class="parts">

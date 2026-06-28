@@ -28,6 +28,8 @@ export interface RendererController {
   pause(): void;
   /** Playback speed as a fraction (0.7 = 70%). */
   setSpeed(fraction: number): void;
+  /** Re-render at a new display scale (zoom) for legibility. 1 = 100%. */
+  setScale(scale: number): void;
   onReady(cb: (tracks: TrackInfo[]) => void): void;
   onError(cb: (err: Error) => void): void;
   onPosition(cb: (bar: number) => void): void;
@@ -64,6 +66,7 @@ export async function createRenderer(
 
   let tracks: TrackInfo[] = [];
   let currentBar = 1;
+  let currentTrackIndex = 0; // the soloed/rendered track, so we can re-render it on zoom
   const readyCbs: Array<(t: TrackInfo[]) => void> = [];
   const errorCbs: Array<(e: Error) => void> = [];
   const positionCbs: Array<(bar: number) => void> = [];
@@ -106,6 +109,7 @@ export async function createRenderer(
     soloPart(trackIndex: number) {
       const score = api.score;
       if (!score || !score.tracks[trackIndex]) return;
+      currentTrackIndex = trackIndex;
       api.renderTracks([score.tracks[trackIndex]]);
     },
     getPositionBar: () => currentBar,
@@ -121,6 +125,18 @@ export async function createRenderer(
     pause: () => api.pause(),
     setSpeed: (fraction: number) => {
       api.playbackSpeed = fraction;
+    },
+    setScale(scale: number) {
+      api.settings.display.scale = scale;
+      api.updateSettings();
+      // Re-render the currently soloed track so the zoom takes effect without
+      // dropping back to showing every track.
+      const score = api.score;
+      if (score && score.tracks[currentTrackIndex]) {
+        api.renderTracks([score.tracks[currentTrackIndex]]);
+      } else {
+        api.render();
+      }
     },
     onReady: (cb) => readyCbs.push(cb),
     onError: (cb) => errorCbs.push(cb),

@@ -35,3 +35,9 @@ button {
 }
 button:hover { border-color: var(--accent); }
 button:disabled { opacity: 0.4; cursor: default; }
+
+/* alphaTab injects these cursor elements into the render surface but does not
+   style them, so by default the playhead is invisible. Make the active bar a
+   translucent wash and the beat a solid line so the moving playhead is visible. */
+.at-cursor-bar { background: rgba(217, 138, 61, 0.20); }
+.at-cursor-beat { background: var(--accent); }
