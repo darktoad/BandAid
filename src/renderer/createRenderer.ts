@@ -53,9 +53,11 @@ export async function createRenderer(
 ): Promise<RendererController> {
   const api = new alphaTab.AlphaTabApi(element, {
     core: {
-      // Main-thread layout + ScriptProcessor audio: no worker/worklet plumbing,
-      // just locally-bundled fonts/soundfont (AC-2 / NFR-1, network-free).
-      useWorkers: false,
+      // Use alphaTab's web worker + AudioWorklet (Vite bundles them from
+      // alphaTab.mjs via import.meta.url). The AudioWorklet output is required
+      // for audio on iOS Safari — the legacy ScriptProcessor fallback (what
+      // useWorkers:false forced) is silent there. Fonts/soundfont stay local.
+      useWorkers: true,
       fontDirectory: `${ALPHATAB_ASSET_BASE}/font/`,
     },
     player: {
@@ -64,9 +66,13 @@ export async function createRenderer(
       enableUserInteraction: true, // click a note to seek — interactive seek for free
       soundFont: `${ALPHATAB_ASSET_BASE}/soundfont/sonivox.sf2`,
       scrollMode: 'off',
+      // Prefer the AudioWorklet output (default); falls back to ScriptProcessor
+      // only if the worklet can't load.
+      outputMode: alphaTab.PlayerOutputMode.WebAudioAudioWorklets,
     },
     display: {
       layoutMode: 'page',
+      barsPerRow: 4, // 4 bars per row by default for readability
     },
   });
 
