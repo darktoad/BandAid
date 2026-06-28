@@ -13,6 +13,10 @@ instrument, which view) is local per device. There are no modes, only a session
 
 > Status: **M1 (MVP) in progress.** All five M1 feature specs are written; the
 > `renderer-playhead` foundation is built and runs. See [Current State](#current-state).
+>
+> **▶ Live app: <https://darktoad.github.io/BandAid/>** — auto-deployed from `main` on
+> every push via GitHub Pages. Open it on any device (iPhone / Android / iPad / laptop);
+> no install needed.
 
 ## Quick start
 
@@ -29,6 +33,19 @@ npm run check    # svelte-check / TypeScript typecheck
 Open http://localhost:5173 and you should see "Big John McNeil" rendered as guitar
 tab with a control bar (Play, tempo, part selector). Click a part button to switch
 the staff; click Play to start the cursor and audio.
+
+To try the deployed build instead of running locally, just open the
+[live app](https://darktoad.github.io/BandAid/).
+
+## Deployment
+
+The app is a static SPA hosted on **GitHub Pages**. The
+[`deploy` workflow](.github/workflows/deploy.yml) builds (`npm ci && npm run build`)
+and publishes `dist/` on every push to `main`, so the
+[live URL](https://darktoad.github.io/BandAid/) always tracks `main`. Pages is a
+*project* site, so it is served under the case-sensitive `/BandAid/` path — Vite's
+`base` is set to match in `vite.config.ts`. No manual setup is required; the workflow
+enables Pages on first run.
 
 ## Stack
 
