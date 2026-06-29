@@ -20,9 +20,10 @@
    *    is the richer M3 form.)
    * Local choices (part, tempo %, audio, zoom) live here; only Transport is synced.
    */
-  let { song, store }: {
+  let { song, store, onback }: {
     song: { id: string; url: string; title: string };
     store: SessionStore;
+    onback?: () => void;
   } = $props();
 
   let controller = $state<RendererController | undefined>(undefined);
@@ -161,6 +162,9 @@
 <svelte:window onkeydown={onKeydown} />
 
 <header class="topbar">
+  {#if onback}
+    <button class="back" onclick={onback} aria-label="Back to library">←</button>
+  {/if}
   <span class="brand">BandAid</span>
   <span class="tag">{song.title} · chord changes</span>
 </header>
@@ -251,6 +255,7 @@
   }
   .brand { font-weight: 700; letter-spacing: 0.02em; }
   .tag { color: var(--muted); font-size: 0.8rem; }
+  .back { flex: 0 0 auto; min-width: 2.2rem; min-height: 2.2rem; font-size: 1rem; align-self: center; }
 
   /* One short row, always visible — does not grow with the number of controls. */
   .transport {

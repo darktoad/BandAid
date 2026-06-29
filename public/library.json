@@ -1,0 +1,25 @@
+{
+  "songs": [
+    {
+      "id": "big-john-mcneil",
+      "title": "Big John McNeil",
+      "defaultKey": { "fifths": 3, "mode": "major", "tonalCenter": "A" },
+      "defaultTempoBpm": 108,
+      "timeSignature": "4/4",
+      "content": { "hasMelody": true, "hasChords": true, "hasTab": true },
+      "parts": [
+        { "instrument": "Fiddle", "notationType": "notation" },
+        { "instrument": "Guitar", "notationType": "tab" },
+        { "instrument": "Ukulele", "notationType": "tab" },
+        { "instrument": "Bass", "notationType": "tab" }
+      ]
+    }
+  ],
+  "setLists": [
+    {
+      "id": "rehearsal-set",
+      "name": "Rehearsal Set",
+      "entries": [{ "songId": "big-john-mcneil" }]
+    }
+  ]
+}
