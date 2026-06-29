@@ -19,7 +19,10 @@ html, body {
 }
 
 #app {
-  height: 100vh;
+  height: 100vh; /* fallback */
+  /* Track the visible viewport on mobile (iOS Safari's toolbar makes 100vh taller
+     than what's on screen), so the bottom-docked chord overlay isn't clipped. */
+  height: 100dvh;
   display: flex;
   flex-direction: column;
 }
