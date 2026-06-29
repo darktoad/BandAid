@@ -97,6 +97,15 @@
         { "instrument": "Ukulele", "notationType": "tab" },
         { "instrument": "Bass", "notationType": "tab" }
       ]
+    },
+    {
+      "id": "stones-rag",
+      "title": "Stone's Rag",
+      "defaultKey": { "fifths": 0, "mode": "major", "tonalCenter": "C" },
+      "defaultTempoBpm": 90,
+      "timeSignature": "2/4",
+      "content": { "hasMelody": true, "hasChords": true, "hasTab": false },
+      "parts": [{ "instrument": "Fiddle", "notationType": "notation" }]
     }
   ],
   "setLists": [
