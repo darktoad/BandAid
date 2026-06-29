@@ -12,6 +12,12 @@ export default defineConfig(({ command }) => ({
   // case-sensitive and must match the repo name exactly. The production build
   // carries that prefix (and import.meta.env.BASE_URL with it); dev stays at /.
   base: command === 'build' ? '/BandAid/' : '/',
+  // A per-build id, appended as ?v=... to the runtime-fetched assets that GitHub
+  // Pages caches (library.json + the song MusicXML). Content-hashed JS/CSS bust
+  // themselves; these mutable files otherwise serve stale for ~10 min after a deploy.
+  define: {
+    __BUILD_ID__: JSON.stringify(command === 'build' ? String(Date.now()) : 'dev'),
+  },
   plugins: [
     svelte(),
     viteStaticCopy({
