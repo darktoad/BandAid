@@ -16,9 +16,12 @@
   let route = $state<'browse' | 'drill'>('browse');
   let current = $state<{ id: string; url: string; title: string } | undefined>(undefined);
 
+  // Cache-buster for the runtime-fetched files GitHub Pages caches; bumps each deploy.
+  const v = `?v=${__BUILD_ID__}`;
+
   onMount(async () => {
     try {
-      service = await createLibraryService(`${import.meta.env.BASE_URL}library.json`);
+      service = await createLibraryService(`${import.meta.env.BASE_URL}library.json${v}`);
     } catch (e) {
       loadError = e instanceof Error ? e.message : String(e);
     }
@@ -27,7 +30,7 @@
   function openSong(s: SongSummary) {
     store.setCurrentSong(s.id); // the only write to currentSongId (D5/FR-7)
     // Convention: a song's canonical file is songs/<id>.musicxml (NFR-3).
-    current = { id: s.id, url: `${import.meta.env.BASE_URL}songs/${s.id}.musicxml`, title: s.title };
+    current = { id: s.id, url: `${import.meta.env.BASE_URL}songs/${s.id}.musicxml${v}`, title: s.title };
     route = 'drill';
   }
   function back() {
