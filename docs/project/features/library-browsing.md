@@ -230,6 +230,7 @@ interface LibraryService {
 |------|--------|--------|
 | 2026-06-26 | Initial specification | Created via /design-feature; 5 design decisions (set-lists-first, return-to-list between songs, detail card before load, read-only bundled manifest, Open sets currentSongId) |
 | 2026-06-29 | Implemented the browse shell + library service over a bundled manifest; Open wired to `setCurrentSong`. Marked **Built (M1)**. | Final M1 step — the shell that picks a song to drill. |
+| 2026-06-29 | Widened the library to **7 tunes** (2 set lists) from the already-processed `tune-arranger` multipart samples — no processing tool needed; manifest entries + `songs/<id>.musicxml`. | Populate the library/set lists for real testing; proves the manifest-driven add-a-song path (NFR-3). |
 
 ---
 

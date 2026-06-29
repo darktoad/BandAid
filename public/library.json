@@ -13,13 +13,114 @@
         { "instrument": "Ukulele", "notationType": "tab" },
         { "instrument": "Bass", "notationType": "tab" }
       ]
+    },
+    {
+      "id": "blackberry-blossom",
+      "title": "Blackberry Blossom",
+      "defaultKey": { "fifths": 1, "mode": "major", "tonalCenter": "G" },
+      "defaultTempoBpm": 120,
+      "timeSignature": "4/4",
+      "content": { "hasMelody": true, "hasChords": true, "hasTab": true },
+      "parts": [
+        { "instrument": "Fiddle", "notationType": "notation" },
+        { "instrument": "Guitar", "notationType": "tab" },
+        { "instrument": "Ukulele", "notationType": "tab" },
+        { "instrument": "Bass", "notationType": "tab" }
+      ]
+    },
+    {
+      "id": "wabash-cannonball",
+      "title": "Wabash Cannonball",
+      "defaultKey": { "fifths": 1, "mode": "major", "tonalCenter": "G" },
+      "defaultTempoBpm": 104,
+      "timeSignature": "4/4",
+      "content": { "hasMelody": true, "hasChords": true, "hasTab": true },
+      "parts": [
+        { "instrument": "Fiddle", "notationType": "notation" },
+        { "instrument": "Guitar", "notationType": "tab" },
+        { "instrument": "Ukulele", "notationType": "tab" },
+        { "instrument": "Bass", "notationType": "tab" }
+      ]
+    },
+    {
+      "id": "irish-washerwoman",
+      "title": "The Irish Washerwoman",
+      "defaultKey": { "fifths": 1, "mode": "major", "tonalCenter": "G" },
+      "defaultTempoBpm": 174,
+      "timeSignature": "6/8",
+      "content": { "hasMelody": true, "hasChords": true, "hasTab": true },
+      "parts": [
+        { "instrument": "Fiddle", "notationType": "notation" },
+        { "instrument": "Guitar", "notationType": "tab" },
+        { "instrument": "Ukulele", "notationType": "tab" },
+        { "instrument": "Bass", "notationType": "tab" }
+      ]
+    },
+    {
+      "id": "soldiers-joy",
+      "title": "Soldier's Joy",
+      "defaultKey": { "fifths": 2, "mode": "major", "tonalCenter": "D" },
+      "defaultTempoBpm": 112,
+      "timeSignature": "4/4",
+      "content": { "hasMelody": true, "hasChords": true, "hasTab": true },
+      "parts": [
+        { "instrument": "Fiddle", "notationType": "notation" },
+        { "instrument": "Guitar", "notationType": "tab" },
+        { "instrument": "Ukulele", "notationType": "tab" },
+        { "instrument": "Bass", "notationType": "tab" }
+      ]
+    },
+    {
+      "id": "old-blue",
+      "title": "Old Blue",
+      "defaultKey": { "fifths": 2, "mode": "major", "tonalCenter": "D" },
+      "defaultTempoBpm": 92,
+      "timeSignature": "4/4",
+      "content": { "hasMelody": true, "hasChords": true, "hasTab": true },
+      "parts": [
+        { "instrument": "Fiddle", "notationType": "notation" },
+        { "instrument": "Guitar", "notationType": "tab" },
+        { "instrument": "Ukulele", "notationType": "tab" },
+        { "instrument": "Bass", "notationType": "tab" }
+      ]
+    },
+    {
+      "id": "billy-in-the-lowground",
+      "title": "Billy in the Lowground",
+      "defaultKey": { "fifths": 0, "mode": "major", "tonalCenter": "C" },
+      "defaultTempoBpm": 110,
+      "timeSignature": "4/4",
+      "content": { "hasMelody": true, "hasChords": true, "hasTab": true },
+      "parts": [
+        { "instrument": "Fiddle", "notationType": "notation" },
+        { "instrument": "Guitar", "notationType": "tab" },
+        { "instrument": "Ukulele", "notationType": "tab" },
+        { "instrument": "Bass", "notationType": "tab" }
+      ]
     }
   ],
   "setLists": [
     {
       "id": "rehearsal-set",
       "name": "Rehearsal Set",
-      "entries": [{ "songId": "big-john-mcneil" }]
+      "entries": [
+        { "songId": "big-john-mcneil" },
+        { "songId": "blackberry-blossom" },
+        { "songId": "soldiers-joy" },
+        { "songId": "billy-in-the-lowground" },
+        { "songId": "wabash-cannonball" },
+        { "songId": "old-blue" }
+      ]
+    },
+    {
+      "id": "reels",
+      "name": "Reels",
+      "entries": [
+        { "songId": "big-john-mcneil" },
+        { "songId": "blackberry-blossom" },
+        { "songId": "soldiers-joy" },
+        { "songId": "billy-in-the-lowground" }
+      ]
     }
   ]
 }
