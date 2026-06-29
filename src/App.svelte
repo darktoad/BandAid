@@ -4,7 +4,7 @@
   import ChordChangesView from './views/ChordChangesView.svelte';
   import { createLocalSessionStore } from './session/store';
   import { createLibraryService, type LibraryService } from './library/libraryService';
-  import type { SongSummary } from './library/types';
+  import type { SongSummary, SongKey } from './library/types';
 
   // The app owns the session (a session of one in M1). Browsing writes currentSongId
   // (the seam to the renderer); in M2 the same store becomes a CRDT with no change here.
@@ -14,7 +14,7 @@
   let loadError = $state<string | null>(null);
   // 'browse' vs 'drill' is local presentation; currentSongId is the synced truth.
   let route = $state<'browse' | 'drill'>('browse');
-  let current = $state<{ id: string; url: string; title: string } | undefined>(undefined);
+  let current = $state<{ id: string; url: string; title: string; key?: SongKey } | undefined>(undefined);
 
   // Cache-buster for the runtime-fetched files GitHub Pages caches; bumps each deploy.
   const v = `?v=${__BUILD_ID__}`;
@@ -30,7 +30,12 @@
   function openSong(s: SongSummary) {
     store.setCurrentSong(s.id); // the only write to currentSongId (D5/FR-7)
     // Convention: a song's canonical file is songs/<id>.musicxml (NFR-3).
-    current = { id: s.id, url: `${import.meta.env.BASE_URL}songs/${s.id}.musicxml${v}`, title: s.title };
+    current = {
+      id: s.id,
+      url: `${import.meta.env.BASE_URL}songs/${s.id}.musicxml${v}`,
+      title: s.title,
+      key: s.defaultKey,
+    };
     route = 'drill';
   }
   function back() {

@@ -21,7 +21,7 @@
    * Local choices (part, tempo %, audio, zoom) live here; only Transport is synced.
    */
   let { song, store, onback }: {
-    song: { id: string; url: string; title: string };
+    song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string } };
     store: SessionStore;
     onback?: () => void;
   } = $props();
@@ -37,6 +37,7 @@
   let playing = $state(false);
   let canPlay = $state(false); // true once the soundfont/player is loaded
   let speedPct = $state(100);
+  let transpose = $state(0); // semitones from written key; 0 = original
   let scalePct = $state(100); // notation zoom (local presentation, not transport)
   let tempoBpm = $state(120); // replaced by the score's real tempo once it loads
   let measureCount = $state(1); // scrubber range; replaced from the score once loaded
@@ -88,10 +89,12 @@
       renderer: c,
       store,
     });
-    // Apply this song's saved performance overrides (tempo); absent = canonical default.
+    // Apply this song's saved performance overrides (tempo, key); absent = canonical default.
     const saved = store.getSongSettings(song.id);
     speedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 100) : 100;
     transport.setTempoPercent(speedPct / 100);
+    transpose = saved.transpose ?? 0;
+    if (transpose !== 0) c.setTranspose(transpose);
     applyAudio();
     // Apply the responsive bars-per-row for the current width on first render.
     lastBarsPerRow = 0;
@@ -148,6 +151,34 @@
   }
   // True when tempo differs from the canonical default (drives the modified dot + reset).
   let tempoModified = $derived(speedPct !== 100);
+
+  // Key / transpose. Clamped to ±6 semitones (a tritone either way covers any key).
+  const NOTES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+  const NOTE_INDEX: Record<string, number> = {
+    C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6,
+    Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11,
+  };
+  function stepTranspose(delta: number) {
+    transpose = Math.max(-6, Math.min(6, transpose + delta));
+    controller?.setTranspose(transpose);
+    if (transpose === 0) store.resetSongSetting(song.id, 'transpose');
+    else store.setSongSetting(song.id, { transpose });
+  }
+  function resetTranspose() {
+    transpose = 0;
+    controller?.setTranspose(0);
+    store.resetSongSetting(song.id, 'transpose');
+  }
+  let transposeModified = $derived(transpose !== 0);
+  // The sounding key after transposition, when we know the song's written key.
+  let keyLabel = $derived.by(() => {
+    const tc = song.key?.tonalCenter?.replace('♯', '#').replace('♭', 'b');
+    const base = tc !== undefined ? NOTE_INDEX[tc] : undefined;
+    if (base === undefined) {
+      return transpose === 0 ? 'original' : `${transpose > 0 ? '+' : ''}${transpose} st`;
+    }
+    return `${NOTES[(base + transpose + 120) % 12]} ${song.key?.mode ?? ''}`.trim();
+  });
   function onScale(e: Event) {
     scalePct = Number((e.target as HTMLInputElement).value);
     controller?.setScale(scalePct / 100);
@@ -217,6 +248,16 @@
       <span class="readout">{speedPct}% · {Math.round((tempoBpm * speedPct) / 100)} bpm</span>
       <button class="reset" onclick={resetTempo} disabled={!transport || !tempoModified} title="Reset to original tempo">↺</button>
     </label>
+
+    <div class="row">
+      <span class="label">Key{#if transposeModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
+      <div class="stepper">
+        <button onclick={() => stepTranspose(-1)} disabled={!controller || transpose <= -6} aria-label="Down a semitone">−</button>
+        <span class="readout key">{keyLabel}{#if transposeModified}<span class="st"> ({transpose > 0 ? '+' : ''}{transpose} st)</span>{/if}</span>
+        <button onclick={() => stepTranspose(1)} disabled={!controller || transpose >= 6} aria-label="Up a semitone">+</button>
+      </div>
+      <button class="reset" onclick={resetTranspose} disabled={!controller || !transposeModified} title="Reset to original key">↺</button>
+    </div>
 
     <label class="row">
       <span class="label">Size</span>
@@ -313,6 +354,10 @@
     line-height: 1;
   }
   .reset:disabled { opacity: 0.3; }
+  .stepper { display: inline-flex; align-items: center; gap: 0.5rem; flex: 1 1 auto; }
+  .stepper button { min-width: 2.2rem; min-height: 2.2rem; font-size: 1.1rem; line-height: 1; }
+  .readout.key { min-width: 5rem; }
+  .st { color: var(--muted); }
   .sheet .row input[type='range'] { flex: 1 1 auto; min-width: 0; }
   .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
   .chips button { padding: 0.4rem 0.7rem; font-size: 0.85rem; min-height: 2.2rem; }

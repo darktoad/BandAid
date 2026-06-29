@@ -39,6 +39,8 @@ export interface RendererController {
   renderTracks(trackIndices: number[]): void;
   /** Bars per row — drive from container width for responsive, readable notation. */
   setBarsPerRow(bars: number): void;
+  /** Transpose the whole tune by N semitones (display + playback); 0 = written key. */
+  setTranspose(semitones: number): void;
   /** Current cursor bar (1-based). */
   getPositionBar(): number;
   /** Move the cursor/player to the start of a bar (1-based). */
@@ -188,6 +190,15 @@ export async function createRenderer(
     },
     setBarsPerRow(bars: number) {
       api.settings.display.barsPerRow = bars;
+      api.updateSettings();
+      rerenderCurrent();
+    },
+    setTranspose(semitones: number) {
+      const score = api.score;
+      if (!score) return;
+      // One offset per track → the whole arrangement moves together. transpositionPitches
+      // (not displayTranspositionPitches) shifts notation AND playback.
+      api.settings.notation.transpositionPitches = new Array(score.tracks.length).fill(semitones);
       api.updateSettings();
       rerenderCurrent();
     },
