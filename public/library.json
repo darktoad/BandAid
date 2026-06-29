@@ -3,38 +3,94 @@
     {
       "id": "stones-rag",
       "title": "Stone's Rag",
-      "defaultKey": { "fifths": 0, "mode": "major", "tonalCenter": "C" },
+      "defaultKey": {
+        "fifths": 0,
+        "mode": "major",
+        "tonalCenter": "C"
+      },
       "defaultTempoBpm": 90,
       "timeSignature": "2/4",
-      "content": { "hasMelody": true, "hasChords": true, "hasTab": false },
-      "parts": [{ "instrument": "Fiddle", "notationType": "notation" }]
+      "content": {
+        "hasMelody": true,
+        "hasChords": true,
+        "hasTab": false
+      },
+      "parts": [
+        {
+          "instrument": "Fiddle",
+          "notationType": "notation"
+        }
+      ],
+      "durationSec": 43
     },
     {
       "id": "east-tennessee-blues",
       "title": "East Tennessee Blues",
-      "defaultKey": { "fifths": 0, "mode": "major", "tonalCenter": "C" },
+      "defaultKey": {
+        "fifths": 0,
+        "mode": "major",
+        "tonalCenter": "C"
+      },
       "defaultTempoBpm": 126,
       "timeSignature": "2/4",
-      "content": { "hasMelody": true, "hasChords": true, "hasTab": false },
-      "parts": [{ "instrument": "Fiddle", "notationType": "notation" }]
+      "content": {
+        "hasMelody": true,
+        "hasChords": true,
+        "hasTab": false
+      },
+      "parts": [
+        {
+          "instrument": "Fiddle",
+          "notationType": "notation"
+        }
+      ],
+      "durationSec": 16
     },
     {
       "id": "wabash-cannonball",
       "title": "Wabash Cannonball",
-      "defaultKey": { "fifths": 1, "mode": "major", "tonalCenter": "G" },
+      "defaultKey": {
+        "fifths": 1,
+        "mode": "major",
+        "tonalCenter": "G"
+      },
       "defaultTempoBpm": 108,
       "timeSignature": "4/4",
-      "content": { "hasMelody": true, "hasChords": true, "hasTab": false },
-      "parts": [{ "instrument": "Fiddle", "notationType": "notation" }]
+      "content": {
+        "hasMelody": true,
+        "hasChords": true,
+        "hasTab": false
+      },
+      "parts": [
+        {
+          "instrument": "Fiddle",
+          "notationType": "notation"
+        }
+      ],
+      "durationSec": 53
     },
     {
       "id": "old-blue",
       "title": "Old Blue",
-      "defaultKey": { "fifths": 1, "mode": "major", "tonalCenter": "G" },
+      "defaultKey": {
+        "fifths": 1,
+        "mode": "major",
+        "tonalCenter": "G"
+      },
       "defaultTempoBpm": 92,
       "timeSignature": "4/4",
-      "content": { "hasMelody": true, "hasChords": true, "hasTab": false },
-      "parts": [{ "instrument": "Fiddle", "notationType": "notation" }]
+      "content": {
+        "hasMelody": true,
+        "hasChords": true,
+        "hasTab": false
+      },
+      "parts": [
+        {
+          "instrument": "Fiddle",
+          "notationType": "notation"
+        }
+      ],
+      "durationSec": 63
     }
   ],
   "setLists": [
@@ -42,10 +98,18 @@
       "id": "rehearsal-set",
       "name": "Rehearsal Set",
       "entries": [
-        { "songId": "stones-rag" },
-        { "songId": "east-tennessee-blues" },
-        { "songId": "wabash-cannonball" },
-        { "songId": "old-blue" }
+        {
+          "songId": "stones-rag"
+        },
+        {
+          "songId": "east-tennessee-blues"
+        },
+        {
+          "songId": "wabash-cannonball"
+        },
+        {
+          "songId": "old-blue"
+        }
       ]
     }
   ]

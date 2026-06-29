@@ -3,180 +3,175 @@
   import type { SongSummary } from '../library/types';
 
   /**
-   * Browse shell (M1): set-lists-first home (D1), a secondary Library, and a song
-   * detail card (D3) before Open. All navigation/scroll state here is local
-   * presentation (FR-9); the only session write is Open → onopen → setCurrentSong (D5).
+   * Integrated song picker (M1). A tab row at the top selects which list to show — each
+   * set list, plus "All songs" — and the body shows that one list; tap a song to open.
+   * No separate library / set-list / detail screens. Opens to the most-recently-used
+   * list (persisted). Used full-screen on first load and as the slide-over while
+   * drilling. The only session write is Open → onopen → setCurrentSong (D5).
    */
-  let { service, onopen }: {
+  let { service, onopen, onclose, activeId, progress = 0 }: {
     service: LibraryService;
     onopen: (song: SongSummary) => void;
+    onclose?: () => void; // present when shown as the slide-over
+    activeId?: string; // the currently-open song (highlighted)
+    progress?: number; // 0–1 playback position of the active song
   } = $props();
 
-  type View = 'setlists' | 'setlist' | 'library' | 'song';
-  let view = $state<View>('setlists');
-  let openSetListId = $state<string | null>(null);
-  let selectedSongId = $state<string | null>(null);
-  let cameFrom = $state<View>('setlists'); // where the song card returns to
-
   let setLists = $derived(service.getSetLists());
-
-  let openSetList = $derived(setLists.find((l) => l.id === openSetListId) ?? null);
-  let setListSongs = $derived(openSetListId ? service.getSetListSongs(openSetListId) : []);
   let allSongs = $derived(service.getAllSongs());
-  let selectedSong = $derived(selectedSongId ? service.getSongSummary(selectedSongId) : null);
+
+  const LAST_KEY = 'bandaid.lastList';
+  function loadLast(): string | null {
+    try {
+      return typeof localStorage !== 'undefined' ? localStorage.getItem(LAST_KEY) : null;
+    } catch {
+      return null;
+    }
+  }
+  let pickedRaw = $state<string | null>(loadLast());
+
+  // Resolve the selection: the remembered list if it still exists, else the first set
+  // list, else "all". ('all' is an explicit, valid choice.)
+  let selected = $derived.by<string>(() => {
+    if (pickedRaw === 'all') return 'all';
+    if (pickedRaw && setLists.some((l) => l.id === pickedRaw)) return pickedRaw;
+    return setLists[0]?.id ?? 'all';
+  });
+  let shownSongs = $derived(selected === 'all' ? allSongs : service.getSetListSongs(selected));
+
+  function pick(id: string) {
+    pickedRaw = id;
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(LAST_KEY, id);
+    } catch {
+      /* ignore */
+    }
+  }
 
   const keyLabel = (s: SongSummary) => `${s.defaultKey.tonalCenter} ${s.defaultKey.mode}`;
+  const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
 
-  function openSetListView(id: string) {
-    openSetListId = id;
-    view = 'setlist';
-  }
-  function showSong(id: string, from: View) {
-    selectedSongId = id;
-    cameFrom = from;
-    view = 'song';
-  }
+  // Expected running time of the shown list (sum of single-pass times). '~' because
+  // it's one pass per tune at the chart tempo; bands often play more.
+  let totalSec = $derived(shownSongs.reduce((a, s) => a + (s.durationSec ?? 0), 0));
+  let allTimed = $derived(shownSongs.length > 0 && shownSongs.every((s) => s.durationSec !== undefined));
 </script>
 
-<header class="topbar">
-  <span class="brand">BandAid</span>
-  <span class="tag">Library</span>
-</header>
+<div class="picker">
+  <header class="phead">
+    <span class="brand">BandAid</span>
+    <span class="ptitle">Songs</span>
+    {#if onclose}
+      <button class="iconbtn" onclick={onclose} aria-label="Close">✕</button>
+    {/if}
+  </header>
 
-{#if view === 'setlists'}
-  <div class="screen">
-    <div class="screen-head">
-      <h2>Set lists</h2>
-      <button class="link" onclick={() => (view = 'library')}>All songs →</button>
-    </div>
-    {#if setLists.length === 0}
-      <p class="empty">No set lists yet.</p>
-    {:else}
-      <ul class="list">
-        {#each setLists as l}
-          <li>
-            <button class="row" onclick={() => openSetListView(l.id)}>
-              <span class="row-title">{l.name}</span>
-              <span class="row-meta">{l.entries.length} song{l.entries.length === 1 ? '' : 's'}</span>
-            </button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
+  <div class="tabs">
+    {#each setLists as l}
+      <button class="tab" class:active={selected === l.id} onclick={() => pick(l.id)}>{l.name}</button>
+    {/each}
+    <button class="tab" class:active={selected === 'all'} onclick={() => pick('all')}>All songs</button>
   </div>
-{:else if view === 'setlist'}
-  <div class="screen">
-    <div class="screen-head">
-      <button class="link" onclick={() => (view = 'setlists')}>← Set lists</button>
-      <h2>{openSetList?.name ?? 'Set list'}</h2>
-    </div>
-    {#if setListSongs.length === 0}
-      <p class="empty">This set list is empty.</p>
+
+  <div class="pbody">
+    {#if shownSongs.length === 0}
+      <p class="empty">No songs here yet.</p>
     {:else}
-      <ul class="list">
-        {#each setListSongs as s}
-          <li>
-            <button class="row" onclick={() => showSong(s.id, 'setlist')}>
-              <span class="row-title">{s.title}</span>
-              <span class="row-meta">{keyLabel(s)} · {s.defaultTempoBpm} bpm</span>
-            </button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
-  </div>
-{:else if view === 'library'}
-  <div class="screen">
-    <div class="screen-head">
-      <button class="link" onclick={() => (view = 'setlists')}>← Set lists</button>
-      <h2>All songs</h2>
-    </div>
-    {#if allSongs.length === 0}
-      <p class="empty">No songs yet.</p>
-    {:else}
-      <ul class="list">
-        {#each allSongs as s}
-          <li>
-            <button class="row" onclick={() => showSong(s.id, 'library')}>
-              <span class="row-title">{s.title}</span>
-              <span class="row-meta">{keyLabel(s)} · {s.defaultTempoBpm} bpm</span>
-            </button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
-  </div>
-{:else if view === 'song' && selectedSong}
-  <div class="screen">
-    <div class="screen-head">
-      <button class="link" onclick={() => (view = cameFrom)}>← Back</button>
-    </div>
-    <div class="card">
-      <h2 class="card-title">{selectedSong.title}</h2>
-      <dl class="facts">
-        <div><dt>Key</dt><dd>{keyLabel(selectedSong)}</dd></div>
-        <div><dt>Tempo</dt><dd>{selectedSong.defaultTempoBpm} bpm</dd></div>
-        <div><dt>Time</dt><dd>{selectedSong.timeSignature}</dd></div>
-      </dl>
-      <div class="views">
-        <span class="views-label">Views</span>
-        <div class="chips">
-          {#each service.availableViews(selectedSong) as v}
-            <span class="chip">{v}</span>
-          {/each}
-        </div>
+      <div class="listmeta">
+        {shownSongs.length} song{shownSongs.length === 1 ? '' : 's'}{#if totalSec > 0}{' · '}{allTimed
+            ? ''
+            : '≥'}~{fmt(totalSec)}{/if}
       </div>
-      <button class="open" onclick={() => onopen(selectedSong)}>Open</button>
-    </div>
+      <ul class="list">
+        {#each shownSongs as s}
+          <li>
+            <button class="srow" class:active={s.id === activeId} onclick={() => onopen(s)}>
+              <span class="stitle">
+                {s.title}
+                {#if s.id === activeId}<span class="now">▶ now</span>{/if}
+              </span>
+              <span class="smeta"
+                >{keyLabel(s)} · ♩ = {s.defaultTempoBpm}{#if s.durationSec}{' · '}{fmt(s.durationSec)}{/if}</span
+              >
+              {#if s.id === activeId}
+                <span class="prog" style="width: {(Math.min(1, Math.max(0, progress)) * 100).toFixed(1)}%"></span>
+              {/if}
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
   </div>
-{/if}
+</div>
 
 <style>
-  .topbar {
+  .picker { display: flex; flex-direction: column; height: 100%; background: var(--bg); }
+  .phead {
     display: flex;
     align-items: baseline;
     gap: 0.6rem;
-    padding: 0.55rem 1rem;
+    padding: 0.7rem 1rem;
     border-bottom: 1px solid var(--line);
     background: var(--panel);
   }
   .brand { font-weight: 700; letter-spacing: 0.02em; }
-  .tag { color: var(--muted); font-size: 0.8rem; }
+  .ptitle { color: var(--muted); font-size: 0.82rem; flex: 1 1 auto; }
+  .iconbtn { flex: 0 0 auto; width: 2rem; height: 2rem; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
 
-  .screen { padding: 0.9rem 1rem; max-width: 640px; margin: 0 auto; }
-  .screen-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; }
-  .screen-head h2 { font-size: 1.05rem; margin: 0; }
-  .link { background: none; border: none; color: var(--accent); padding: 0.2rem 0; font-size: 0.9rem; cursor: pointer; }
+  /* List selector: set lists + "All songs", one shown at a time. */
+  .tabs {
+    display: flex;
+    gap: 0.4rem;
+    padding: 0.6rem 0.8rem;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .tab {
+    flex: 0 0 auto;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+  .tab.active { border-color: var(--accent); color: var(--accent); }
 
-  .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-  .row {
+  .pbody { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 0.5rem 0.8rem 1.2rem; }
+  .listmeta {
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-variant-numeric: tabular-nums;
+    padding: 0.3rem 0.2rem 0.5rem;
+  }
+  .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+  .srow {
+    position: relative;
+    overflow: hidden;
     width: 100%;
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 0.75rem;
-    padding: 0.8rem 0.9rem;
-    min-height: 3rem; /* comfortable tap target */
+    padding: 0.7rem 0.8rem;
+    min-height: 2.9rem; /* comfortable tap target */
     text-align: left;
     background: var(--panel);
     border: 1px solid var(--line);
     border-radius: 8px;
-    cursor: pointer;
   }
-  .row:hover { border-color: var(--accent); }
-  .row-title { font-weight: 600; }
-  .row-meta { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
-  .empty { color: var(--muted); padding: 1rem 0; }
-
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem; }
-  .card-title { margin: 0 0 0.8rem; }
-  .facts { display: flex; flex-wrap: wrap; gap: 1.2rem; margin: 0 0 1rem; }
-  .facts div { display: flex; flex-direction: column; gap: 0.15rem; }
-  .facts dt { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
-  .facts dd { margin: 0; font-variant-numeric: tabular-nums; }
-  .views { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.1rem; flex-wrap: wrap; }
-  .views-label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
-  .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-  .chip { padding: 0.25rem 0.6rem; border: 1px solid var(--line); border-radius: 999px; font-size: 0.8rem; color: var(--muted); }
-  .open { padding: 0.6rem 1.4rem; font-size: 1rem; border-color: var(--accent); color: var(--accent); }
+  .srow:hover { border-color: var(--accent); }
+  /* The currently-open song. */
+  .srow.active { border-color: var(--accent); background: rgba(217, 138, 61, 0.1); }
+  .stitle { font-weight: 600; }
+  .now { color: var(--accent); font-size: 0.7rem; font-weight: 600; margin-left: 0.4rem; white-space: nowrap; }
+  .smeta { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* Live playback progress along the bottom of the active row. */
+  .prog {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--accent);
+    transition: width 0.2s linear;
+  }
+  .empty { color: var(--muted); padding: 0.6rem 0.2rem; }
 </style>

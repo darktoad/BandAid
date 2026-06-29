@@ -20,10 +20,11 @@
    *    is the richer M3 form.)
    * Local choices (part, tempo %, audio, zoom) live here; only Transport is synced.
    */
-  let { song, store, onback }: {
-    song: { id: string; url: string; title: string };
+  let { song, store, onsongs, onprogress }: {
+    song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string } };
     store: SessionStore;
-    onback?: () => void;
+    onsongs?: () => void; // open the slide-over song picker
+    onprogress?: (fraction: number) => void; // 0–1 playback position, for the picker
   } = $props();
 
   let controller = $state<RendererController | undefined>(undefined);
@@ -37,6 +38,7 @@
   let playing = $state(false);
   let canPlay = $state(false); // true once the soundfont/player is loaded
   let speedPct = $state(100);
+  let transpose = $state(0); // semitones from written key; 0 = original
   let scalePct = $state(100); // notation zoom (local presentation, not transport)
   let tempoBpm = $state(120); // replaced by the score's real tempo once it loads
   let measureCount = $state(1); // scrubber range; replaced from the score once loaded
@@ -44,8 +46,30 @@
   let synth = $state(true);
   let click = $state(false);
   let countIn = $state(true); // one-bar count-in before play (local pref, FR-6)
-  let showMore = $state(false); // the overflow sheet
+  let showMore = $state(false); // the settings sheet (opened by the ☰ / key / tempo)
+  let composer = $state(''); // score credit, for the masthead
+  let showMasthead = $state(loadMastheadPref()); // local viewing pref, persisted
   let errorMsg = $state<string | null>(null);
+
+  // Masthead visibility is a local viewing preference (not song/session state).
+  function loadMastheadPref(): boolean {
+    try {
+      return typeof localStorage === 'undefined' || localStorage.getItem('bandaid.showMasthead') !== '0';
+    } catch {
+      return true;
+    }
+  }
+  function toggleMasthead() {
+    showMasthead = !showMasthead;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('bandaid.showMasthead', showMasthead ? '1' : '0');
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  const openSettings = () => (showMore = true);
 
   let stageEl: HTMLElement;
   let lastBarsPerRow = 0;
@@ -81,6 +105,7 @@
     const info = c.getSongInfo();
     tempoBpm = info?.tempoBpm ?? 120;
     measureCount = info?.measureCount ?? 1;
+    composer = info?.composer ?? '';
     transport = createLocalTransport({
       songId: song.id,
       defaultTempoBpm: tempoBpm,
@@ -88,6 +113,12 @@
       renderer: c,
       store,
     });
+    // Apply this song's saved performance overrides (tempo, key); absent = canonical default.
+    const saved = store.getSongSettings(song.id);
+    speedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 100) : 100;
+    transport.setTempoPercent(speedPct / 100);
+    transpose = saved.transpose ?? 0;
+    if (transpose !== 0) c.setTranspose(transpose);
     applyAudio();
     // Apply the responsive bars-per-row for the current width on first render.
     lastBarsPerRow = 0;
@@ -132,15 +163,61 @@
   function onSpeed(e: Event) {
     speedPct = Number((e.target as HTMLInputElement).value);
     transport?.setTempoPercent(speedPct / 100);
+    // Persist as a per-song override (shared session state); 100% = default, so clear it.
+    if (speedPct === 100) store.resetSongSetting(song.id, 'tempoPct');
+    else store.setSongSetting(song.id, { tempoPct: speedPct / 100 });
   }
+  // Reset tempo to the song's canonical default (clears the override).
+  function resetTempo() {
+    speedPct = 100;
+    transport?.setTempoPercent(1);
+    store.resetSongSetting(song.id, 'tempoPct');
+  }
+  // True when tempo differs from the canonical default (drives the modified dot + reset).
+  let tempoModified = $derived(speedPct !== 100);
+
+  // Key / transpose. Clamped to ±6 semitones (a tritone either way covers any key).
+  const NOTES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+  const NOTE_INDEX: Record<string, number> = {
+    C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6,
+    Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11,
+  };
+  function stepTranspose(delta: number) {
+    transpose = Math.max(-6, Math.min(6, transpose + delta));
+    controller?.setTranspose(transpose);
+    if (transpose === 0) store.resetSongSetting(song.id, 'transpose');
+    else store.setSongSetting(song.id, { transpose });
+  }
+  function resetTranspose() {
+    transpose = 0;
+    controller?.setTranspose(0);
+    store.resetSongSetting(song.id, 'transpose');
+  }
+  let transposeModified = $derived(transpose !== 0);
+  // The sounding tonic after transposition (header pill); falls back to a semitone count.
+  let keyName = $derived.by(() => {
+    const tc = song.key?.tonalCenter?.replace('♯', '#').replace('♭', 'b');
+    const base = tc !== undefined ? NOTE_INDEX[tc] : undefined;
+    if (base === undefined) return transpose === 0 ? '—' : `${transpose > 0 ? '+' : ''}${transpose}`;
+    return NOTES[(base + transpose + 120) % 12];
+  });
+  // With the mode, for the settings stepper readout.
+  let keyLabel = $derived(song.key?.mode ? `${keyName} ${song.key.mode}` : keyName);
+  // Current sounding tempo (BPM = the ♩ = N your charts show).
+  let currentBpm = $derived(Math.round((tempoBpm * speedPct) / 100));
   function onScale(e: Event) {
     scalePct = Number((e.target as HTMLInputElement).value);
     controller?.setScale(scalePct / 100);
   }
   function onScrub(e: Event) {
     const target = Number((e.target as HTMLInputElement).value);
-    bar = target;
+    setBar(target);
     transport?.seekToBar(target);
+  }
+  // Track the cursor bar and surface playback progress (0–1) for the song picker.
+  function setBar(b: number) {
+    bar = b;
+    onprogress?.(measureCount > 1 ? Math.min(1, Math.max(0, (b - 1) / (measureCount - 1))) : 0);
   }
 
   // Spacebar toggles play/pause on laptop. Ignore when focused in a control.
@@ -154,19 +231,30 @@
 
   // The parts a player can overlay as "their part" — everything but the shared melody.
   let overlayParts = $derived(tracks.filter((t) => t.index !== melodyIndex));
-  let myPartName = $derived(
-    myPart === null ? 'Melody only' : (tracks.find((t) => t.index === myPart)?.name ?? 'Melody only'),
-  );
 </script>
 
 <svelte:window onkeydown={onKeydown} />
 
 <header class="topbar">
-  {#if onback}
-    <button class="back" onclick={onback} aria-label="Back to library">←</button>
-  {/if}
-  <span class="brand">BandAid</span>
-  <span class="tag">{song.title} · chord changes</span>
+  <button class="iconbtn" onclick={() => onsongs?.()} aria-label="Songs">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="4" cy="6" r="1.3" fill="currentColor" stroke="none" /><line x1="9" y1="6" x2="20" y2="6" />
+      <circle cx="4" cy="12" r="1.3" fill="currentColor" stroke="none" /><line x1="9" y1="12" x2="20" y2="12" />
+      <circle cx="4" cy="18" r="1.3" fill="currentColor" stroke="none" /><line x1="9" y1="18" x2="20" y2="18" />
+    </svg>
+  </button>
+  <span class="song">{song.title}</span>
+  <button class="pill" class:on={transposeModified} onclick={openSettings} disabled={!controller} title="Key">
+    <span class="lbl">Key</span> {keyName}{#if transposeModified}<span class="dot">●</span>{/if}
+  </button>
+  <button class="pill" class:on={tempoModified} onclick={openSettings} disabled={!transport} title="Tempo">
+    ♩ = {currentBpm}{#if tempoModified}<span class="dot">●</span>{/if}
+  </button>
+  <button class="iconbtn" class:active={showMore} onclick={() => (showMore = !showMore)} aria-label="Settings" aria-expanded={showMore}>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  </button>
 </header>
 
 <!-- Compact, always-visible transport: Play + scrubber keep the music tall. -->
@@ -186,21 +274,34 @@
     disabled={!transport}
     aria-label="Seek to bar"
   />
-  <span class="readout">{bar}/{measureCount}</span>
-
-  <button class="more" class:active={showMore} onclick={() => (showMore = !showMore)} aria-expanded={showMore}>
-    ⋯
-  </button>
 </div>
 
-<!-- Overflow sheet: tempo, size, audio, and the player's own part live here. -->
+<!-- Settings sheet (opened by the ☰, or the Key / Tempo pills). -->
 {#if showMore}
   <div class="sheet">
+    <div class="row">
+      <span class="label">Masthead</span>
+      <div class="chips">
+        <button class:active={showMasthead} onclick={toggleMasthead}>{showMasthead ? 'Shown' : 'Hidden'}</button>
+      </div>
+    </div>
+
     <label class="row">
-      <span class="label">Tempo</span>
+      <span class="label">Tempo{#if tempoModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
       <input type="range" min="50" max="110" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} />
       <span class="readout">{speedPct}% · {Math.round((tempoBpm * speedPct) / 100)} bpm</span>
+      <button class="reset" onclick={resetTempo} disabled={!transport || !tempoModified} title="Reset to original tempo">↺</button>
     </label>
+
+    <div class="row">
+      <span class="label">Key{#if transposeModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
+      <div class="stepper">
+        <button onclick={() => stepTranspose(-1)} disabled={!controller || transpose <= -6} aria-label="Down a semitone">−</button>
+        <span class="readout key">{keyLabel}{#if transposeModified}<span class="st"> ({transpose > 0 ? '+' : ''}{transpose} st)</span>{/if}</span>
+        <button onclick={() => stepTranspose(1)} disabled={!controller || transpose >= 6} aria-label="Up a semitone">+</button>
+      </div>
+      <button class="reset" onclick={resetTranspose} disabled={!controller || !transposeModified} title="Reset to original key">↺</button>
+    </div>
 
     <label class="row">
       <span class="label">Size</span>
@@ -234,46 +335,83 @@
 {/if}
 
 <main class="stage" bind:this={stageEl}>
-  <Renderer
-    musicXmlUrl={song.url}
-    onready={onReady}
-    onposition={(b) => (bar = b)}
-    onplaying={(p) => (playing = p)}
-    onplayable={() => (canPlay = true)}
-    onerror={(e) => (errorMsg = e.message)}
-  />
+  {#if showMasthead}
+    <!-- Our own deduped masthead (alphaTab's title block is suppressed): the crucial
+         fields only — title, and composer when present. Key/tempo live in the header. -->
+    <div class="masthead">
+      <div class="mh-title">{song.title}</div>
+      {#if composer}<div class="mh-sub">{composer}</div>{/if}
+    </div>
+  {/if}
+  <div class="render-wrap">
+    <Renderer
+      musicXmlUrl={song.url}
+      onready={onReady}
+      onposition={(b) => setBar(b)}
+      onplaying={(p) => (playing = p)}
+      onplayable={() => (canPlay = true)}
+      onerror={(e) => (errorMsg = e.message)}
+    />
+  </div>
 </main>
 
 <style>
   .topbar {
     display: flex;
-    align-items: baseline;
-    gap: 0.6rem;
-    padding: 0.55rem 1rem;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.7rem;
     border-bottom: 1px solid var(--line);
     background: var(--panel);
   }
-  .brand { font-weight: 700; letter-spacing: 0.02em; }
-  .tag { color: var(--muted); font-size: 0.8rem; }
-  .back { flex: 0 0 auto; min-width: 2.2rem; min-height: 2.2rem; font-size: 1rem; align-self: center; }
+  .iconbtn {
+    flex: 0 0 auto;
+    width: 2.1rem;
+    height: 2.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .iconbtn.active { border-color: var(--accent); color: var(--accent); }
+  /* Small, subtle song name — takes the slack so the pills/buttons stay put. */
+  .song {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pill {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.32rem 0.5rem;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .pill.on { border-color: var(--accent); }
+  .pill .lbl { color: var(--muted); font-size: 0.72rem; }
+  .pill .dot { color: var(--accent); font-size: 0.5rem; }
 
-  /* One short row, always visible — does not grow with the number of controls. */
   .transport {
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    padding: 0.45rem 1rem;
+    padding: 0.45rem 0.9rem;
     border-bottom: 1px solid var(--line);
     background: var(--panel);
   }
-  .transport .play,
-  .transport .more {
+  .transport .play {
     flex: 0 0 auto;
     min-width: 2.6rem;
     min-height: 2.4rem; /* comfortable tap target on mobile */
     font-size: 1rem;
   }
-  .transport .more.active { border-color: var(--accent); color: var(--accent); }
   .scrub { flex: 1 1 auto; min-width: 0; }
   .readout { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.85rem; flex: 0 0 auto; }
 
@@ -288,6 +426,19 @@
   }
   .sheet .row { display: flex; align-items: center; gap: 0.6rem; }
   .sheet .row .label { flex: 0 0 4.5rem; color: var(--muted); font-size: 0.85rem; }
+  .dot { color: var(--accent); font-size: 0.6rem; vertical-align: middle; margin-left: 0.25rem; }
+  .reset {
+    flex: 0 0 auto;
+    min-width: 2rem;
+    min-height: 2rem;
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+  .reset:disabled { opacity: 0.3; }
+  .stepper { display: inline-flex; align-items: center; gap: 0.5rem; flex: 1 1 auto; }
+  .stepper button { min-width: 2.2rem; min-height: 2.2rem; font-size: 1.1rem; line-height: 1; }
+  .readout.key { min-width: 5rem; }
+  .st { color: var(--muted); }
   .sheet .row input[type='range'] { flex: 1 1 auto; min-width: 0; }
   .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
   .chips button { padding: 0.4rem 0.7rem; font-size: 0.85rem; min-height: 2.2rem; }
@@ -300,5 +451,23 @@
     font-size: 0.85rem;
   }
 
-  .stage { flex: 1; min-height: 0; }
+  .stage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .render-wrap { flex: 1 1 auto; min-height: 0; }
+
+  /* Minimal chart masthead above the music (alphaTab's own title is suppressed). */
+  .masthead {
+    flex: 0 0 auto;
+    text-align: center;
+    background: #faf7f2;
+    color: #14110f;
+    padding: 0.7rem 1rem 0.55rem;
+    border-bottom: 1px solid #e7e0d5;
+  }
+  .mh-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1.15;
+  }
+  .mh-sub { color: #6b6258; font-size: 0.78rem; margin-top: 0.15rem; }
 </style>

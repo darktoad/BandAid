@@ -46,13 +46,22 @@ def main(abc_path, song_id, out_dir):
     title = (score.metadata.title if score.metadata and score.metadata.title else song_id)
     has_chords = len(list(part.recurse().getElementsByClass(harmony.ChordSymbol))) > 0
 
+    # Played running time for ONE pass through the chart (written repeats expanded), at
+    # the chart tempo. Lets the set list show expected set length without parsing every
+    # MusicXML at browse time. Bands often play multiple passes — this is a single pass.
+    try:
+        total_ql = score.expandRepeats().duration.quarterLength
+    except Exception:
+        total_ql = score.duration.quarterLength
+    duration_sec = round(total_ql * 60.0 / tempo) if tempo else 0
+
     out_path = f"{out_dir}/{song_id}.musicxml"
     score.write('musicxml', fp=out_path)
 
     entry = {
         "id": song_id, "title": title,
         "defaultKey": {"fifths": fifths, "mode": mode, "tonalCenter": tonic.replace('-', 'b')},
-        "defaultTempoBpm": tempo, "timeSignature": ts_str,
+        "defaultTempoBpm": tempo, "timeSignature": ts_str, "durationSec": duration_sec,
         "content": {"hasMelody": True, "hasChords": has_chords, "hasTab": False},
         "parts": [{"instrument": "Fiddle", "notationType": "notation"}],
     }

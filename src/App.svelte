@@ -4,7 +4,7 @@
   import ChordChangesView from './views/ChordChangesView.svelte';
   import { createLocalSessionStore } from './session/store';
   import { createLibraryService, type LibraryService } from './library/libraryService';
-  import type { SongSummary } from './library/types';
+  import type { SongSummary, SongKey } from './library/types';
 
   // The app owns the session (a session of one in M1). Browsing writes currentSongId
   // (the seam to the renderer); in M2 the same store becomes a CRDT with no change here.
@@ -12,9 +12,11 @@
 
   let service = $state<LibraryService | undefined>(undefined);
   let loadError = $state<string | null>(null);
-  // 'browse' vs 'drill' is local presentation; currentSongId is the synced truth.
-  let route = $state<'browse' | 'drill'>('browse');
-  let current = $state<{ id: string; url: string; title: string } | undefined>(undefined);
+  let current = $state<{ id: string; url: string; title: string; key?: SongKey } | undefined>(undefined);
+  // The song picker is a slide-over while drilling; full-screen before the first pick.
+  let pickerOpen = $state(false);
+  // Live playback position of the current song (0–1), surfaced in the picker.
+  let progress = $state(0);
 
   // Cache-buster for the runtime-fetched files GitHub Pages caches; bumps each deploy.
   const v = `?v=${__BUILD_ID__}`;
@@ -30,20 +32,29 @@
   function openSong(s: SongSummary) {
     store.setCurrentSong(s.id); // the only write to currentSongId (D5/FR-7)
     // Convention: a song's canonical file is songs/<id>.musicxml (NFR-3).
-    current = { id: s.id, url: `${import.meta.env.BASE_URL}songs/${s.id}.musicxml${v}`, title: s.title };
-    route = 'drill';
-  }
-  function back() {
-    route = 'browse';
+    current = {
+      id: s.id,
+      url: `${import.meta.env.BASE_URL}songs/${s.id}.musicxml${v}`,
+      title: s.title,
+      key: s.defaultKey,
+    };
+    pickerOpen = false; // switching a song closes the picker; we stay in the drill view
   }
 </script>
 
-{#if route === 'drill' && current}
+{#if current}
   <!-- Re-mount per song so the renderer reloads the new score. -->
   {#key current.id}
-    <ChordChangesView song={current} {store} onback={back} />
+    <ChordChangesView song={current} {store} onsongs={() => (pickerOpen = true)} onprogress={(f) => (progress = f)} />
   {/key}
+  {#if service && pickerOpen}
+    <button class="scrim" onclick={() => (pickerOpen = false)} aria-label="Close song picker"></button>
+    <aside class="picker-panel">
+      <BrowseView {service} onopen={openSong} onclose={() => (pickerOpen = false)} activeId={current.id} {progress} />
+    </aside>
+  {/if}
 {:else if service}
+  <!-- First load: the integrated picker, full screen. -->
   <BrowseView {service} onopen={openSong} />
 {:else if loadError}
   <div class="boot-error">Couldn’t load the library: {loadError}</div>
@@ -58,4 +69,29 @@
     color: var(--muted);
   }
   .boot-error { color: #f1b4b4; }
+
+  /* Slide-over song picker over the drill view. alphaTab's playhead wrapper
+     (.at-cursors) is z-index 1000, so the overlay must sit above that. */
+  .scrim {
+    position: fixed;
+    inset: 0;
+    border: none;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+  }
+  .picker-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(88%, 26rem);
+    z-index: 1002;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.4);
+    animation: slidein 0.16s ease-out;
+  }
+  @keyframes slidein {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+  }
 </style>

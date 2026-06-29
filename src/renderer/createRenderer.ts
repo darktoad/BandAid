@@ -22,6 +22,7 @@ export interface TrackInfo {
  */
 export interface SongInfo {
   title: string;
+  composer: string; // from the score's music/artist credit; '' if none
   tempoBpm: number;
   timeSignature: string; // "n/d" from the first master bar
   measureCount: number;
@@ -39,6 +40,8 @@ export interface RendererController {
   renderTracks(trackIndices: number[]): void;
   /** Bars per row — drive from container width for responsive, readable notation. */
   setBarsPerRow(bars: number): void;
+  /** Transpose the whole tune by N semitones (display + playback); 0 = written key. */
+  setTranspose(semitones: number): void;
   /** Current cursor bar (1-based). */
   getPositionBar(): number;
   /** Move the cursor/player to the start of a bar (1-based). */
@@ -100,6 +103,22 @@ export async function createRenderer(
       barsPerRow: 4, // 4 bars per row by default for readability
     },
   });
+
+  // The app renders its own deduped masthead (title + composer), so suppress alphaTab's
+  // built-in score-info block — the MusicXML often sets title AND subtitle to the same
+  // text, which would otherwise print the name twice.
+  for (const el of [
+    alphaTab.NotationElement.ScoreTitle,
+    alphaTab.NotationElement.ScoreSubTitle,
+    alphaTab.NotationElement.ScoreArtist,
+    alphaTab.NotationElement.ScoreAlbum,
+    alphaTab.NotationElement.ScoreWords,
+    alphaTab.NotationElement.ScoreMusic,
+    alphaTab.NotationElement.ScoreWordsAndMusic,
+    alphaTab.NotationElement.ScoreCopyright,
+  ]) {
+    api.settings.notation.elements.set(el, false);
+  }
 
   let tracks: TrackInfo[] = [];
   let currentBar = 1;
@@ -167,6 +186,7 @@ export async function createRenderer(
       const mb0 = score.masterBars[0];
       return {
         title: score.title ?? '',
+        composer: score.music || score.artist || '',
         tempoBpm: score.tempo,
         timeSignature: `${mb0.timeSignatureNumerator}/${mb0.timeSignatureDenominator}`,
         measureCount: score.masterBars.length,
@@ -188,6 +208,15 @@ export async function createRenderer(
     },
     setBarsPerRow(bars: number) {
       api.settings.display.barsPerRow = bars;
+      api.updateSettings();
+      rerenderCurrent();
+    },
+    setTranspose(semitones: number) {
+      const score = api.score;
+      if (!score) return;
+      // One offset per track → the whole arrangement moves together. transpositionPitches
+      // (not displayTranspositionPitches) shifts notation AND playback.
+      api.settings.notation.transpositionPitches = new Array(score.tracks.length).fill(semitones);
       api.updateSettings();
       rerenderCurrent();
     },
