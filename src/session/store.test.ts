@@ -14,7 +14,7 @@ const transport = (over: Partial<Transport> = {}): Transport => ({
 describe('local session store', () => {
   it('starts empty', () => {
     const store = createLocalSessionStore();
-    expect(store.getState()).toEqual({ currentSongId: null, transport: null });
+    expect(store.getState()).toEqual({ currentSongId: null, transport: null, songSettings: {} });
   });
 
   it('sets the current song (the browsing → renderer seam)', () => {
@@ -43,9 +43,51 @@ describe('local session store', () => {
 
     // initial emit + 2 changes
     expect(seen.length).toBe(3);
-    expect(seen[0]).toEqual({ currentSongId: null, transport: null });
+    expect(seen[0]).toEqual({ currentSongId: null, transport: null, songSettings: {} });
     expect(seen[2].currentSongId).toBe('a');
     expect(seen[2].transport?.tempo).toBe(90);
+  });
+
+  describe('per-song settings (persisted, reversible overrides)', () => {
+    it('an unset song reports no overrides', () => {
+      const store = createLocalSessionStore();
+      expect(store.getSongSettings('wabash')).toEqual({});
+    });
+
+    it('merges only defined fields and keeps the canonical default recoverable', () => {
+      const store = createLocalSessionStore();
+      store.setSongSetting('wabash', { tempoPct: 0.7 });
+      expect(store.getSongSettings('wabash')).toEqual({ tempoPct: 0.7 });
+      store.setSongSetting('wabash', { transpose: 2 });
+      expect(store.getSongSettings('wabash')).toEqual({ tempoPct: 0.7, transpose: 2 });
+    });
+
+    it('resets one field back to default, leaving the others', () => {
+      const store = createLocalSessionStore();
+      store.setSongSetting('wabash', { tempoPct: 0.7, transpose: 2 });
+      store.resetSongSetting('wabash', 'tempoPct');
+      expect(store.getSongSettings('wabash')).toEqual({ transpose: 2 });
+    });
+
+    it('resetting the last field clears the song entry entirely (back to original)', () => {
+      const store = createLocalSessionStore();
+      store.setSongSetting('wabash', { tempoPct: 0.7 });
+      store.resetSongSetting('wabash', 'tempoPct');
+      expect(store.getSongSettings('wabash')).toEqual({});
+      expect(store.getState().songSettings).toEqual({});
+    });
+
+    it('reset with no field clears every override for the song', () => {
+      const store = createLocalSessionStore();
+      store.setSongSetting('wabash', { tempoPct: 0.7, transpose: 2 });
+      store.resetSongSetting('wabash');
+      expect(store.getSongSettings('wabash')).toEqual({});
+    });
+
+    it('seeds from initial songSettings (the persistence/M2-shared entry point)', () => {
+      const store = createLocalSessionStore({ songSettings: { wabash: { transpose: -1 } } });
+      expect(store.getSongSettings('wabash')).toEqual({ transpose: -1 });
+    });
   });
 
   /**

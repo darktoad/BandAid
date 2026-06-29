@@ -88,6 +88,10 @@
       renderer: c,
       store,
     });
+    // Apply this song's saved performance overrides (tempo); absent = canonical default.
+    const saved = store.getSongSettings(song.id);
+    speedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 100) : 100;
+    transport.setTempoPercent(speedPct / 100);
     applyAudio();
     // Apply the responsive bars-per-row for the current width on first render.
     lastBarsPerRow = 0;
@@ -132,7 +136,18 @@
   function onSpeed(e: Event) {
     speedPct = Number((e.target as HTMLInputElement).value);
     transport?.setTempoPercent(speedPct / 100);
+    // Persist as a per-song override (shared session state); 100% = default, so clear it.
+    if (speedPct === 100) store.resetSongSetting(song.id, 'tempoPct');
+    else store.setSongSetting(song.id, { tempoPct: speedPct / 100 });
   }
+  // Reset tempo to the song's canonical default (clears the override).
+  function resetTempo() {
+    speedPct = 100;
+    transport?.setTempoPercent(1);
+    store.resetSongSetting(song.id, 'tempoPct');
+  }
+  // True when tempo differs from the canonical default (drives the modified dot + reset).
+  let tempoModified = $derived(speedPct !== 100);
   function onScale(e: Event) {
     scalePct = Number((e.target as HTMLInputElement).value);
     controller?.setScale(scalePct / 100);
@@ -197,9 +212,10 @@
 {#if showMore}
   <div class="sheet">
     <label class="row">
-      <span class="label">Tempo</span>
+      <span class="label">Tempo{#if tempoModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
       <input type="range" min="50" max="110" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} />
       <span class="readout">{speedPct}% · {Math.round((tempoBpm * speedPct) / 100)} bpm</span>
+      <button class="reset" onclick={resetTempo} disabled={!transport || !tempoModified} title="Reset to original tempo">↺</button>
     </label>
 
     <label class="row">
@@ -288,6 +304,15 @@
   }
   .sheet .row { display: flex; align-items: center; gap: 0.6rem; }
   .sheet .row .label { flex: 0 0 4.5rem; color: var(--muted); font-size: 0.85rem; }
+  .dot { color: var(--accent); font-size: 0.6rem; vertical-align: middle; margin-left: 0.25rem; }
+  .reset {
+    flex: 0 0 auto;
+    min-width: 2rem;
+    min-height: 2rem;
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+  .reset:disabled { opacity: 0.3; }
   .sheet .row input[type='range'] { flex: 1 1 auto; min-width: 0; }
   .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
   .chips button { padding: 0.4rem 0.7rem; font-size: 0.85rem; min-height: 2.2rem; }
