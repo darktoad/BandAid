@@ -188,6 +188,30 @@ Section-synced highlighting is purely additive on top of this design:
   not; every song exposes its `notes`.
 - `LyricsSheet` rendering is thin; the parser holds the logic and carries the tests.
 
+## Alternatives considered
+
+### MusicXML as the home for lyrics/notes (rejected)
+
+Could lyrics and notes live in the canonical MusicXML itself (one file per song) instead
+of a manifest field + sidecar? Rejected for two project-specific reasons:
+
+1. **The MusicXML is a generated, regenerable artifact**, not a hand-authored one. The
+   pipeline is `ABC → Music21 toolkit → canonical MusicXML` (`tools/song-processor/`;
+   every file is stamped `<creator>Music21</creator>`). Hand-edited prose/lyrics in those
+   files get clobbered on the next toolkit run. Doing it "properly" would mean pushing the
+   text into the ABC source and teaching the toolkit to carry it through — coupling
+   human-authored banter to a music-processing pipeline. A sidecar/manifest keeps
+   hand-authored content decoupled from the regenerable file.
+2. **MusicXML's lyric model is note-attached** (`<lyric>` per `<note>`, verses via
+   `number=`) — i.e. the karaoke model (C) we rejected, and it assumes the melody line is
+   the sung vocal line. Our melodies are reduced *fiddle* lines, and the static sheet has
+   multiple verses + a chorus over *repeats* of one pass; that doesn't map onto per-note
+   lyrics.
+
+Where MusicXML *would* be right: true note-synced karaoke on songs whose canonical melody
+is the actual vocal line — then `<lyric>` is the standard place and alphaTab can render it
+under the staff natively. Not this feature.
+
 ## Out of scope (M1)
 
 - Section/word/line **sync** to the playhead (B/C).
@@ -219,13 +243,13 @@ a theme that still lands. Verified via web research; the user may still tune the
   popular that in 1949 a railroad finally hung the name on a real express. Roy Acuff's
   1936 record sold ten million copies, and it's the oldest song in the Rock and Roll Hall
   of Fame's '500 Songs That Shaped Rock and Roll.'"
-- **Old Blue:** _Pending — needs the user's source/context._ This is an instrumental
-  fiddle breakdown in G, **not** the famous *Old Dog Blue* ballad it shares a name with,
-  and no documented history turned up for this specific fiddle setting. (The earlier
-  dog-song note was removed as a mis-identification.) Candidate honest descriptor until
-  the user supplies real context: "A high-spirited old-time fiddle breakdown in G — all
-  drive and double-stops, the kind of tune that lives in jam sessions rather than on
-  record."
+- **Old Blue:** _Pending — no source found._ Confirmed instrumental: the source sheet
+  (photo `IMG_6895`) carries no descriptive footnote and no lyrics — only the initials
+  "F. C. Z." and personal handwriting ("for cousin Bob", "2010"). It is **not** the
+  *Old Dog Blue* ballad it shares a name with, and no documented history turned up for this
+  fiddle setting. Awaiting any context the user has (e.g. who "F. C. Z." is). Candidate
+  descriptor if we ship something: "A high-spirited old-time fiddle breakdown — all drive
+  and double-stops, the kind of tune that lives in jam sessions rather than on record."
 - **Stone's Rag:** "Named for old-time fiddler Oscar Stone, this is a bright, showy rag —
   ragtime's bounce run through string-band fiddle. No words, just a tune made to move a
   dance floor; Texas fiddle great Byron Berline helped turn it into a contest and
