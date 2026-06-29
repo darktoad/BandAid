@@ -32,15 +32,10 @@
       "id": "wabash-cannonball",
       "title": "Wabash Cannonball",
       "defaultKey": { "fifths": 1, "mode": "major", "tonalCenter": "G" },
-      "defaultTempoBpm": 104,
+      "defaultTempoBpm": 108,
       "timeSignature": "4/4",
-      "content": { "hasMelody": true, "hasChords": true, "hasTab": true },
-      "parts": [
-        { "instrument": "Fiddle", "notationType": "notation" },
-        { "instrument": "Guitar", "notationType": "tab" },
-        { "instrument": "Ukulele", "notationType": "tab" },
-        { "instrument": "Bass", "notationType": "tab" }
-      ]
+      "content": { "hasMelody": true, "hasChords": true, "hasTab": false },
+      "parts": [{ "instrument": "Fiddle", "notationType": "notation" }]
     },
     {
       "id": "irish-washerwoman",
@@ -73,16 +68,11 @@
     {
       "id": "old-blue",
       "title": "Old Blue",
-      "defaultKey": { "fifths": 2, "mode": "major", "tonalCenter": "D" },
+      "defaultKey": { "fifths": 1, "mode": "major", "tonalCenter": "G" },
       "defaultTempoBpm": 92,
       "timeSignature": "4/4",
-      "content": { "hasMelody": true, "hasChords": true, "hasTab": true },
-      "parts": [
-        { "instrument": "Fiddle", "notationType": "notation" },
-        { "instrument": "Guitar", "notationType": "tab" },
-        { "instrument": "Ukulele", "notationType": "tab" },
-        { "instrument": "Bass", "notationType": "tab" }
-      ]
+      "content": { "hasMelody": true, "hasChords": true, "hasTab": false },
+      "parts": [{ "instrument": "Fiddle", "notationType": "notation" }]
     },
     {
       "id": "billy-in-the-lowground",
@@ -103,6 +93,15 @@
       "title": "Stone's Rag",
       "defaultKey": { "fifths": 0, "mode": "major", "tonalCenter": "C" },
       "defaultTempoBpm": 90,
+      "timeSignature": "2/4",
+      "content": { "hasMelody": true, "hasChords": true, "hasTab": false },
+      "parts": [{ "instrument": "Fiddle", "notationType": "notation" }]
+    },
+    {
+      "id": "east-tennessee-blues",
+      "title": "East Tennessee Blues",
+      "defaultKey": { "fifths": 0, "mode": "major", "tonalCenter": "C" },
+      "defaultTempoBpm": 126,
       "timeSignature": "2/4",
       "content": { "hasMelody": true, "hasChords": true, "hasTab": false },
       "parts": [{ "instrument": "Fiddle", "notationType": "notation" }]
@@ -129,6 +128,16 @@
         { "songId": "blackberry-blossom" },
         { "songId": "soldiers-joy" },
         { "songId": "billy-in-the-lowground" }
+      ]
+    },
+    {
+      "id": "breakdowns-rags",
+      "name": "Breakdowns & Rags",
+      "entries": [
+        { "songId": "stones-rag" },
+        { "songId": "east-tennessee-blues" },
+        { "songId": "wabash-cannonball" },
+        { "songId": "old-blue" }
       ]
     }
   ]
