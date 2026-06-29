@@ -1,4 +1,5 @@
 import * as alphaTab from '@coderline/alphatab';
+import { parseChordTimeline, type ChordOnset } from '../chords/chordTimeline';
 
 /**
  * The single integration point with alphaTab (renderer-playhead decision D3).
@@ -33,6 +34,8 @@ export interface RendererController {
   getTracks(): TrackInfo[];
   /** Timing of the loaded score (tempo/meter/length), or null before it loads. */
   getSongInfo(): SongInfo | null;
+  /** Chord onsets parsed from the MusicXML harmony, for the chord overlay. */
+  getChordTimeline(): ChordOnset[];
   /** Render only the given track (per-track solo / backing-part selection). */
   soloPart(trackIndex: number): void;
   /** Render a stack of tracks together (e.g. shared melody + a player's part). One
@@ -116,9 +119,24 @@ export async function createRenderer(
     alphaTab.NotationElement.ScoreMusic,
     alphaTab.NotationElement.ScoreWordsAndMusic,
     alphaTab.NotationElement.ScoreCopyright,
+    // Tempo lives in the app header (♩ = N pill), so drop alphaTab's in-score tempo
+    // marking — it otherwise prints flush against the first chord symbol.
+    alphaTab.NotationElement.EffectTempo,
   ]) {
     api.settings.notation.elements.set(el, false);
   }
+
+  // Chord symbols above the staff: bold and a touch larger than alphaTab's default
+  // (serif 12 italic), for at-a-glance reading while playing.
+  const chordFont = new alphaTab.model.Font(
+    'Georgia',
+    14,
+    alphaTab.model.FontStyle.Plain,
+    alphaTab.model.FontWeight.Bold,
+  );
+  chordFont.families = ['Georgia', 'Times New Roman', 'serif'];
+  api.settings.display.resources.elementFonts.set(alphaTab.NotationElement.EffectChordNames, chordFont);
+  api.updateSettings();
 
   let tracks: TrackInfo[] = [];
   let currentBar = 1;
@@ -162,10 +180,13 @@ export async function createRenderer(
     playingCbs.forEach((cb) => cb(playing));
   });
 
-  // Load the MusicXML bytes (fetched locally; no CDN).
+  // Load the MusicXML bytes (fetched locally; no CDN). Decode the same buffer once to
+  // parse the chord timeline for the overlay — alphaTab stays the only thing that fetches.
   const res = await fetch(musicXmlUrl);
   if (!res.ok) throw new Error(`Failed to fetch ${musicXmlUrl}: ${res.status}`);
-  const bytes = new Uint8Array(await res.arrayBuffer());
+  const buf = await res.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  const chordTimeline = parseChordTimeline(new TextDecoder().decode(buf));
   const ok = api.load(bytes);
   if (!ok) throw new Error(`alphaTab could not parse ${musicXmlUrl}`);
 
@@ -192,6 +213,7 @@ export async function createRenderer(
         measureCount: score.masterBars.length,
       };
     },
+    getChordTimeline: () => chordTimeline,
     soloPart(trackIndex: number) {
       const score = api.score;
       if (!score || !score.tracks[trackIndex]) return;
