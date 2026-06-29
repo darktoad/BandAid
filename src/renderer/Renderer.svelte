@@ -40,14 +40,24 @@
   onDestroy(() => controller?.destroy());
 </script>
 
-<div class="render-surface" bind:this={host}></div>
+<div class="render-scroll">
+  <div class="render-surface" bind:this={host}></div>
+</div>
 
 <style>
-  .render-surface {
+  /* The vertical scrollbar lives on this outer wrapper. Keeping it off the alphaTab host
+     means the host's width is the content-box width (already minus the scrollbar), so
+     alphaTab lays out to the visible width. A classic (non-overlay) scrollbar therefore
+     can't spawn a phantom horizontal scrollbar, and nothing gets clipped. */
+  .render-scroll {
     width: 100%;
     height: 100%;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     background: #faf7f2;
+  }
+  .render-surface {
+    width: 100%;
     color: #14110f;
   }
 </style>
