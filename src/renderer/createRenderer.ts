@@ -22,6 +22,7 @@ export interface TrackInfo {
  */
 export interface SongInfo {
   title: string;
+  composer: string; // from the score's music/artist credit; '' if none
   tempoBpm: number;
   timeSignature: string; // "n/d" from the first master bar
   measureCount: number;
@@ -103,6 +104,22 @@ export async function createRenderer(
     },
   });
 
+  // The app renders its own deduped masthead (title + composer), so suppress alphaTab's
+  // built-in score-info block — the MusicXML often sets title AND subtitle to the same
+  // text, which would otherwise print the name twice.
+  for (const el of [
+    alphaTab.NotationElement.ScoreTitle,
+    alphaTab.NotationElement.ScoreSubTitle,
+    alphaTab.NotationElement.ScoreArtist,
+    alphaTab.NotationElement.ScoreAlbum,
+    alphaTab.NotationElement.ScoreWords,
+    alphaTab.NotationElement.ScoreMusic,
+    alphaTab.NotationElement.ScoreWordsAndMusic,
+    alphaTab.NotationElement.ScoreCopyright,
+  ]) {
+    api.settings.notation.elements.set(el, false);
+  }
+
   let tracks: TrackInfo[] = [];
   let currentBar = 1;
   // The rendered track set (1+ stacked staves), kept so zoom/bars-per-row re-render
@@ -169,6 +186,7 @@ export async function createRenderer(
       const mb0 = score.masterBars[0];
       return {
         title: score.title ?? '',
+        composer: score.music || score.artist || '',
         tempoBpm: score.tempo,
         timeSignature: `${mb0.timeSignatureNumerator}/${mb0.timeSignatureDenominator}`,
         measureCount: score.masterBars.length,

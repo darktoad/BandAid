@@ -20,10 +20,10 @@
    *    is the richer M3 form.)
    * Local choices (part, tempo %, audio, zoom) live here; only Transport is synced.
    */
-  let { song, store, onback }: {
+  let { song, store, onsongs }: {
     song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string } };
     store: SessionStore;
-    onback?: () => void;
+    onsongs?: () => void; // open the slide-over song picker
   } = $props();
 
   let controller = $state<RendererController | undefined>(undefined);
@@ -45,8 +45,30 @@
   let synth = $state(true);
   let click = $state(false);
   let countIn = $state(true); // one-bar count-in before play (local pref, FR-6)
-  let showMore = $state(false); // the overflow sheet
+  let showMore = $state(false); // the settings sheet (opened by the ☰ / key / tempo)
+  let composer = $state(''); // score credit, for the masthead
+  let showMasthead = $state(loadMastheadPref()); // local viewing pref, persisted
   let errorMsg = $state<string | null>(null);
+
+  // Masthead visibility is a local viewing preference (not song/session state).
+  function loadMastheadPref(): boolean {
+    try {
+      return typeof localStorage === 'undefined' || localStorage.getItem('bandaid.showMasthead') !== '0';
+    } catch {
+      return true;
+    }
+  }
+  function toggleMasthead() {
+    showMasthead = !showMasthead;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('bandaid.showMasthead', showMasthead ? '1' : '0');
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  const openSettings = () => (showMore = true);
 
   let stageEl: HTMLElement;
   let lastBarsPerRow = 0;
@@ -82,6 +104,7 @@
     const info = c.getSongInfo();
     tempoBpm = info?.tempoBpm ?? 120;
     measureCount = info?.measureCount ?? 1;
+    composer = info?.composer ?? '';
     transport = createLocalTransport({
       songId: song.id,
       defaultTempoBpm: tempoBpm,
@@ -170,15 +193,17 @@
     store.resetSongSetting(song.id, 'transpose');
   }
   let transposeModified = $derived(transpose !== 0);
-  // The sounding key after transposition, when we know the song's written key.
-  let keyLabel = $derived.by(() => {
+  // The sounding tonic after transposition (header pill); falls back to a semitone count.
+  let keyName = $derived.by(() => {
     const tc = song.key?.tonalCenter?.replace('♯', '#').replace('♭', 'b');
     const base = tc !== undefined ? NOTE_INDEX[tc] : undefined;
-    if (base === undefined) {
-      return transpose === 0 ? 'original' : `${transpose > 0 ? '+' : ''}${transpose} st`;
-    }
-    return `${NOTES[(base + transpose + 120) % 12]} ${song.key?.mode ?? ''}`.trim();
+    if (base === undefined) return transpose === 0 ? '—' : `${transpose > 0 ? '+' : ''}${transpose}`;
+    return NOTES[(base + transpose + 120) % 12];
   });
+  // With the mode, for the settings stepper readout.
+  let keyLabel = $derived(song.key?.mode ? `${keyName} ${song.key.mode}` : keyName);
+  // Current sounding tempo (BPM = the ♩ = N your charts show).
+  let currentBpm = $derived(Math.round((tempoBpm * speedPct) / 100));
   function onScale(e: Event) {
     scalePct = Number((e.target as HTMLInputElement).value);
     controller?.setScale(scalePct / 100);
@@ -200,19 +225,30 @@
 
   // The parts a player can overlay as "their part" — everything but the shared melody.
   let overlayParts = $derived(tracks.filter((t) => t.index !== melodyIndex));
-  let myPartName = $derived(
-    myPart === null ? 'Melody only' : (tracks.find((t) => t.index === myPart)?.name ?? 'Melody only'),
-  );
 </script>
 
 <svelte:window onkeydown={onKeydown} />
 
 <header class="topbar">
-  {#if onback}
-    <button class="back" onclick={onback} aria-label="Back to library">←</button>
-  {/if}
-  <span class="brand">BandAid</span>
-  <span class="tag">{song.title} · chord changes</span>
+  <button class="iconbtn" onclick={() => onsongs?.()} aria-label="Songs">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="4" cy="6" r="1.3" fill="currentColor" stroke="none" /><line x1="9" y1="6" x2="20" y2="6" />
+      <circle cx="4" cy="12" r="1.3" fill="currentColor" stroke="none" /><line x1="9" y1="12" x2="20" y2="12" />
+      <circle cx="4" cy="18" r="1.3" fill="currentColor" stroke="none" /><line x1="9" y1="18" x2="20" y2="18" />
+    </svg>
+  </button>
+  <span class="song">{song.title}</span>
+  <button class="pill" class:on={transposeModified} onclick={openSettings} disabled={!controller} title="Key">
+    <span class="lbl">Key</span> {keyName}{#if transposeModified}<span class="dot">●</span>{/if}
+  </button>
+  <button class="pill" class:on={tempoModified} onclick={openSettings} disabled={!transport} title="Tempo">
+    ♩ = {currentBpm}{#if tempoModified}<span class="dot">●</span>{/if}
+  </button>
+  <button class="iconbtn" class:active={showMore} onclick={() => (showMore = !showMore)} aria-label="Settings" aria-expanded={showMore}>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  </button>
 </header>
 
 <!-- Compact, always-visible transport: Play + scrubber keep the music tall. -->
@@ -232,16 +268,18 @@
     disabled={!transport}
     aria-label="Seek to bar"
   />
-  <span class="readout">{bar}/{measureCount}</span>
-
-  <button class="more" class:active={showMore} onclick={() => (showMore = !showMore)} aria-expanded={showMore}>
-    ⋯
-  </button>
 </div>
 
-<!-- Overflow sheet: tempo, size, audio, and the player's own part live here. -->
+<!-- Settings sheet (opened by the ☰, or the Key / Tempo pills). -->
 {#if showMore}
   <div class="sheet">
+    <div class="row">
+      <span class="label">Masthead</span>
+      <div class="chips">
+        <button class:active={showMasthead} onclick={toggleMasthead}>{showMasthead ? 'Shown' : 'Hidden'}</button>
+      </div>
+    </div>
+
     <label class="row">
       <span class="label">Tempo{#if tempoModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
       <input type="range" min="50" max="110" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} />
@@ -291,46 +329,83 @@
 {/if}
 
 <main class="stage" bind:this={stageEl}>
-  <Renderer
-    musicXmlUrl={song.url}
-    onready={onReady}
-    onposition={(b) => (bar = b)}
-    onplaying={(p) => (playing = p)}
-    onplayable={() => (canPlay = true)}
-    onerror={(e) => (errorMsg = e.message)}
-  />
+  {#if showMasthead}
+    <!-- Our own deduped masthead (alphaTab's title block is suppressed): the crucial
+         fields only — title, and composer when present. Key/tempo live in the header. -->
+    <div class="masthead">
+      <div class="mh-title">{song.title}</div>
+      {#if composer}<div class="mh-sub">{composer}</div>{/if}
+    </div>
+  {/if}
+  <div class="render-wrap">
+    <Renderer
+      musicXmlUrl={song.url}
+      onready={onReady}
+      onposition={(b) => (bar = b)}
+      onplaying={(p) => (playing = p)}
+      onplayable={() => (canPlay = true)}
+      onerror={(e) => (errorMsg = e.message)}
+    />
+  </div>
 </main>
 
 <style>
   .topbar {
     display: flex;
-    align-items: baseline;
-    gap: 0.6rem;
-    padding: 0.55rem 1rem;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.7rem;
     border-bottom: 1px solid var(--line);
     background: var(--panel);
   }
-  .brand { font-weight: 700; letter-spacing: 0.02em; }
-  .tag { color: var(--muted); font-size: 0.8rem; }
-  .back { flex: 0 0 auto; min-width: 2.2rem; min-height: 2.2rem; font-size: 1rem; align-self: center; }
+  .iconbtn {
+    flex: 0 0 auto;
+    width: 2.1rem;
+    height: 2.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .iconbtn.active { border-color: var(--accent); color: var(--accent); }
+  /* Small, subtle song name — takes the slack so the pills/buttons stay put. */
+  .song {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pill {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.32rem 0.5rem;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .pill.on { border-color: var(--accent); }
+  .pill .lbl { color: var(--muted); font-size: 0.72rem; }
+  .pill .dot { color: var(--accent); font-size: 0.5rem; }
 
-  /* One short row, always visible — does not grow with the number of controls. */
   .transport {
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    padding: 0.45rem 1rem;
+    padding: 0.45rem 0.9rem;
     border-bottom: 1px solid var(--line);
     background: var(--panel);
   }
-  .transport .play,
-  .transport .more {
+  .transport .play {
     flex: 0 0 auto;
     min-width: 2.6rem;
     min-height: 2.4rem; /* comfortable tap target on mobile */
     font-size: 1rem;
   }
-  .transport .more.active { border-color: var(--accent); color: var(--accent); }
   .scrub { flex: 1 1 auto; min-width: 0; }
   .readout { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.85rem; flex: 0 0 auto; }
 
@@ -370,5 +445,23 @@
     font-size: 0.85rem;
   }
 
-  .stage { flex: 1; min-height: 0; }
+  .stage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .render-wrap { flex: 1 1 auto; min-height: 0; }
+
+  /* Minimal chart masthead above the music (alphaTab's own title is suppressed). */
+  .masthead {
+    flex: 0 0 auto;
+    text-align: center;
+    background: #faf7f2;
+    color: #14110f;
+    padding: 0.7rem 1rem 0.55rem;
+    border-bottom: 1px solid #e7e0d5;
+  }
+  .mh-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1.15;
+  }
+  .mh-sub { color: #6b6258; font-size: 0.78rem; margin-top: 0.15rem; }
 </style>
