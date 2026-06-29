@@ -110,6 +110,7 @@
 
   let stageEl: HTMLElement;
   let lastBarsPerRow = 0;
+  let barsPerRow = $state(4); // notation bars-per-row; the overlay mirrors it 1:1
 
   // Responsive notation: fewer bars per row on narrow screens so notes aren't crowded.
   function barsForWidth(w: number): number {
@@ -119,6 +120,7 @@
   }
   function applyResponsiveLayout(w: number) {
     const bpr = barsForWidth(w);
+    barsPerRow = bpr; // keep the overlay's row count in step with the notation
     if (bpr === lastBarsPerRow || !controller) return;
     lastBarsPerRow = bpr;
     controller.setBarsPerRow(bpr);
@@ -435,6 +437,7 @@
     currentBar={bar}
     {barProgress}
     {beatsPerBar}
+    {barsPerRow}
     {measureCount}
     instrument={chartInstrument}
     {showCharts}
