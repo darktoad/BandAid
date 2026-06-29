@@ -243,17 +243,16 @@ a theme that still lands. Verified via web research; the user may still tune the
   popular that in 1949 a railroad finally hung the name on a real express. Roy Acuff's
   1936 record sold ten million copies, and it's the oldest song in the Rock and Roll Hall
   of Fame's '500 Songs That Shaped Rock and Roll.'"
-- **Old Blue:** _Pending — no source found._ Confirmed instrumental: the source sheet
-  (photo `IMG_6895`) carries no descriptive footnote and no lyrics — only the initials
-  "F. C. Z." and personal handwriting ("for cousin Bob", "2010"). It is **not** the
-  *Old Dog Blue* ballad it shares a name with, and no documented history turned up for this
-  fiddle setting. Awaiting any context the user has (e.g. who "F. C. Z." is). Candidate
-  descriptor if we ship something: "A high-spirited old-time fiddle breakdown — all drive
-  and double-stops, the kind of tune that lives in jam sessions rather than on record."
+- **Old Blue:** "A high-spirited old-time fiddle breakdown — all drive and double-stops,
+  the kind of tune that lives in jam sessions rather than on record." _(Placeholder: the
+  source sheet (`IMG_6895`) has no footnote or lyrics, only the initials "F. C. Z." and
+  personal handwriting. This is **not** the *Old Dog Blue* ballad it shares a name with;
+  no documented history was found. Easily replaced if real provenance surfaces.)_
 - **Stone's Rag:** "Named for old-time fiddler Oscar Stone, this is a bright, showy rag —
   ragtime's bounce run through string-band fiddle. No words, just a tune made to move a
-  dance floor; Texas fiddle great Byron Berline helped turn it into a contest and
-  jam-session staple."
+  dance floor; Texas fiddle great Byron Berline helped carry it into the contest and
+  jam-session world, where it also goes by 'Lone Star Rag.'" _(the "Lone Star Rag" alias is
+  from the source sheet's footnote)_
 - **East Tennessee Blues:** "Written by Charlie Bowman, a champion fiddler from the East
   Tennessee hills, and first recorded in 1926 with the Hill Billies — the band whose very
   name helped christen 'hillbilly' music. It's a fiddle 'blues' that struts more than it
