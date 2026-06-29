@@ -1,0 +1,18 @@
+X:1
+T:Stone's Rag
+C:trad. (also "Lone Star Rag")
+M:2/4
+L:1/16
+Q:1/4=90
+R:swing the sixteenths
+K:C
+% A part
+"C" cdeg gage | agec cdcA | "F" FGAc cdcA | dcAc cdcB |
+"G" BdBG G2A^A | BdBG G2AB | cBca agea | "C" g8 |
+"C" cdeg gage | agec cdcA | "F" FGAc cdcA | dcAc cdcA |
+"G" BdBG G2A^A | BdBG G2AB | cBca ag e2 | "C" c8 |
+% B part
+"A" agea ageg | agea age2 | "D" dcAd dcAc | dcAd dcA^A |
+"G" BdBG G2A^A | BdBG G2AB | cBca agea | "C" g6 ^g2 |
+"A" agea ageg | agea agec | "D" dcAd dcAc | dcAd dcA^A |
+"G" BdBG G2A^A | BdBG G2AB | cdea ag e2 | "C" c8 |
