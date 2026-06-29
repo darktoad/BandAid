@@ -6,13 +6,15 @@
 ## Purpose
 
 Give a player a scrollable **chord + lyric sheet** to read while a tune plays, plus a
-short **performance note** (banter/intro talking points) per song. Both are personal,
-local reference — not synced band state — consistent with the project principle:
-"no modes, only a session + local presentation templates over one shared playhead."
+short **performance note** (banter/intro talking point) on **every** song — sung or
+instrumental. Both are personal, local reference — not synced band state — consistent
+with the project principle: "no modes, only a session + local presentation templates
+over one shared playhead."
 
 The motivating example is *Wabash Cannonball*: multiple verses and a chorus sung over
 repeats of one chord progression, with a couple of sentences of lore worth saying
-between tunes.
+between tunes. Instrumentals (Stone's Rag, East Tennessee Blues) have a note but no
+lyrics.
 
 ## Decisions (from brainstorming)
 
@@ -20,52 +22,53 @@ between tunes.
 |---|----------|-----------|
 | D1 | **Static read-along sheet**, data shaped so section-sync is additive later. | The canonical files are single-pass reduced lead sheets; multiple verses over repeats make timed sync (B/C) a separate, heavier project. A static sheet is immediately useful and needs zero timing data. |
 | D2 | **Toggleable lyrics sheet** on the drill screen (per-device pref), like the chord overlay. | Fits the established overlay-toggle idiom; avoids pulling M3's full view-switcher forward. |
-| D3 | **Lore = short plain-text performance notes**, not scholarly citations. No markdown. | It's banter to lead into / between songs — a couple of sentences, glanceable. |
+| D3 | **Performance notes are short plain text**, not scholarly citations. No markdown. | It's banter to lead into / between songs — a sentence or two, glanceable. |
 | D4 | **Lyrics stored as ChordPro.** | De-facto standard for chord sheets; reflows on a phone (chords anchored to words, not columns); section directives give future section-sync for free. Pasted sheets convert to it once. |
-| D5 | **One sidecar file per song** carries both notes and lyrics; lazy-fetched on open. | Keeps all human-readable song context in one place; adding lyrics stays data-only (drop a file, flip a flag), matching how songs are added (NFR-3 of unified-music-model). |
+| D5 | **Notes live in the manifest (universal); lyrics live in a per-song ChordPro sidecar (sung tunes only).** | Notes are short, needed on every song (incl. instrumentals), and worth showing without a fetch or a heavy sheet → manifest metadata. Lyrics are long and only some songs have them → lazy sidecar. |
 
 ## Architecture fit
 
 The app is a **pure consumer** (unified-music-model boundary): no in-app authoring, no
-editing. Lyrics/notes are authored by hand (pasted chord sheets converted to ChordPro)
-and delivered as static sidecar assets, exactly like the canonical MusicXML. Adding or
-editing them requires **no app code change**.
+editing. Notes and lyrics are authored by hand (pasted chord sheets converted to
+ChordPro) and delivered as static data — a manifest field and a sidecar asset, like the
+canonical MusicXML. Adding or editing them requires **no app code change**.
 
-Lyrics and notes are a **local presentation template**, never written to the session
+Notes and lyrics are **local presentation**, never written to the session
 `Transport`/`SessionState`. Two devices can have the sheet open or closed independently.
 
 ## Data model
 
-### Manifest flag
+### Manifest: universal notes + a lyrics flag
 
-`SongContent` (in `src/library/types.ts`) gains one optional flag:
+`SongSummary` (in `src/library/types.ts`) gains an optional short note; `SongContent`
+gains a flag advertising a lyrics sidecar:
 
 ```typescript
 export interface SongContent {
   hasMelody: boolean;
   hasChords: boolean;
   hasTab: boolean;
-  hasLyrics?: boolean; // a <id>.chordpro sidecar exists (lyrics and/or notes)
+  hasLyrics?: boolean; // a <id>.chordpro lyrics sidecar exists
+}
+
+export interface SongSummary {
+  // …existing fields…
+  notes?: string; // short performance/banter note; rendered with line breaks. Universal.
 }
 ```
 
-`public/library.json` sets `content.hasLyrics: true` on the two sung tunes
-(`wabash-cannonball`, `old-blue`). The instrumental tunes are untouched.
+`public/library.json` carries a `notes` string on **all four** songs, and
+`content.hasLyrics: true` on the two sung tunes (`wabash-cannonball`, `old-blue`).
 
-### Sidecar file
+### Lyrics sidecar (sung tunes only)
 
-`public/songs/<id>.chordpro` — plain ChordPro text. Optional leading `{about: …}`
-directive(s) for the performance note, followed by `{start_of_verse[: label]}` /
-`{start_of_chorus[: label]}` sections with `[Chord]lyric` lines.
-
-`{about:}` is a small app-specific convention; standard ChordPro parsers ignore unknown
-directives, so the files stay tool-compatible.
+`public/songs/<id>.chordpro` — plain ChordPro text: `{start_of_verse[: label]}` /
+`{start_of_chorus[: label]}` sections with `[Chord]lyric` lines. No notes here; notes are
+in the manifest.
 
 Example — `public/songs/wabash-cannonball.chordpro`:
 
 ```
-{about: A piece of railroad history — no one knows who wrote it. The Carter Family cut it in 1929, Roy Acuff made it famous in '36. The "jungle" is the hobo camps at the edge of the train yards.}
-
 {start_of_verse: Verse 1}
 [G]From the great Atlantic ocean to the [C]wide Pacific shore,
 [D]to the green old flow'ring mountains, to the [G]ice-bound Labrador
@@ -83,7 +86,7 @@ Example — `public/songs/wabash-cannonball.chordpro`:
 interface ChordToken { sym: string; index: number; } // index = char offset into text
 interface LyricLine  { chords: ChordToken[]; text: string; }
 interface LyricSection { label?: string; kind: 'verse' | 'chorus' | 'other'; lines: LyricLine[]; }
-interface SongSheet  { notes: string[]; sections: LyricSection[]; }
+interface SongSheet  { sections: LyricSection[]; }
 ```
 
 ## Components & boundaries
@@ -94,55 +97,60 @@ interface SongSheet  { notes: string[]; sections: LyricSection[]; }
 Node — the exact pattern `src/chords/chordTimeline.ts` already uses, so it's unit-tested
 without alphaTab/Svelte. Responsibilities:
 
-- Pull `{about: …}` directive(s) into `notes` (multiple allowed; order preserved).
 - Split into sections on `{start_of_verse|sov …}` / `{start_of_chorus|soc …}` /
-  `{end_of_*}` directives; capture optional labels; default a leading label-less run to
-  one `other` section.
+  `{end_of_*}` directives; capture optional labels; map to `kind` (verse/chorus/other);
+  default a leading label-less run to one `other` section.
 - Per line, extract `[Chord]` tokens and record each chord's `sym` plus its `index` in
   the chord-stripped `text` (so the renderer can position chords over the right char).
+- Ignore unrecognized directives (forward-compatible with standard ChordPro files).
 
 What it does, how you use it, what it depends on: parses one ChordPro string into a
 `SongSheet`; call it once after fetching a sidecar; depends on nothing.
 
 ### `src/lyrics/LyricsSheet.svelte` — renderer
 
-Props: `sheet: SongSheet` (and, reserved for B, an optional `currentBar`/section map —
-unused in M1). Renders:
+Props: `note?: string` (from the manifest) and `sheet: SongSheet` (and, reserved for B,
+an optional `currentBar`/section map — unused in M1). Renders:
 
-- A **notes block** at the top (each `notes` entry as a paragraph; line breaks preserved).
+- A **note block** at the top when `note` is present (line breaks preserved).
 - Each section: optional label, then lines where every chord is an absolutely-positioned
   span sitting above its anchor character. Lines **reflow** on a narrow viewport; a line
-  with no chords renders as plain text. Empty `sheet` renders nothing.
+  with no chords renders as plain text. An empty `sheet` with no `note` renders nothing.
 
-Pure presentation; depends only on `SongSheet`. Carries no fetch/transport logic.
+Pure presentation; depends only on its props. Carries no fetch/transport logic.
 
 ### `src/views/ChordChangesView.svelte` — integration
 
-- New per-device pref (localStorage, sibling to the chord-overlay pref), e.g.
-  `bandaid.lyrics = { open: boolean }`. Default closed.
-- A toggle control (button) shown **only when `song.content.hasLyrics`**, plus a small
-  ⓘ affordance on the masthead that opens the same sheet.
-- On first open, **lazily** `fetch(<id>.chordpro)` (cache-busted like the other runtime
-  fetches), `parseChordPro`, and cache the `SongSheet` in component state. Subsequent
-  opens reuse it. A fetch/parse failure surfaces a quiet inline message and leaves the
-  drill view fully usable.
-- The sheet mounts as a scrollable **slide-over** over the notation (same overlay idiom
-  as the song picker in `App.svelte`), with a close control. The playhead keeps running
-  underneath; the sheet is **read-only and untimed** in M1.
+- **Note affordance (universal):** a small ⓘ by the masthead title, shown whenever the
+  song has `notes`, opens a lightweight popover/compact sheet showing the note. No fetch
+  — the note is already in the manifest. This is the only lyrics-feature surface an
+  instrumental shows.
+- **Lyrics toggle (sung tunes):** a toggle control shown **only when
+  `song.content.hasLyrics`**, persisted per-device in localStorage (sibling to the
+  chord-overlay pref), e.g. `bandaid.lyrics = { open: boolean }`, default closed.
+- On first open of the lyrics sheet, **lazily** `fetch(<id>.chordpro)` (cache-busted like
+  the other runtime fetches), `parseChordPro`, and cache the `SongSheet` in component
+  state. Subsequent opens reuse it. A fetch/parse failure surfaces a quiet inline message
+  and leaves the drill view fully usable.
+- The lyrics sheet mounts as a scrollable **slide-over** over the notation (same overlay
+  idiom as the song picker in `App.svelte`), with a close control, and shows the note at
+  its top (passed straight from the manifest). The playhead keeps running underneath; the
+  sheet is **read-only and untimed** in M1.
 
 ### `src/App.svelte`
 
-`openSong` adds `hasLyrics: s.content.hasLyrics` to the `current` object so the view can
-gate the toggle without re-reading the manifest.
+`openSong` adds `notes: s.notes` and `hasLyrics: s.content.hasLyrics` to the `current`
+object so the view can show the note + gate the lyrics toggle without re-reading the
+manifest.
 
 ## Data flow
 
 ```
-library.json (content.hasLyrics) ──► App.openSong ──► ChordChangesView (gates toggle)
-                                                            │ user opens sheet (first time)
-                                   fetch <id>.chordpro ──► parseChordPro ──► SongSheet
-                                                            │
-                                                   LyricsSheet.svelte (render, reflow)
+library.json (notes, content.hasLyrics) ──► App.openSong ──► ChordChangesView
+   note shown via ⓘ (no fetch, every song) ─────────────────────┤
+   lyrics toggle (only if hasLyrics) ─► fetch <id>.chordpro ─► parseChordPro ─► SongSheet
+                                                                  │
+                                                LyricsSheet.svelte (note + sections, reflow)
 ```
 
 No write path. Nothing touches `SessionStore`/`Transport`.
@@ -163,16 +171,18 @@ Section-synced highlighting is purely additive on top of this design:
 | `hasLyrics` true but sidecar 404s / fails to parse | Quiet inline notice in the sheet; drill view unaffected. |
 | Chord positioned mid-word (`Atl[C]antic`) | Chord renders above that character; reflow still works. |
 | Line with no chords | Plain lyric line. |
-| Song has only a note, no verses | Sheet shows just the notes block. (Notes-only instrumentals are a later flag extension; M1 only authors the two sung tunes.) |
+| Instrumental (note, no lyrics) | ⓘ note popover only; no lyrics toggle, no sidecar, no fetch. |
+| Song with neither note nor lyrics | No ⓘ, no toggle (not expected in M1; all four get notes). |
 | Sheet open when the song is switched | Per-song remount (existing `{#key current.id}`) drops the cached sheet; reopen re-fetches. |
 | Very long sheet on a phone | Sheet scrolls independently; playhead continues underneath. |
 
 ## Testing
 
 - `src/lyrics/chordpro.test.ts` — parser: chord offsets (incl. mid-word and multiple
-  chords per line), section splitting + labels, `{about}` extraction (single/multiple),
-  chord-less lines, empty input.
-- Manifest gating: a song with `hasLyrics` offers the toggle; one without does not.
+  chords per line), section splitting + labels + `kind` mapping, chord-less lines,
+  unknown-directive tolerance, empty input.
+- Manifest gating: a song with `hasLyrics` offers the lyrics toggle; one without does
+  not; every song exposes its `notes`.
 - `LyricsSheet` rendering is thin; the parser holds the logic and carries the tests.
 
 ## Out of scope (M1)
@@ -180,18 +190,35 @@ Section-synced highlighting is purely additive on top of this design:
 - Section/word/line **sync** to the playhead (B/C).
 - In-app authoring or editing of lyrics/notes.
 - Auto-generating lyrics or notes.
-- Syncing the sheet's open/scroll state across the band.
+- Syncing the note/sheet open/scroll state across the band.
 
 ## Files
 
 | File | Change |
 |------|--------|
-| `public/songs/wabash-cannonball.chordpro` | new (notes + lyrics) |
-| `public/songs/old-blue.chordpro` | new (notes + lyrics) |
+| `public/library.json` | add `notes` to all 4 songs; `content.hasLyrics` on the 2 sung tunes |
+| `public/songs/wabash-cannonball.chordpro` | new (lyrics) |
+| `public/songs/old-blue.chordpro` | new (lyrics) |
 | `src/lyrics/chordpro.ts` | new — pure parser |
 | `src/lyrics/chordpro.test.ts` | new — parser unit tests |
-| `src/lyrics/LyricsSheet.svelte` | new — renderer |
-| `src/library/types.ts` | add `hasLyrics?` to `SongContent` |
-| `public/library.json` | set `content.hasLyrics` on the 2 sung tunes |
-| `src/views/ChordChangesView.svelte` | toggle + slide-over + lazy fetch/parse + masthead ⓘ |
-| `src/App.svelte` | thread `hasLyrics` into `current` |
+| `src/lyrics/LyricsSheet.svelte` | new — renderer (note + sections) |
+| `src/library/types.ts` | add `notes?` to `SongSummary`, `hasLyrics?` to `SongContent` |
+| `src/views/ChordChangesView.svelte` | ⓘ note popover (universal) + lyrics toggle/slide-over + lazy fetch/parse |
+| `src/App.svelte` | thread `notes` + `hasLyrics` into `current` |
+
+## Draft note content (to refine during implementation)
+
+Starter banter notes; **verify/personalize before shipping** — partly from memory, and
+banter accuracy matters. Wabash is well-sourced; the others are general and safe but
+worth a fact-check.
+
+- **Wabash Cannonball:** "No one knows who wrote it. The Carter Family recorded it in
+  1929; Roy Acuff's 1936 version made it a standard. The 'jungle' in the chorus is the
+  hobo camps at the edge of the rail yards."
+- **Old Blue:** "A traditional folk song about a faithful old hunting dog — carried by
+  everyone from Dave Van Ronk to the Byrds. The last verse turns into a promise to meet
+  Blue in the hereafter."
+- **Stone's Rag:** "A bouncy old-time fiddle rag, long a staple of jam sessions and
+  fiddle contests."
+- **East Tennessee Blues:** "An old-time fiddle blues out of the 1920s string-band era —
+  an easygoing jam tune that sits naturally in C."
