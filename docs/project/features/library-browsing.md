@@ -176,14 +176,14 @@ interface LibraryService {
 
 ## Acceptance Criteria
 
-- [ ] The app loads a bundled manifest and shows set lists on the home screen (set-lists-first).
-- [ ] Tapping a set list shows its songs in the manifest's order, each with title/key/tempo.
-- [ ] A secondary Library view lists all songs in the library.
-- [ ] Tapping a song shows a detail card with key (mode/tonal center), tempo, time signature, and available views derived from content flags.
-- [ ] Open sets `currentSongId` in the session store and the song loads into the renderer; no other code writes `currentSongId`.
-- [ ] Back returns to the originating list.
-- [ ] A song with `hasChords=false` does not list the chord-changes view on its card.
-- [ ] Browsing and loading work on iPhone, Android, iPad, and laptop (web) with no network after load.
+- [x] The app loads a bundled manifest and shows set lists on the home screen (set-lists-first).
+- [x] Tapping a set list shows its songs in the manifest's order, each with title/key/tempo.
+- [x] A secondary Library view lists all songs in the library.
+- [x] Tapping a song shows a detail card with key (mode/tonal center), tempo, time signature, and available views derived from content flags.
+- [x] Open sets `currentSongId` in the session store and the song loads into the renderer; no other code writes `currentSongId`.
+- [x] Back returns to the originating list. *(Card returns to its origin — set list or Library; the drill view's ← returns to browse.)*
+- [x] A song with `hasChords=false` does not list the chord-changes view on its card. *(`availableViews` gating; unit-tested.)*
+- [ ] Browsing and loading work on iPhone, Android, iPad, and laptop (web) with no network after load. *(Built touch-friendly with one code path; manifest + canonical files are bundled so the loop is offline after load. On-device spot-check recommended.)*
 
 ## Dependencies
 
@@ -205,21 +205,31 @@ interface LibraryService {
 
 ## Implementation Status
 
-**Status:** Not Started
-**Last Worked:** -
-**Progress:** 0/8 acceptance criteria
+**Status:** Built (M1) — 7/8 ACs; on-device spot-check is the open item
+**Last Worked:** 2026-06-29
+**Progress:** 7/8 acceptance criteria. Set-lists-first home, secondary Library, song detail card, and Open→`setCurrentSong` are all wired; the only unverified AC is the cross-device spot-check (built responsive/touch-friendly, offline after load).
 
 ### Implementation Notes
-_Notes will be added here as implementation progresses via `/impl-feature`._
+- **Read-only manifest (D4):** `public/library.json` is the bundled source of truth, fetched via `BASE_URL` (no CDN; copied into `dist`). Adding a song = a manifest entry + `songs/<id>.musicxml` (NFR-3); the file URL is derived by convention from the song id.
+- **Service seam:** `makeLibraryService(manifest)` is pure (unit-tested); `createLibraryService(url)` fetches then builds it. Set-list entries resolve to library songs, **skipping** references to missing ids (edge case) rather than crashing.
+- **Open is the only session write (D5/FR-7):** `BrowseView` emits `onopen`; `App` calls `store.setCurrentSong(id)` and routes to the drill view. `browse`/`drill` routing and which list is open are local presentation (FR-9), never synced.
+- **`availableViews` gates the chord-changes template** on `content.hasChords` (the M1 stand-in for the full content-flag-driven view list).
+- Per-song re-mount (`{#key}`) makes the renderer reload the new score on Open.
 
 ### Files Created
-_Tracked here as created._
+- `public/library.json` — the bundled manifest (one tune today; widens via the song-processing tool).
+- `src/library/types.ts` — manifest / summary / set-list types.
+- `src/library/libraryService.ts` — `LibraryService` (`makeLibraryService` + `createLibraryService`).
+- `src/library/libraryService.test.ts` — 6 tests (resolution order, missing-id skip, `availableViews` gating).
+- `src/views/BrowseView.svelte` — set-lists home / Library / detail card shell.
+- `src/App.svelte` — browse↔drill router; `src/views/ChordChangesView.svelte` — added a Back affordance.
 
 ## Changelog
 
 | Date | Change | Reason |
 |------|--------|--------|
 | 2026-06-26 | Initial specification | Created via /design-feature; 5 design decisions (set-lists-first, return-to-list between songs, detail card before load, read-only bundled manifest, Open sets currentSongId) |
+| 2026-06-29 | Implemented the browse shell + library service over a bundled manifest; Open wired to `setCurrentSong`. Marked **Built (M1)**. | Final M1 step — the shell that picks a song to drill. |
 
 ---
 
