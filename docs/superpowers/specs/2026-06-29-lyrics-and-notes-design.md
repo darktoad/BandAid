@@ -206,19 +206,31 @@ Section-synced highlighting is purely additive on top of this design:
 | `src/views/ChordChangesView.svelte` | ⓘ note popover (universal) + lyrics toggle/slide-over + lazy fetch/parse |
 | `src/App.svelte` | thread `notes` + `hasLyrics` into `current` |
 
-## Draft note content (to refine during implementation)
+## Note content (researched 2026-06-29; sources below)
 
-Starter banter notes; **verify/personalize before shipping** — partly from memory, and
-banter accuracy matters. Wabash is well-sourced; the others are general and safe but
-worth a fact-check.
+Audience-facing banter: what the song is about, the world it came from, a hook of trivia,
+a theme that still lands. Verified via web research; the user may still tune the voice.
 
-- **Wabash Cannonball:** "No one knows who wrote it. The Carter Family recorded it in
-  1929; Roy Acuff's 1936 version made it a standard. The 'jungle' in the chorus is the
-  hobo camps at the edge of the rail yards."
-- **Old Blue:** "A traditional folk song about a faithful old hunting dog — carried by
-  everyone from Dave Van Ronk to the Byrds. The last verse turns into a promise to meet
-  Blue in the hereafter."
-- **Stone's Rag:** "A bouncy old-time fiddle rag, long a staple of jam sessions and
-  fiddle contests."
-- **East Tennessee Blues:** "An old-time fiddle blues out of the 1920s string-band era —
-  an easygoing jam tune that sits naturally in C."
+- **Wabash Cannonball:** "The song came first; the train came second. For years the
+  'Wabash Cannonball' was pure tall tale — in hobo lore a ghostly death-train that carried
+  a departed soul to its reward, its whistle heard at every station in America. It got so
+  popular that in 1949 a railroad finally hung the name on a real express. Roy Acuff's
+  1936 record sold ten million copies, and it's the oldest song in the Rock and Roll Hall
+  of Fame's '500 Songs That Shaped Rock and Roll.'"
+- **Old Blue:** "A man's love for his old dog, dressed up as a song. It traces back to
+  19th-century minstrel shows, was first cut in 1928 as 'Old Dog Blue,' and has since been
+  sung by everyone from Joan Baez to the Byrds to Dave Van Ronk. Most versions end with
+  the singer burying Blue and vowing to meet him again in the next world — anyone who's
+  lost a pet knows the feeling."
+- **Stone's Rag:** "Named for old-time fiddler Oscar Stone, this is a bright, showy rag —
+  ragtime's bounce run through string-band fiddle. No words, just a tune made to move a
+  dance floor; Texas fiddle great Byron Berline helped turn it into a contest and
+  jam-session staple."
+- **East Tennessee Blues:** "Written by Charlie Bowman, a champion fiddler from the East
+  Tennessee hills, and first recorded in 1926 with the Hill Billies — the band whose very
+  name helped christen 'hillbilly' music. It's a fiddle 'blues' that struts more than it
+  mourns: bluesy color over a cheerful old-time rag."
+
+Sources: Wikipedia (*Wabash Cannonball*, *Old Blue (song)*); The Traditional Tune Archive
+(*Stone's Rag* → Oscar Stone / Byron Berline arrangement; *East Tennessee Blues* → Charlie
+Bowman, Hill Billies, Vocalion 5016, 1926).
