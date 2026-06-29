@@ -58,7 +58,10 @@ export interface SongSummary {
 ```
 
 `public/library.json` carries a `notes` string on **all four** songs, and
-`content.hasLyrics: true` on the two sung tunes (`wabash-cannonball`, `old-blue`).
+`content.hasLyrics: true` on **Wabash Cannonball only** — the one sung tune in the current
+library. (Old Blue, despite sharing a name with the *Old Dog Blue* ballad, is an
+instrumental fiddle breakdown in the source fakebook, with no lyrics; Stone's Rag and East
+Tennessee Blues are also instrumentals.)
 
 ### Lyrics sidecar (sung tunes only)
 
@@ -196,9 +199,8 @@ Section-synced highlighting is purely additive on top of this design:
 
 | File | Change |
 |------|--------|
-| `public/library.json` | add `notes` to all 4 songs; `content.hasLyrics` on the 2 sung tunes |
-| `public/songs/wabash-cannonball.chordpro` | new (lyrics) |
-| `public/songs/old-blue.chordpro` | new (lyrics) |
+| `public/library.json` | add `notes` to all 4 songs; `content.hasLyrics` on Wabash only |
+| `public/songs/wabash-cannonball.chordpro` | new (lyrics) — the only sung tune for now |
 | `src/lyrics/chordpro.ts` | new — pure parser |
 | `src/lyrics/chordpro.test.ts` | new — parser unit tests |
 | `src/lyrics/LyricsSheet.svelte` | new — renderer (note + sections) |
@@ -217,11 +219,13 @@ a theme that still lands. Verified via web research; the user may still tune the
   popular that in 1949 a railroad finally hung the name on a real express. Roy Acuff's
   1936 record sold ten million copies, and it's the oldest song in the Rock and Roll Hall
   of Fame's '500 Songs That Shaped Rock and Roll.'"
-- **Old Blue:** "A man's love for his old dog, dressed up as a song. It traces back to
-  19th-century minstrel shows, was first cut in 1928 as 'Old Dog Blue,' and has since been
-  sung by everyone from Joan Baez to the Byrds to Dave Van Ronk. Most versions end with
-  the singer burying Blue and vowing to meet him again in the next world — anyone who's
-  lost a pet knows the feeling."
+- **Old Blue:** _Pending — needs the user's source/context._ This is an instrumental
+  fiddle breakdown in G, **not** the famous *Old Dog Blue* ballad it shares a name with,
+  and no documented history turned up for this specific fiddle setting. (The earlier
+  dog-song note was removed as a mis-identification.) Candidate honest descriptor until
+  the user supplies real context: "A high-spirited old-time fiddle breakdown in G — all
+  drive and double-stops, the kind of tune that lives in jam sessions rather than on
+  record."
 - **Stone's Rag:** "Named for old-time fiddler Oscar Stone, this is a bright, showy rag —
   ragtime's bounce run through string-band fiddle. No words, just a tune made to move a
   dance floor; Texas fiddle great Byron Berline helped turn it into a contest and
@@ -231,6 +235,8 @@ a theme that still lands. Verified via web research; the user may still tune the
   name helped christen 'hillbilly' music. It's a fiddle 'blues' that struts more than it
   mourns: bluesy color over a cheerful old-time rag."
 
-Sources: Wikipedia (*Wabash Cannonball*, *Old Blue (song)*); The Traditional Tune Archive
-(*Stone's Rag* → Oscar Stone / Byron Berline arrangement; *East Tennessee Blues* → Charlie
-Bowman, Hill Billies, Vocalion 5016, 1926).
+Sources: Wikipedia (*Wabash Cannonball*); The Traditional Tune Archive (*Stone's Rag* →
+Oscar Stone / Byron Berline arrangement; *East Tennessee Blues* → Charlie Bowman, Hill
+Billies, Vocalion 5016, 1926). Old Blue: the user's file is an instrumental fiddle tune;
+the *Old Dog Blue* ballad it shares a name with was confirmed **not** to match, and no
+source for the fiddle setting was found — note left pending.
