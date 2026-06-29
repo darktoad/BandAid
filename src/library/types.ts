@@ -28,6 +28,9 @@ export interface SongSummary {
   defaultKey: SongKey;
   defaultTempoBpm: number;
   timeSignature: string;
+  /** Played running time for one pass through the chart, in seconds (for set-length
+   *  estimates). Optional — absent when not yet computed. */
+  durationSec?: number;
   content: SongContent;
   parts: SongPart[];
 }

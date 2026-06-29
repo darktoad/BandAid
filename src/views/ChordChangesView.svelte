@@ -20,10 +20,11 @@
    *    is the richer M3 form.)
    * Local choices (part, tempo %, audio, zoom) live here; only Transport is synced.
    */
-  let { song, store, onsongs }: {
+  let { song, store, onsongs, onprogress }: {
     song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string } };
     store: SessionStore;
     onsongs?: () => void; // open the slide-over song picker
+    onprogress?: (fraction: number) => void; // 0–1 playback position, for the picker
   } = $props();
 
   let controller = $state<RendererController | undefined>(undefined);
@@ -210,8 +211,13 @@
   }
   function onScrub(e: Event) {
     const target = Number((e.target as HTMLInputElement).value);
-    bar = target;
+    setBar(target);
     transport?.seekToBar(target);
+  }
+  // Track the cursor bar and surface playback progress (0–1) for the song picker.
+  function setBar(b: number) {
+    bar = b;
+    onprogress?.(measureCount > 1 ? Math.min(1, Math.max(0, (b - 1) / (measureCount - 1))) : 0);
   }
 
   // Spacebar toggles play/pause on laptop. Ignore when focused in a control.
@@ -341,7 +347,7 @@
     <Renderer
       musicXmlUrl={song.url}
       onready={onReady}
-      onposition={(b) => (bar = b)}
+      onposition={(b) => setBar(b)}
       onplaying={(p) => (playing = p)}
       onplayable={() => (canPlay = true)}
       onerror={(e) => (errorMsg = e.message)}

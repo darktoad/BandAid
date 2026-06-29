@@ -9,10 +9,12 @@
    * list (persisted). Used full-screen on first load and as the slide-over while
    * drilling. The only session write is Open → onopen → setCurrentSong (D5).
    */
-  let { service, onopen, onclose }: {
+  let { service, onopen, onclose, activeId, progress = 0 }: {
     service: LibraryService;
     onopen: (song: SongSummary) => void;
     onclose?: () => void; // present when shown as the slide-over
+    activeId?: string; // the currently-open song (highlighted)
+    progress?: number; // 0–1 playback position of the active song
   } = $props();
 
   let setLists = $derived(service.getSetLists());
@@ -47,6 +49,12 @@
   }
 
   const keyLabel = (s: SongSummary) => `${s.defaultKey.tonalCenter} ${s.defaultKey.mode}`;
+  const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
+
+  // Expected running time of the shown list (sum of single-pass times). '~' because
+  // it's one pass per tune at the chart tempo; bands often play more.
+  let totalSec = $derived(shownSongs.reduce((a, s) => a + (s.durationSec ?? 0), 0));
+  let allTimed = $derived(shownSongs.length > 0 && shownSongs.every((s) => s.durationSec !== undefined));
 </script>
 
 <div class="picker">
@@ -69,12 +77,25 @@
     {#if shownSongs.length === 0}
       <p class="empty">No songs here yet.</p>
     {:else}
+      <div class="listmeta">
+        {shownSongs.length} song{shownSongs.length === 1 ? '' : 's'}{#if totalSec > 0}{' · '}{allTimed
+            ? ''
+            : '≥'}~{fmt(totalSec)}{/if}
+      </div>
       <ul class="list">
         {#each shownSongs as s}
           <li>
-            <button class="srow" onclick={() => onopen(s)}>
-              <span class="stitle">{s.title}</span>
-              <span class="smeta">{keyLabel(s)} · ♩ = {s.defaultTempoBpm}</span>
+            <button class="srow" class:active={s.id === activeId} onclick={() => onopen(s)}>
+              <span class="stitle">
+                {s.title}
+                {#if s.id === activeId}<span class="now">▶ now</span>{/if}
+              </span>
+              <span class="smeta"
+                >{keyLabel(s)} · ♩ = {s.defaultTempoBpm}{#if s.durationSec}{' · '}{fmt(s.durationSec)}{/if}</span
+              >
+              {#if s.id === activeId}
+                <span class="prog" style="width: {(Math.min(1, Math.max(0, progress)) * 100).toFixed(1)}%"></span>
+              {/if}
             </button>
           </li>
         {/each}
@@ -114,9 +135,17 @@
   }
   .tab.active { border-color: var(--accent); color: var(--accent); }
 
-  .pbody { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 0.7rem 0.8rem 1.2rem; }
+  .pbody { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 0.5rem 0.8rem 1.2rem; }
+  .listmeta {
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-variant-numeric: tabular-nums;
+    padding: 0.3rem 0.2rem 0.5rem;
+  }
   .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
   .srow {
+    position: relative;
+    overflow: hidden;
     width: 100%;
     display: flex;
     align-items: baseline;
@@ -130,7 +159,19 @@
     border-radius: 8px;
   }
   .srow:hover { border-color: var(--accent); }
+  /* The currently-open song. */
+  .srow.active { border-color: var(--accent); background: rgba(217, 138, 61, 0.1); }
   .stitle { font-weight: 600; }
+  .now { color: var(--accent); font-size: 0.7rem; font-weight: 600; margin-left: 0.4rem; white-space: nowrap; }
   .smeta { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* Live playback progress along the bottom of the active row. */
+  .prog {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--accent);
+    transition: width 0.2s linear;
+  }
   .empty { color: var(--muted); padding: 0.6rem 0.2rem; }
 </style>
