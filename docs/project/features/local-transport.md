@@ -163,14 +163,14 @@ interface LocalTransport {
 
 ## Acceptance Criteria
 
-- [ ] Play starts alphaTab's player and stamps `playing:true` with the correct current bar and timestamp; pause stamps `playing:false`.
-- [ ] Tempo control shows both % and BPM, adjusts playback rate across ~50–110%, and preserves pitch.
-- [ ] Changing tempo mid-playback keeps the cursor position continuous (no jump).
-- [ ] Tapping a bar in the score seeks there and restamps; the scrubber does the same and stays in sync with the cursor.
-- [ ] A toggleable one-bar count-in (default on) plays a click at the current tempo/meter before playback.
-- [ ] Only this feature writes the `Transport` object; count-in toggle and %-display state are never written to session state.
-- [ ] All controls work on iPhone, Android, iPad, and laptop (web); spacebar toggles play/pause on laptop.
-- [ ] A simulated remote transport change can seek the local player via the same path without changing these controls (proves M2-additive).
+- [x] Play starts alphaTab's player and stamps `playing:true` with the correct current bar and timestamp; pause stamps `playing:false`.
+- [x] Tempo control shows both % and BPM, adjusts playback rate across ~50–110%, and preserves pitch.
+- [x] Changing tempo mid-playback keeps the cursor position continuous (no jump).
+- [x] Tapping a bar in the score seeks there and restamps; the scrubber does the same and stays in sync with the cursor.
+- [x] A toggleable one-bar count-in (default on) plays a click at the current tempo/meter before playback. *(Native `countInVolume`; "🔔 Count-in" toggle in the More sheet.)*
+- [x] Only this feature writes the `Transport` object; count-in toggle and %-display state are never written to session state.
+- [x] All controls work on iPhone, Android, iPad, and laptop (web); spacebar toggles play/pause on laptop. *(Confirmed by user on-device, 2026-06-28.)*
+- [x] A simulated remote transport change can seek the local player via the same path without changing these controls (proves M2-additive). *(Covered by the sole-writer/M2-seam unit test driving the SessionStore the way a remote peer will.)*
 
 ## Dependencies
 
@@ -189,20 +189,20 @@ interface LocalTransport {
 - [x] Exact tempo range and step granularity. **Decided:** 50–110% in 5% steps (range clamped in `createLocalTransport`; UI slider step 5).
 - [x] Scrubber granularity: snap to bar vs free scrub then snap on release. **Decided:** snap-to-bar (integer `step=1` over `[1, measureCount]`); drives the same seek/restamp path as tap-a-bar.
 - [ ] Should the last-used tempo per song persist? (Tied to post-MVP storage.)
-- [ ] Control layout/placement (deferred to the shell/browsing UI spec).
+- [x] Control layout/placement. **Decided (2026-06-28, on-device):** compact always-visible transport (Play + scrubber); tempo/size/audio/count-in/my-part fold into a "More" overflow sheet so the control area doesn't grow taller and starve the music. (chord-changes-view D6.)
 
 ## Implementation Status
 
-**Status:** In Progress
+**Status:** Done for M1 (8/8 acceptance criteria)
 **Last Worked:** 2026-06-28
-**Progress:** ~5/8 acceptance criteria (play/pause stamp; tempo %↔BPM + continuity; tap-a-bar **and scrubber** seek via store; sole-writer guarantee). Count-in UI toggle and on-device test remain.
+**Progress:** 8/8 — play/pause stamp; tempo %↔BPM + continuity; tap-a-bar **and scrubber** seek via store; **count-in toggle** (native, default on); sole-writer guarantee; M2-additive seam (unit-tested); on-device confirmed by user. Looping remains an explicit M2 fast-follow (out of M1 scope).
 
 ### Implementation Notes
 - `createLocalTransport` is the **sole writer** of `Transport` (FR-7). It stamps the *intended* next state immediately rather than reading post-callback state, fixing the stale-stamp bug in the old inline App demo.
 - **Continuity (FR-3):** tempo change and seek restamp `{startBar:currentBar, startTimestamp:now}` so `projectBar` sees no jump — unit-tested against the real `projectBar`.
 - **Tap-a-bar (D2):** alphaTab's native click-to-seek (`enableUserInteraction`) is wired through the store by treating a position change *while paused* as a seek stamp.
 - **Pitch preserved (FR-8):** tempo is alphaTab playback rate (`setSpeed`), not audio time-stretch.
-- Count-in/metronome use the native alphaTab volumes from the spike (renderer `setCountInVolume`/`setMetronomeVolume`); the toggle UI is a fast-follow.
+- Count-in/metronome use the native alphaTab volumes from the spike (renderer `setCountInVolume`/`setMetronomeVolume`); the "🔔 Count-in" toggle lives in the chord-changes-view More sheet and calls `transport.setCountIn` (default on, local-only).
 - Metadata (defaultTempoBpm/measureCount/timeSignature) is read from the loaded alphaTab score via `RendererController.getSongInfo()` — no separate Song layer until library-browsing.
 
 ### Files Created
@@ -217,7 +217,8 @@ interface LocalTransport {
 |------|--------|--------|
 | 2026-06-26 | Initial specification | Created via /design-feature; 5 design decisions (BPM+% tempo, tap-a-bar + scrubber seek, toggleable count-in, sole writer of Transport, looping deferred to M2) |
 | 2026-06-28 | Thin slice implemented; count-in/metronome spike resolved (alphaTab native); tempo step decided (5%) | Step 2 of M1 build order — controls that drive the playhead |
+| 2026-06-28 | **Count-in toggle added; control-layout decided** (compact transport + More sheet); on-device confirmed. Marked **Done for M1** (8/8 ACs). | Closing out step 2 after the mobile-layout pass; only M2 looping remains out of scope. |
 
 ---
 
-_Last updated: 2026-06-26_
+_Last updated: 2026-06-28_

@@ -52,12 +52,12 @@ Browse library / set list
 ### Milestone 1: Session of One (MVP)
 **Goal:** A standalone-feeling practice experience that is secretly a session of one, ready in ~2 weeks for the guitarist.
 **Features:**
-- [ ] Unified music model + content hierarchy (Library / Set lists / Songs)
-- [ ] Browse library, view/select a set list, load a song
-- [ ] Renderer with locally-computed playhead
-- [ ] Chord-changes-in-time presentation template
-- [ ] Local transport: play/pause, tempo, manual seek
-- [ ] Session/state model in place (single participant; networking deferred)
+- [ ] Unified music model + content hierarchy (Library / Set lists / Songs) — *partial: timing read from the alphaTab score; the full Song/library model lands with browsing*
+- [ ] Browse library, view/select a set list, load a song — *next / final M1 step*
+- [x] Renderer with locally-computed playhead
+- [x] Chord-changes-in-time presentation template — *incl. shared-melody default + stacked "My part" overlay, responsive mobile layout (D3/D6)*
+- [x] Local transport: play/pause, tempo, manual seek — *+ count-in, scrubber; on-device confirmed*
+- [x] Session/state model in place (single participant; networking deferred)
 
 ### Milestone 2: Join
 **Goal:** Turn a session of one into a session of N — no host, loose follow-along — so the band can play together.
@@ -134,10 +134,10 @@ These were discussed and excluded (from the vision's non-goals):
 | Feature | Spec Status | File |
 |---------|-------------|------|
 | Unified music model | **Specified** | [features/unified-music-model.md](features/unified-music-model.md) |
-| Library / set list / song browsing | **Specified** | [features/library-browsing.md](features/library-browsing.md) |
-| Renderer + local playhead | **Specified** | [features/renderer-playhead.md](features/renderer-playhead.md) |
-| Chord-changes-in-time view | **Specified** | [features/chord-changes-view.md](features/chord-changes-view.md) |
-| Local transport | **Specified** | [features/local-transport.md](features/local-transport.md) |
+| Library / set list / song browsing | **Specified** (next M1 step) | [features/library-browsing.md](features/library-browsing.md) |
+| Renderer + local playhead | **Built (M1)** | [features/renderer-playhead.md](features/renderer-playhead.md) |
+| Chord-changes-in-time view | **Built (M1)** — melody-default + stacked overlay, mobile layout | [features/chord-changes-view.md](features/chord-changes-view.md) |
+| Local transport | **Built (M1)** — 8/8 ACs | [features/local-transport.md](features/local-transport.md) |
 | Join / shared state | Not started | - |
 | Presentation templates (notation/tab/diagrams/scales/card) | Not started | - |
 | Live detection + highlighting | Not started | - |
@@ -149,6 +149,6 @@ _Use `/design-feature [name]` to create detailed specifications._
 ## Next Steps
 
 1. ✅ Renderer decided (alphaTab, ADR-001) · ✅ **all five M1 feature specs done** (unified-music-model, renderer-playhead, local-transport, chord-changes-view, library-browsing) · ✅ stack picked (Svelte/TS/Vite).
-2. **Build M1** — `/impl-feature renderer-playhead` first (the foundation), then chord-changes-view + local-transport over it, then library-browsing. Stub one tune + guitar tab until the loop works, then widen (per brief §7).
+2. **Build M1** — ✅ renderer-playhead (foundation) · ✅ chord-changes-view + local-transport over it (incl. mobile layout: melody-default + stacked "My part" overlay, compact controls, responsive bars-per-row — D3/D6, on-device confirmed) · ⬜ **library-browsing is the last step.** Still on one stubbed tune; widen the library with browsing.
 3. `/decide` to capture **ADR-003 (Svelte + TS + Vite stack)** and **ADR-002 (sync-stack, P2P vs LAN relay)**.
 4. ✅ **OMR test done** — Soundslice-free acquisition confirmed (photo→Claude ABC→toolkit); needs a render+listen verify loop in the processing tool.

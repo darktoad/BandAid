@@ -42,6 +42,7 @@
   // Audio: local, never synced. Default to hearing the arrangement; click off.
   let synth = $state(true);
   let click = $state(false);
+  let countIn = $state(true); // one-bar count-in before play (local pref, FR-6)
   let showMore = $state(false); // the overflow sheet
   let errorMsg = $state<string | null>(null);
 
@@ -115,6 +116,10 @@
   function toggleClick() {
     click = !click;
     controller?.setMetronomeVolume(click ? 1 : 0);
+  }
+  function toggleCountIn() {
+    countIn = !countIn;
+    transport?.setCountIn(countIn);
   }
 
   function togglePlay() {
@@ -204,6 +209,7 @@
       <div class="chips">
         <button class:active={synth} onclick={toggleSynth} disabled={!controller}>🔊 Sound</button>
         <button class:active={click} onclick={toggleClick} disabled={!controller}>🥁 Click</button>
+        <button class:active={countIn} onclick={toggleCountIn} disabled={!transport}>🔔 Count-in</button>
       </div>
     </div>
 
