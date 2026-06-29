@@ -1,21 +1,23 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { fly } from 'svelte/transition';
   import type { ChordOnset } from './chordTimeline';
   import { chordsForBar } from './chordTimeline';
   import { shapeFor, type Instrument } from './chordShapes';
   import ChordDiagram from './ChordDiagram.svelte';
 
   /**
-   * The chord overlay strip: a fit-to-width row of bars starting at the current bar, each
-   * subdivided into beat segments. A segmented progress track fills the current bar in time
-   * with playback (downbeat accented); chord name + (optional) diagram sit over the beat each
-   * chord begins on. Highlight + fill direction convey current vs. upcoming — no labels.
+   * The chord overlay strip. It mirrors the sheet music: a row of `barsPerRow` bars
+   * (the same count the notation wraps at), aligned to row boundaries. The current-bar
+   * highlight sweeps across a *stable* set; the set only changes when the current bar
+   * crosses into the next row, and that page-turn slides in. Each bar is subdivided into
+   * beat segments with a progress track that fills in time with playback.
    */
   let {
     timeline,
     currentBar,
     barProgress,
     beatsPerBar,
+    barsPerRow,
     measureCount,
     instrument,
     showCharts,
@@ -24,28 +26,17 @@
     currentBar: number;
     barProgress: number; // 0..1 within the current bar
     beatsPerBar: number;
+    barsPerRow: number; // matches the notation's bars-per-row for 1:1 alignment
     measureCount: number;
     instrument: Instrument;
     showCharts: boolean;
   } = $props();
 
-  const MIN_BAR_PX = 132; // ~2 bars on a phone, more on wider screens
-  let stripEl: HTMLElement;
-  let visibleCount = $state(2);
-
-  onMount(() => {
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width ?? stripEl.clientWidth;
-      visibleCount = Math.max(1, Math.floor(w / MIN_BAR_PX));
-    });
-    if (stripEl) ro.observe(stripEl);
-    return () => ro.disconnect();
-  });
-
+  let n = $derived(Math.max(1, barsPerRow));
+  // The row of bars containing the current bar, aligned to row boundaries.
+  let pageStart = $derived(Math.floor((currentBar - 1) / n) * n + 1);
   let bars = $derived(
-    Array.from({ length: visibleCount }, (_, i) => currentBar + i).filter(
-      (b) => b >= 1 && b <= measureCount,
-    ),
+    Array.from({ length: n }, (_, i) => pageStart + i).filter((b) => b >= 1 && b <= measureCount),
   );
   let beats = $derived(Array.from({ length: Math.max(1, beatsPerBar) }, (_, i) => i));
 
@@ -61,40 +52,51 @@
   }
 </script>
 
-<div class="strip" bind:this={stripEl}>
-  {#each bars as bar (bar)}
-    <div class="bar" class:current={bar === currentBar}>
-      <div class="chords">
-        {#each chordsForBar(timeline, bar) as c (`${c.beat}-${c.label}`)}
-          {@const shape = showCharts ? shapeFor(c.label, instrument) : null}
-          <div class="chord" style={`left:${leftPct(c.beat)}%`}>
-            <span class="name">{c.label}</span>
-            {#if shape}<ChordDiagram {shape} />{/if}
+<div class="strip" style={`--n:${n}`}>
+  {#key pageStart}
+    <div class="page" in:fly={{ x: 40, duration: 220 }}>
+      {#each bars as bar (bar)}
+        <div class="bar" class:current={bar === currentBar}>
+          <div class="chords">
+            {#each chordsForBar(timeline, bar) as c (`${c.beat}-${c.label}`)}
+              {@const shape = showCharts ? shapeFor(c.label, instrument) : null}
+              <div class="chord" style={`left:${leftPct(c.beat)}%`}>
+                <span class="name">{c.label}</span>
+                {#if shape}<ChordDiagram {shape} />{/if}
+              </div>
+            {/each}
           </div>
-        {/each}
-      </div>
-      <div class="beats">
-        {#each beats as i}
-          <div class="seg" class:downbeat={i === 0}>
-            <div class="fill" style={`width:${segFill(bar, i) * 100}%`}></div>
+          <div class="beats">
+            {#each beats as i}
+              <div class="seg" class:downbeat={i === 0}>
+                <div class="fill" style={`width:${segFill(bar, i) * 100}%`}></div>
+              </div>
+            {/each}
           </div>
-        {/each}
-      </div>
+        </div>
+      {/each}
     </div>
-  {/each}
+  {/key}
 </div>
 
 <style>
   .strip {
-    display: flex;
-    gap: 0.5rem;
-    align-items: stretch;
+    position: relative;
+    overflow: hidden; /* clip the page-turn slide */
+    flex: 0 0 auto;
     padding: 0.6rem 0.7rem 0.7rem;
     background: var(--panel);
     border-top: 1px solid var(--line);
   }
+  .page {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  /* Every bar occupies a fixed 1/N of the row, so width never depends on how many
+     bars remain — the last row just leaves empty slots on the right. */
   .bar {
-    flex: 1 1 0;
+    flex: 0 0 calc((100% - (var(--n) - 1) * 0.5rem) / var(--n));
     min-width: 0;
     display: flex;
     flex-direction: column;
