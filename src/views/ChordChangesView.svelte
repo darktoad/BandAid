@@ -4,6 +4,11 @@
   import type { RendererController, TrackInfo } from '../renderer/createRenderer';
   import { createLocalTransport, type LocalTransport } from '../transport/localTransport';
   import type { SessionStore } from '../session/types';
+  import Icon from '../icons/Icon.svelte';
+  import ChordOverlay from '../chords/ChordOverlay.svelte';
+  import type { Instrument } from '../chords/chordShapes';
+  import type { ChordOnset } from '../chords/chordTimeline';
+  import { projectBar, quarterNotesPerBar } from '../playhead/projectBar';
 
   /**
    * Chord-Changes-in-Time view (M1). A presentation template over the unified music
@@ -51,6 +56,17 @@
   let showMasthead = $state(loadMastheadPref()); // local viewing pref, persisted
   let errorMsg = $state<string | null>(null);
 
+  // Chord overlay: a personal, per-device preference (localStorage) — deliberately NOT
+  // per-song or session/band state. Charts default on when the overlay is enabled.
+  const savedOverlay = loadOverlayPrefs();
+  let overlayOn = $state<boolean>(savedOverlay.on ?? false);
+  let showCharts = $state<boolean>(savedOverlay.charts ?? true);
+  let chartInstrument = $state<Instrument>(savedOverlay.instrument === 'ukulele' ? 'ukulele' : 'guitar');
+  let chordTimeline = $state<ChordOnset[]>([]);
+  let barProgress = $state(0); // 0..1 within the current bar, for the beat-progress track
+  let beatsPerBar = $state(4);
+  let timeSig = $state('4/4');
+
   // Masthead visibility is a local viewing preference (not song/session state).
   function loadMastheadPref(): boolean {
     try {
@@ -70,6 +86,27 @@
     }
   }
   const openSettings = () => (showMore = true);
+
+  // Chord-overlay prefs are personal/per-device (localStorage), never per-song or synced
+  // to the band session — one player's chart view shouldn't be forced on everyone.
+  function loadOverlayPrefs(): { on?: boolean; charts?: boolean; instrument?: string } {
+    try {
+      if (typeof localStorage === 'undefined') return {};
+      return JSON.parse(localStorage.getItem('bandaid.chordOverlay') ?? '{}');
+    } catch {
+      return {};
+    }
+  }
+  $effect(() => {
+    const prefs = { on: overlayOn, charts: showCharts, instrument: chartInstrument };
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('bandaid.chordOverlay', JSON.stringify(prefs));
+      }
+    } catch {
+      /* ignore */
+    }
+  });
 
   let stageEl: HTMLElement;
   let lastBarsPerRow = 0;
@@ -96,6 +133,26 @@
     return () => ro.disconnect();
   });
 
+  // Beat clock for the overlay's progress track: reuse projectBar (alphaTab is the live
+  // clock, this just reconciles "now" to a fractional bar). Only runs while the overlay
+  // is visible; the integer bar still comes from alphaTab via onposition.
+  $effect(() => {
+    if (!overlayOn) return;
+    const qpb = quarterNotesPerBar(timeSig);
+    let raf = 0;
+    const tick = () => {
+      if (transport && playing) {
+        const projected = projectBar(transport.getTransport(), Date.now(), qpb);
+        barProgress = projected - Math.floor(projected);
+      } else {
+        barProgress = 0;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  });
+
   function onReady(c: RendererController, t: TrackInfo[]) {
     controller = c;
     tracks = t;
@@ -106,6 +163,9 @@
     tempoBpm = info?.tempoBpm ?? 120;
     measureCount = info?.measureCount ?? 1;
     composer = info?.composer ?? '';
+    chordTimeline = c.getChordTimeline();
+    timeSig = info?.timeSignature ?? '4/4';
+    beatsPerBar = Number(timeSig.split('/')[0]) || 4;
     transport = createLocalTransport({
       songId: song.id,
       defaultTempoBpm: tempoBpm,
@@ -259,8 +319,8 @@
 
 <!-- Compact, always-visible transport: Play + scrubber keep the music tall. -->
 <div class="transport">
-  <button class="play" onclick={togglePlay} disabled={!transport || !canPlay}>
-    {!canPlay ? '⏳' : playing ? '⏸' : '▶'}
+  <button class="play" onclick={togglePlay} disabled={!transport || !canPlay} aria-label={!canPlay ? 'Loading' : playing ? 'Pause' : 'Play'}>
+    <Icon name={!canPlay ? 'loading' : playing ? 'pause' : 'play'} size={20} />
   </button>
 
   <input
@@ -290,7 +350,7 @@
       <span class="label">Tempo{#if tempoModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
       <input type="range" min="50" max="110" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} />
       <span class="readout">{speedPct}% · {Math.round((tempoBpm * speedPct) / 100)} bpm</span>
-      <button class="reset" onclick={resetTempo} disabled={!transport || !tempoModified} title="Reset to original tempo">↺</button>
+      <button class="reset" onclick={resetTempo} disabled={!transport || !tempoModified} title="Reset to original tempo" aria-label="Reset to original tempo"><Icon name="reset" size={16} /></button>
     </label>
 
     <div class="row">
@@ -300,7 +360,7 @@
         <span class="readout key">{keyLabel}{#if transposeModified}<span class="st"> ({transpose > 0 ? '+' : ''}{transpose} st)</span>{/if}</span>
         <button onclick={() => stepTranspose(1)} disabled={!controller || transpose >= 6} aria-label="Up a semitone">+</button>
       </div>
-      <button class="reset" onclick={resetTranspose} disabled={!controller || !transposeModified} title="Reset to original key">↺</button>
+      <button class="reset" onclick={resetTranspose} disabled={!controller || !transposeModified} title="Reset to original key" aria-label="Reset to original key"><Icon name="reset" size={16} /></button>
     </div>
 
     <label class="row">
@@ -312,9 +372,9 @@
     <div class="row">
       <span class="label">Audio</span>
       <div class="chips">
-        <button class:active={synth} onclick={toggleSynth} disabled={!controller}>🔊 Sound</button>
-        <button class:active={click} onclick={toggleClick} disabled={!controller}>🥁 Click</button>
-        <button class:active={countIn} onclick={toggleCountIn} disabled={!transport}>🔔 Count-in</button>
+        <button class:active={synth} onclick={toggleSynth} disabled={!controller}><Icon name="sound" size={16} /> Sound</button>
+        <button class:active={click} onclick={toggleClick} disabled={!controller}><Icon name="click" size={16} /> Click</button>
+        <button class:active={countIn} onclick={toggleCountIn} disabled={!transport}><Icon name="countin" size={16} /> Count-in</button>
       </div>
     </div>
 
@@ -325,6 +385,20 @@
         {#each overlayParts as t}
           <button class:active={t.index === myPart} onclick={() => selectMyPart(t.index)}>{t.name}</button>
         {/each}
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="label">Chords</span>
+      <div class="chips">
+        <button class:active={overlayOn} onclick={() => (overlayOn = !overlayOn)}>
+          <Icon name="chords" size={16} /> Overlay
+        </button>
+        <button class:active={showCharts} onclick={() => (showCharts = !showCharts)} disabled={!overlayOn}>Charts</button>
+        {#if overlayOn && showCharts}
+          <button class:active={chartInstrument === 'guitar'} onclick={() => (chartInstrument = 'guitar')}>Guitar</button>
+          <button class:active={chartInstrument === 'ukulele'} onclick={() => (chartInstrument = 'ukulele')}>Uke</button>
+        {/if}
       </div>
     </div>
   </div>
@@ -354,6 +428,18 @@
     />
   </div>
 </main>
+
+{#if overlayOn}
+  <ChordOverlay
+    timeline={chordTimeline}
+    currentBar={bar}
+    {barProgress}
+    {beatsPerBar}
+    {measureCount}
+    instrument={chartInstrument}
+    {showCharts}
+  />
+{/if}
 
 <style>
   .topbar {
@@ -410,7 +496,9 @@
     flex: 0 0 auto;
     min-width: 2.6rem;
     min-height: 2.4rem; /* comfortable tap target on mobile */
-    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .scrub { flex: 1 1 auto; min-width: 0; }
   .readout { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.85rem; flex: 0 0 auto; }
@@ -431,8 +519,9 @@
     flex: 0 0 auto;
     min-width: 2rem;
     min-height: 2rem;
-    font-size: 0.95rem;
-    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .reset:disabled { opacity: 0.3; }
   .stepper { display: inline-flex; align-items: center; gap: 0.5rem; flex: 1 1 auto; }
@@ -441,7 +530,14 @@
   .st { color: var(--muted); }
   .sheet .row input[type='range'] { flex: 1 1 auto; min-width: 0; }
   .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-  .chips button { padding: 0.4rem 0.7rem; font-size: 0.85rem; min-height: 2.2rem; }
+  .chips button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.85rem;
+    min-height: 2.2rem;
+  }
   .chips button.active { border-color: var(--accent); color: var(--accent); }
 
   .error {
