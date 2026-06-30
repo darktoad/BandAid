@@ -35,6 +35,8 @@ export interface LocalTransportDeps {
   defaultTempoBpm: number;
   /** Highest seekable bar (1-based); seeks clamp to this. */
   measureCount: number;
+  /** Quarter-notes per bar of the active meter — sizes the one-bar count-in pre-roll. */
+  quarterNotesPerBar: number;
   renderer: TransportRenderer;
   store: SessionStore;
   /** Clock for stamps. Injectable for tests; defaults to wall-clock epoch ms. */
@@ -61,7 +63,7 @@ const COUNT_IN_VOLUME = 1;
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
-  const { songId, defaultTempoBpm, measureCount, renderer, store } = deps;
+  const { songId, defaultTempoBpm, measureCount, quarterNotesPerBar, renderer, store } = deps;
   const now = deps.now ?? (() => Date.now());
 
   // Local presentation state (never synced).
@@ -117,7 +119,12 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
       renderer.setCountInVolume(countIn ? COUNT_IN_VOLUME : 0);
       renderer.play();
       playing = true;
-      stamp({ playing: true });
+      // With count-in on, alphaTab plays a one-bar pre-roll before the cursor moves. Anchor
+      // the stamp one bar in the *future* so projectBar holds at startBar through the count-in
+      // (it floors elapsed at 0) instead of racing the playhead ahead of the silent cursor.
+      const tempoQpm = defaultTempoBpm * pct;
+      const countInMs = countIn && tempoQpm > 0 ? (quarterNotesPerBar / tempoQpm) * 60_000 : 0;
+      stamp({ playing: true, startTimestamp: now() + countInMs });
     },
 
     pause() {

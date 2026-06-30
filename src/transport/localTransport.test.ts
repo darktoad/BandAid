@@ -48,6 +48,7 @@ function setup(over: { now?: () => number; defaultTempoBpm?: number; measureCoun
     songId: 'big-john-mcneil',
     defaultTempoBpm: over.defaultTempoBpm ?? 120,
     measureCount: over.measureCount ?? 32,
+    quarterNotesPerBar: quarterNotesPerBar('4/4'),
     renderer: fake.renderer,
     store,
     now: over.now ?? (() => 1000),
@@ -59,6 +60,7 @@ describe('local transport (sole writer of Transport)', () => {
   it('play stamps playing:true with the current bar and time, and starts the player', () => {
     let t = 5000;
     const { fake, store, transport } = setup({ now: () => t });
+    transport.setCountIn(false); // isolate the base stamp from the count-in offset
     fake.advanceTo(4); // cursor sat at bar 4 when the user hit play
 
     transport.play();
@@ -69,6 +71,22 @@ describe('local transport (sole writer of Transport)', () => {
     expect(tr.startBar).toBe(4);
     expect(tr.startTimestamp).toBe(5000);
     expect(tr.tempo).toBe(120);
+  });
+
+  it('count-in offsets the stamp one bar into the future so progress holds until playback', () => {
+    let t = 5000;
+    const { store, transport } = setup({ now: () => t, defaultTempoBpm: 120 });
+    const qpb = quarterNotesPerBar('4/4');
+
+    transport.play(); // count-in on by default; one 4/4 bar at 120bpm = 2000ms
+
+    const tr = store.getState().transport!;
+    expect(tr.startTimestamp).toBe(7000); // 5000 + 2000ms of count-in
+    // During the count-in the projected bar stays put — no progress sweeps the first bar.
+    expect(projectBar(tr, 5000, qpb)).toBe(tr.startBar);
+    expect(projectBar(tr, 6000, qpb)).toBe(tr.startBar);
+    // Once the count-in elapses, playback advances normally.
+    expect(projectBar(tr, 9000, qpb)).toBeCloseTo(tr.startBar + 1);
   });
 
   it('stamps the intended state immediately, not a stale read (the old App bug)', () => {

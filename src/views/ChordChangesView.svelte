@@ -145,7 +145,11 @@
     const tick = () => {
       if (transport && playing) {
         const projected = projectBar(transport.getTransport(), Date.now(), qpb);
-        barProgress = projected - Math.floor(projected);
+        // Measure the fill against alphaTab's authoritative bar, not projected's own floor.
+        // Saturating at 1 holds the current bar full while we wait for the cursor to cross
+        // into the next bar, instead of wrapping to 0 a frame early (the bar appearing to
+        // snap back to empty just before the highlight advances).
+        barProgress = Math.min(1, Math.max(0, projected - bar));
       } else {
         barProgress = 0;
       }
@@ -172,6 +176,7 @@
       songId: song.id,
       defaultTempoBpm: tempoBpm,
       measureCount,
+      quarterNotesPerBar: quarterNotesPerBar(timeSig),
       renderer: c,
       store,
     });
