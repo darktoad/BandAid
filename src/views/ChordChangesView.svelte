@@ -50,6 +50,12 @@
   let tempoBpm = $state(120); // replaced by the score's real tempo once it loads
   let measureCount = $state(1); // scrubber range; replaced from the score once loaded
   // Audio: local, never synced. Default to hearing the arrangement; click off.
+  // The melody-only default is a single instrument, which alphaTab's soundfont renders
+  // far quieter than the percussive count-in/metronome click — quiet enough to read as
+  // "no music" next to the click. alphaTab's masterVolume is a gain (1 = unity), so lift
+  // the synth above unity to bring a lone melody up to a clearly audible level. A single
+  // voice has plenty of headroom; this stays well clear of clipping.
+  const SYNTH_VOLUME = 3;
   let synth = $state(true);
   let click = $state(false);
   let countIn = $state(true); // one-bar count-in before play (local pref, FR-6)
@@ -215,12 +221,12 @@
   }
 
   function applyAudio() {
-    controller?.setMasterVolume(synth ? 1 : 0);
+    controller?.setMasterVolume(synth ? SYNTH_VOLUME : 0);
     controller?.setMetronomeVolume(click ? 1 : 0);
   }
   function toggleSynth() {
     synth = !synth;
-    controller?.setMasterVolume(synth ? 1 : 0);
+    controller?.setMasterVolume(synth ? SYNTH_VOLUME : 0);
   }
   function toggleClick() {
     click = !click;
@@ -465,7 +471,10 @@
       onready={onReady}
       onposition={(b) => setBar(b)}
       onplaying={(p) => (playing = p)}
-      onplayable={() => (canPlay = true)}
+      onplayable={() => {
+        canPlay = true;
+        applyAudio(); // re-assert volumes now the synth is ready (not just at score load)
+      }}
       onerror={(e) => (errorMsg = e.message)}
     />
   </div>
