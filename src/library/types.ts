@@ -9,6 +9,7 @@ export interface SongContent {
   hasMelody: boolean;
   hasChords: boolean;
   hasTab: boolean;
+  hasLyrics?: boolean; // a songs/<id>.chordpro lyrics sidecar exists
 }
 
 export interface SongPart {
@@ -31,6 +32,8 @@ export interface SongSummary {
   /** Played running time for one pass through the chart, in seconds (for set-length
    *  estimates). Optional — absent when not yet computed. */
   durationSec?: number;
+  /** Short performance/banter note shown with the song; rendered with line breaks. */
+  notes?: string;
   content: SongContent;
   parts: SongPart[];
 }
