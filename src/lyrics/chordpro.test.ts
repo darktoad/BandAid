@@ -39,8 +39,8 @@ describe('parseChordPro', () => {
   });
 
   it('supports the {sov}/{soc} short forms', () => {
-    const sheet = parseChordPro('{soc}\n[C]hey\n{eoc}');
-    expect(sheet.sections[0].kind).toBe('chorus');
+    expect(parseChordPro('{soc}\n[C]hey\n{eoc}').sections[0].kind).toBe('chorus');
+    expect(parseChordPro('{sov}\n[G]hey\n{eov}').sections[0].kind).toBe('verse');
   });
 
   it('puts leading label-less lines into one "other" section', () => {

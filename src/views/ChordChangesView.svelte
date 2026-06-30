@@ -59,6 +59,8 @@
   let errorMsg = $state<string | null>(null);
 
   // Lyrics/notes slide-over: personal + local, never synced. Open state is ephemeral.
+  // The fetched sheet is cached per song; App.svelte remounts this view via {#key song.id},
+  // so these reset on a song switch — no in-component reset needed.
   let lyricsOpen = $state(false);
   let lyricsSheet = $state<SongSheet | null>(null);
   let lyricsLoading = $state(false);
