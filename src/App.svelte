@@ -12,7 +12,7 @@
 
   let service = $state<LibraryService | undefined>(undefined);
   let loadError = $state<string | null>(null);
-  let current = $state<{ id: string; url: string; title: string; key?: SongKey } | undefined>(undefined);
+  let current = $state<{ id: string; url: string; title: string; key?: SongKey; notes?: string; lyricsUrl?: string } | undefined>(undefined);
   // The song picker is a slide-over while drilling; full-screen before the first pick.
   let pickerOpen = $state(false);
   // Live playback position of the current song (0–1), surfaced in the picker.
@@ -37,6 +37,8 @@
       url: `${import.meta.env.BASE_URL}songs/${s.id}.musicxml${v}`,
       title: s.title,
       key: s.defaultKey,
+      notes: s.notes,
+      lyricsUrl: s.content.hasLyrics ? `${import.meta.env.BASE_URL}songs/${s.id}.chordpro${v}` : undefined,
     };
     pickerOpen = false; // switching a song closes the picker; we stay in the drill view
   }

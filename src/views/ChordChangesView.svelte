@@ -9,6 +9,8 @@
   import type { Instrument } from '../chords/chordShapes';
   import type { ChordOnset } from '../chords/chordTimeline';
   import { projectBar, quarterNotesPerBar } from '../playhead/projectBar';
+  import LyricsSheet from '../lyrics/LyricsSheet.svelte';
+  import { parseChordPro, type SongSheet } from '../lyrics/chordpro';
 
   /**
    * Chord-Changes-in-Time view (M1). A presentation template over the unified music
@@ -26,7 +28,7 @@
    * Local choices (part, tempo %, audio, zoom) live here; only Transport is synced.
    */
   let { song, store, onsongs, onprogress }: {
-    song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string } };
+    song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string }; notes?: string; lyricsUrl?: string };
     store: SessionStore;
     onsongs?: () => void; // open the slide-over song picker
     onprogress?: (fraction: number) => void; // 0–1 playback position, for the picker
@@ -55,6 +57,12 @@
   let composer = $state(''); // score credit, for the masthead
   let showMasthead = $state(loadMastheadPref()); // local viewing pref, persisted
   let errorMsg = $state<string | null>(null);
+
+  // Lyrics/notes slide-over: personal + local, never synced. Open state is ephemeral.
+  let lyricsOpen = $state(false);
+  let lyricsSheet = $state<SongSheet | null>(null);
+  let lyricsLoading = $state(false);
+  let lyricsError = $state<string | null>(null);
 
   // Chord overlay: a personal, per-device preference (localStorage) — deliberately NOT
   // per-song or session/band state. Charts default on when the overlay is enabled.
@@ -221,6 +229,24 @@
     transport?.setCountIn(countIn);
   }
 
+  async function openLyrics() {
+    lyricsOpen = true;
+    // The note renders immediately from the manifest; only lyrics need a fetch, and only once.
+    if (!song.lyricsUrl || lyricsSheet || lyricsLoading) return;
+    lyricsLoading = true;
+    lyricsError = null;
+    try {
+      const res = await fetch(song.lyricsUrl);
+      if (!res.ok) throw new Error(`Failed to load lyrics: ${res.status}`);
+      lyricsSheet = parseChordPro(await res.text());
+    } catch (e) {
+      lyricsError = e instanceof Error ? e.message : String(e);
+    } finally {
+      lyricsLoading = false;
+    }
+  }
+  const closeLyrics = () => (lyricsOpen = false);
+
   function togglePlay() {
     if (!transport) return;
     if (playing) transport.pause();
@@ -311,6 +337,13 @@
     </svg>
   </button>
   <span class="song">{song.title}</span>
+  {#if song.notes || song.lyricsUrl}
+    <button class="iconbtn" onclick={openLyrics} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9" /><line x1="12" y1="11" x2="12" y2="16" /><circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none" />
+      </svg>
+    </button>
+  {/if}
   <button class="pill" class:on={transposeModified} onclick={openSettings} disabled={!controller} title="Key">
     <span class="lbl">Key</span> {keyName}{#if transposeModified}<span class="dot">●</span>{/if}
   </button>
@@ -449,6 +482,27 @@
   />
 {/if}
 
+{#if lyricsOpen}
+  <button class="scrim" onclick={closeLyrics} aria-label="Close lyrics"></button>
+  <aside class="lyrics-panel">
+    <header class="lyrics-head">
+      <span>{song.title}</span>
+      <button class="iconbtn" onclick={closeLyrics} aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
+      </button>
+    </header>
+    <div class="lyrics-body">
+      {#if lyricsError}
+        <p class="lyrics-msg">{lyricsError}</p>
+      {:else if lyricsLoading && !lyricsSheet}
+        <p class="lyrics-msg">Loading…</p>
+      {:else}
+        <LyricsSheet note={song.notes} sheet={lyricsSheet ?? undefined} />
+      {/if}
+    </div>
+  </aside>
+{/if}
+
 <style>
   .topbar {
     display: flex;
@@ -574,4 +628,48 @@
     line-height: 1.15;
   }
   .mh-sub { color: #6b6258; font-size: 0.78rem; margin-top: 0.15rem; }
+
+  .scrim {
+    position: fixed;
+    inset: 0;
+    border: none;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+  }
+  .lyrics-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(92%, 30rem);
+    z-index: 1002;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    box-shadow: -2px 0 16px rgba(0, 0, 0, 0.4);
+    animation: lyrics-in 0.16s ease-out;
+  }
+  @keyframes lyrics-in {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  .lyrics-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--line);
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .lyrics-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 1rem 1rem 2rem;
+  }
+  .lyrics-msg {
+    color: var(--muted);
+  }
 </style>
