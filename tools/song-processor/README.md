@@ -73,16 +73,22 @@ from Soundslice and re-run the processor.
 
 ## Verification status of the bundled tunes
 
-The early Claude-OMR drafts were inaccurate. Three tunes were re-transcribed from the
-Soundslice OMR exports (cleaner rhythm: all bars validate); **pitch still needs an in-app
-listen pass**. Wabash's melody is held — its Soundslice 2nd ending is garbled.
+The early Claude-OMR drafts were inaccurate. All four tunes now come from Soundslice OMR
+exports (cleaner rhythm: all bars validate); **pitch still needs an in-app listen pass**.
+
+Note on repeats: Soundslice exports carry the source sheet's written repeats and 1st/2nd
+endings. Song *form* (which repeats to take, how many passes) is treated as a performance
+decision, not bound into the chart — so a tune's `durationSec` and in-app playback may
+reflect the export's literal repeat structure rather than how the band actually plays it.
+Wabash's export, for instance, has backward repeats at bars 4/9/14 but only one forward
+repeat (bar 1), so literal playback loops back to bar 1; that's left as-is on purpose.
 
 | Tune | Source | Status |
 |------|--------|--------|
 | Stone's Rag | Soundslice OMR | Re-transcribed; bars valid → **verify pitch by ear** (Soundslice wrote the swing as literal ties) |
 | East Tennessee Blues | Soundslice OMR | Re-transcribed; bars valid, parenthetical alt-chords stripped → **verify pitch by ear** |
 | Old Blue | Soundslice OMR | Re-transcribed; bars valid → **verify pitch by ear**; instrumental (no lyrics) |
-| Wabash Cannonball | photo → Claude ABC (held) | Melody **needs a clean 2nd ending** (Soundslice m15 garbled, m8 fixable); lyrics + note authored ✓ |
+| Wabash Cannonball | Soundslice OMR | Re-transcribed; bars valid (m15 2nd-ending triplet fixed in Soundslice) → **verify pitch by ear**; lyrics + note authored ✓ |
 
 Soundslice exports live in `../../docs/reference/samples/soundslice/`; the Wabash lyrics
 source is in `lyrics/`. To correct a tune, fix its source (or re-export) and re-run the
