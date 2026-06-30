@@ -73,16 +73,17 @@ from Soundslice and re-run the processor.
 
 ## Verification status of the bundled tunes
 
-All four canonical files are early Claude-OMR drafts and are **not yet note-accurate** —
-they need re-transcription (Soundslice OMR recommended) and an in-app listen pass.
+The early Claude-OMR drafts were inaccurate. Three tunes were re-transcribed from the
+Soundslice OMR exports (cleaner rhythm: all bars validate); **pitch still needs an in-app
+listen pass**. Wabash's melody is held — its Soundslice 2nd ending is garbled.
 
 | Tune | Source | Status |
 |------|--------|--------|
-| Stone's Rag | photo → Claude ABC | **Re-transcribe + verify by ear** |
-| East Tennessee Blues | photo → Claude ABC | **Re-transcribe + verify by ear** (B part was already a flagged OMR draft) |
-| Wabash Cannonball | photo → Claude ABC | **Re-transcribe + verify by ear**; lyrics authored ✓ |
-| Old Blue | photo → Claude ABC | **Re-transcribe + verify by ear**; instrumental (no lyrics) |
+| Stone's Rag | Soundslice OMR | Re-transcribed; bars valid → **verify pitch by ear** (Soundslice wrote the swing as literal ties) |
+| East Tennessee Blues | Soundslice OMR | Re-transcribed; bars valid, parenthetical alt-chords stripped → **verify pitch by ear** |
+| Old Blue | Soundslice OMR | Re-transcribed; bars valid → **verify pitch by ear**; instrumental (no lyrics) |
+| Wabash Cannonball | photo → Claude ABC (held) | Melody **needs a clean 2nd ending** (Soundslice m15 garbled, m8 fixable); lyrics + note authored ✓ |
 
-ABC sources live in `abc/`; prior Soundslice exports are in
-`../../docs/reference/samples/soundslice/`. To correct a tune, fix its source and re-run
-the processor, then verify by ear in the app.
+Soundslice exports live in `../../docs/reference/samples/soundslice/`; the Wabash lyrics
+source is in `lyrics/`. To correct a tune, fix its source (or re-export) and re-run the
+processor, then verify by ear in the app.

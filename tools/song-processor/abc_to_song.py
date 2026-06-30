@@ -36,12 +36,22 @@ def detect_format(path):
     return 'musicxml' if Path(path).suffix.lower() in ('.xml', '.musicxml', '.mxl') else 'abc'
 
 
+# Tonic from key-signature fifths (circle of fifths). music21 spells flats with '-'.
+# Used when the source omits an explicit <mode>/tonic (e.g. Soundslice exports), so a
+# 1-sharp tune resolves to G major, not a defaulted C. Modal tunes (mixolydian/dorian)
+# still need an explicit override upstream — see the unified-music-model spec.
+MAJOR_TONIC = {0: 'C', 1: 'G', 2: 'D', 3: 'A', 4: 'E', 5: 'B', 6: 'F#', 7: 'C#',
+               -1: 'F', -2: 'B-', -3: 'E-', -4: 'A-', -5: 'D-', -6: 'G-', -7: 'C-'}
+
+
 def main():
     ap = argparse.ArgumentParser(
         description='Lead sheet (ABC or MusicXML) -> canonical MusicXML + a library.json entry.')
     ap.add_argument('input', help='Source lead sheet: .abc or .xml/.musicxml/.mxl')
     ap.add_argument('song_id', help='Stable song id (the file becomes <song-id>.musicxml)')
     ap.add_argument('out_dir', help='Output directory (usually public/songs)')
+    ap.add_argument('--title', default=None,
+                    help="Display title (OMR exports often drop it; falls back to the file's title then the id).")
     ap.add_argument('--notes', default=None,
                     help='Short audience-facing performance note (-> manifest `notes`). '
                          'Banter: what the song is about, its era, trivia, a relatable theme. '
@@ -69,16 +79,21 @@ def main():
             bad.append((m.number, float(m.duration.quarterLength), float(bar_len)))
 
     # --- Metadata for the manifest ---
-    k = score.analyze('key') if not part.recurse().getElementsByClass('KeySignature') else None
     ks = part.recurse().getElementsByClass('KeySignature').first()
     key_obj = score.recurse().getElementsByClass('Key').first()
     fifths = ks.sharps if ks else (key_obj.sharps if key_obj else 0)
-    tonic = key_obj.tonic.name if key_obj else (k.tonic.name if k else 'C')
-    mode = (key_obj.mode if key_obj else (k.mode if k else 'major')) or 'major'
-    mm = part.recurse().metronomeMarkBoundaries()
+    # Trust an explicit, mode-bearing Key; otherwise derive the tonic from the key
+    # signature (Soundslice omits <mode>, which would otherwise default a 1-sharp tune to C).
+    if key_obj is not None and getattr(key_obj, 'mode', None):
+        mode = key_obj.mode
+        tonic = key_obj.tonic.name
+    else:
+        mode = 'major'
+        tonic = MAJOR_TONIC.get(fifths, 'C')
+    mm = part.recurse().stream().metronomeMarkBoundaries()
     tempo = int(round(mm[0][2].number)) if mm and mm[0][2].number else 0
     ts_str = f"{ts.numerator}/{ts.denominator}" if ts else "4/4"
-    title = (score.metadata.title if score.metadata and score.metadata.title else args.song_id)
+    title = args.title or (score.metadata.title if score.metadata and score.metadata.title else args.song_id)
     has_chords = len(list(part.recurse().getElementsByClass(harmony.ChordSymbol))) > 0
 
     # Played running time for ONE pass through the chart (written repeats expanded), at the
