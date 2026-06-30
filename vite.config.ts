@@ -1,11 +1,59 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+import { build as esbuild } from 'esbuild';
 
 // alphaTab ships its rendering fonts (Bravura) and a soundfont in its dist folder.
 // Copy them into the served/built output so everything loads locally (no CDN) —
 // see renderer-playhead spec AC-2 / NFR-1 (network-free practice loop).
 const alphaTabDist = 'node_modules/@coderline/alphatab/dist';
+
+// alphaTab's AudioWorklet entry (alphaTab.worklet.mjs) is shipped as an ES module that
+// does `import * as alphaTab from "./alphaTab.core.mjs"`. That import is fatal on iOS
+// Safari: AudioWorkletGlobalScope loads addModule() scripts as CLASSIC scripts, and
+// Safari does not support `import` there — so `addModule()` rejects, alphaTab logs
+// "Audio Worklet creation failed", and there is NO ScriptProcessor fallback at that
+// point. Result: silent playback on iPad/iPhone while desktop Chrome (which tolerates
+// worklet imports) works. Bundle the worklet into a single self-contained IIFE (core
+// inlined, no import/export) so addModule() loads it everywhere. The web *worker* is a
+// module worker (`{type:'module'}`), which iOS Safari 15+ does support, so it keeps its
+// import of the shared core.mjs.
+const workletEntry = `${alphaTabDist}/alphaTab.worklet.mjs`;
+const WORKLET_OUT = 'assets/alphaTab.worklet.mjs';
+
+function alphaTabWorkletBundle(): Plugin {
+  let cached: Promise<string> | undefined;
+  const bundle = () =>
+    (cached ??= esbuild({
+      entryPoints: [workletEntry],
+      bundle: true,
+      format: 'iife', // classic-script-safe: no top-level import/export for addModule()
+      platform: 'browser',
+      legalComments: 'none',
+      write: false,
+    }).then((r) => r.outputFiles[0].text));
+
+  return {
+    name: 'alphatab-worklet-bundle',
+    // Production build: emit the bundled worklet beside the app chunk in assets/, the
+    // path alphaTab resolves via `new URL('./alphaTab.worklet.mjs', import.meta.url)`.
+    async generateBundle() {
+      this.emitFile({ type: 'asset', fileName: WORKLET_OUT, source: await bundle() });
+    },
+    // Dev server: alphaTab loads the worklet straight from node_modules; serve the
+    // bundled (import-free) version in its place so dev mirrors production on iOS too.
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url && req.url.includes('/@coderline/alphatab/dist/alphaTab.worklet.mjs')) {
+          res.setHeader('Content-Type', 'text/javascript');
+          res.end(await bundle());
+          return;
+        }
+        next();
+      });
+    },
+  };
+}
 
 export default defineConfig(({ command }) => ({
   // GitHub Pages serves this project repo under /BandAid/ — the path is
@@ -20,18 +68,18 @@ export default defineConfig(({ command }) => ({
   },
   plugins: [
     svelte(),
+    alphaTabWorkletBundle(),
     viteStaticCopy({
       targets: [
         { src: `${alphaTabDist}/font/*`, dest: 'alphatab/font' },
         { src: `${alphaTabDist}/soundfont/sonivox.sf2`, dest: 'alphatab/soundfont' },
-        // alphaTab loads its web worker + AudioWorklet at runtime via
+        // alphaTab loads its web worker at runtime via
         // `new URL('./alphaTab.worker.mjs', import.meta.url)` relative to the
-        // built app chunk (in assets/). Vite doesn't bundle these, so copy them
-        // (and the core they import) next to the chunk. The AudioWorklet output
-        // is what makes audio work on iOS Safari.
+        // built app chunk (in assets/). Vite doesn't bundle it, so copy it (and
+        // the core it imports) next to the chunk. The worklet is emitted instead
+        // by alphaTabWorkletBundle() — pre-bundled so it loads on iOS Safari.
         { src: `${alphaTabDist}/alphaTab.worker.mjs`, dest: 'assets' },
-        { src: `${alphaTabDist}/alphaTab.worklet.mjs`, dest: 'assets' },
-        // worker/worklet import './alphaTab.core.mjs'; serve the minified core
+        // The worker imports './alphaTab.core.mjs'; serve the minified core
         // under that name to keep the worker payload smaller.
         { src: `${alphaTabDist}/alphaTab.core.min.mjs`, dest: 'assets', rename: 'alphaTab.core.mjs' },
       ],
