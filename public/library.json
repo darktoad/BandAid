@@ -8,8 +8,10 @@
         "mode": "major",
         "tonalCenter": "C"
       },
-      "defaultTempoBpm": 90,
+      "defaultTempoBpm": 88,
       "timeSignature": "2/4",
+      "durationSec": 44,
+      "notes": "Named for old-time fiddler Oscar Stone, this is a bright, showy rag — ragtime's bounce run through string-band fiddle. No words, just a tune made to move a dance floor; Texas fiddle great Byron Berline helped carry it into the contest and jam-session world, where it also goes by 'Lone Star Rag.'",
       "content": {
         "hasMelody": true,
         "hasChords": true,
@@ -20,8 +22,7 @@
           "instrument": "Fiddle",
           "notationType": "notation"
         }
-      ],
-      "durationSec": 43
+      ]
     },
     {
       "id": "east-tennessee-blues",
@@ -33,6 +34,8 @@
       },
       "defaultTempoBpm": 126,
       "timeSignature": "2/4",
+      "durationSec": 31,
+      "notes": "Written by Charlie Bowman, a champion fiddler from the East Tennessee hills, and first recorded in 1926 with the Hill Billies — the band whose very name helped christen 'hillbilly' music. It's a fiddle 'blues' that struts more than it mourns: bluesy color over a cheerful old-time rag.",
       "content": {
         "hasMelody": true,
         "hasChords": true,
@@ -43,8 +46,7 @@
           "instrument": "Fiddle",
           "notationType": "notation"
         }
-      ],
-      "durationSec": 16
+      ]
     },
     {
       "id": "wabash-cannonball",
@@ -56,18 +58,20 @@
       },
       "defaultTempoBpm": 108,
       "timeSignature": "4/4",
+      "durationSec": 53,
+      "notes": "The song came first; the train came second. For years the 'Wabash Cannonball' was pure tall tale — in hobo lore a ghostly death-train that carried a departed soul to its reward, its whistle heard at every station in America. It got so popular that in 1949 a railroad finally hung the name on a real express. Roy Acuff's 1936 record sold ten million copies, and it's the oldest song in the Rock and Roll Hall of Fame's '500 Songs That Shaped Rock and Roll.'",
       "content": {
         "hasMelody": true,
         "hasChords": true,
-        "hasTab": false
+        "hasTab": false,
+        "hasLyrics": true
       },
       "parts": [
         {
           "instrument": "Fiddle",
           "notationType": "notation"
         }
-      ],
-      "durationSec": 53
+      ]
     },
     {
       "id": "old-blue",
@@ -77,8 +81,10 @@
         "mode": "major",
         "tonalCenter": "G"
       },
-      "defaultTempoBpm": 92,
+      "defaultTempoBpm": 86,
       "timeSignature": "4/4",
+      "durationSec": 84,
+      "notes": "A high-spirited old-time fiddle breakdown — all drive and double-stops, the kind of tune that lives in jam sessions rather than on record.",
       "content": {
         "hasMelody": true,
         "hasChords": true,
@@ -89,8 +95,7 @@
           "instrument": "Fiddle",
           "notationType": "notation"
         }
-      ],
-      "durationSec": 63
+      ]
     }
   ],
   "setLists": [
