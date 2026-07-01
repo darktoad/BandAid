@@ -88,6 +88,16 @@ purpose, so the processor strips it (`strip_note_instrument_refs`, run automatic
 every write). The part-level `<score-instrument>`/`<midi-instrument>` (which set the default
 playback patch) are untouched. `instrument_refs_stripped` in the JSON output reports the count.
 
+**Known, unfixed alphaTab quirk — a tune's opening note can mis-beam.** alphaTab decides
+whether a piece uses explicit MusicXML beam markup by watching for the first note that
+carries a `<beam>` tag; until it sees one, an unbeamed note falls back to auto-beaming instead
+of standing alone. If a tune's very first note is meant to stand alone and the *next* note is
+the first one carrying a `<beam>` tag (as in East Tennessee Blues bar 1: `E5` alone, then
+`F5`–`F♯5` beamed), that opening note gets auto-beamed into the following group instead.
+Pitch, rhythm, and playback are unaffected — it's a visual-only mis-beam, and by nature of the
+bug it can only ever affect a tune's opening note. Left as-is (no workaround attempted; a fix
+would mean writing semantically-inaccurate beam markup just to trick the importer).
+
 ## Verification status of the bundled tunes
 
 The early Claude-OMR drafts were inaccurate. All four tunes now come from Soundslice OMR
