@@ -29,7 +29,7 @@ Writes `<out-dir>/<song-id>.musicxml` (+ the `.chordpro` when `--lyrics` is give
 prints a `library.json` manifest entry on stdout. It **validates every bar's duration
 against the meter** and exits non-zero (listing the offending bars) if any don't add up —
 this catches the "impossible durations" class of OMR error *without needing to listen*.
-Requires `music21`.
+Requires `music21` and `defusedxml`.
 
 ## Lyrics & performance notes (every song)
 
@@ -70,6 +70,13 @@ have quirks (varying `divisions`, missing `<mode>`, a `.xml` extension, the occa
 `kind="other"` chord), which this processor normalizes via music21. Either way, the
 render+listen loop is mandatory — to correct a tune, edit its source (`.abc`) or re-export
 from Soundslice and re-run the processor.
+
+**On slur fidelity:** music21's MusicXML writer only tracks a slur's first and last note,
+so any slur spanning 3+ notes loses its interior `continue` notations on write — the notes
+underneath are untouched, but the drawn slur arc comes out shorter than the source. The
+processor detects and repairs this (`restore_slur_continues`, run automatically after every
+write) by walking the written file and re-adding the missing interior tags between each
+unmatched start/stop pair. `slurs_restored` in the JSON output reports how many were fixed.
 
 ## Verification status of the bundled tunes
 
