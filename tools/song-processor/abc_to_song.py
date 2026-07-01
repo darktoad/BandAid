@@ -46,6 +46,32 @@ MAJOR_TONIC = {0: 'C', 1: 'G', 2: 'D', 3: 'A', 4: 'E', 5: 'B', 6: 'F#', 7: 'C#',
                -1: 'F', -2: 'B-', -3: 'E-', -4: 'A-', -5: 'D-', -6: 'G-', -7: 'C-'}
 
 
+def strip_note_instrument_refs(out_path):
+    """alphaTab (the app's rendering engine) has a rendering bug: a per-note <instrument>
+    reference — which music21 writes on every note unconditionally, even for a
+    single-instrument part — breaks its accidental display for the whole bar (every
+    sharp/flat/natural silently fails to draw, though the underlying pitch is still
+    correct). Confirmed via bisection down to a 2-note repro against a live alphaTab
+    instance; filed nowhere upstream yet. Our charts are single solo-melody parts, so
+    per-note instrument disambiguation serves no purpose — strip it. The part-level
+    <score-instrument>/<midi-instrument> (which set the default playback patch) are
+    untouched. Returns the count of <instrument> elements removed."""
+    tree = safe_parse_xml(out_path)
+    part = tree.getroot().find('part')
+    if part is None:
+        return 0
+    removed = 0
+    for m in part.findall('measure'):
+        for n in m.findall('note'):
+            inst = n.find('instrument')
+            if inst is not None:
+                n.remove(inst)
+                removed += 1
+    if removed:
+        tree.write(out_path, encoding='UTF-8', xml_declaration=True)
+    return removed
+
+
 def restore_slur_continues(out_path):
     """music21's MusicXML writer only tracks a slur's first/last note, so any slur
     spanning 3+ notes silently loses its 'continue' notations on write — the drawn
@@ -165,6 +191,7 @@ def main():
     out_path = f"{args.out_dir}/{args.song_id}.musicxml"
     score.write('musicxml', fp=out_path)
 
+    instrument_refs_stripped = strip_note_instrument_refs(out_path)
     slurs_restored = restore_slur_continues(out_path)
 
     content = {"hasMelody": True, "hasChords": has_chords, "hasTab": False}
@@ -189,7 +216,8 @@ def main():
 
     print(json.dumps({"entry": entry, "out": out_path, "lyrics_out": lyrics_out,
                       "measures": len(list(part.getElementsByClass('Measure'))),
-                      "bad_bars": bad, "slurs_restored": slurs_restored}, indent=2))
+                      "bad_bars": bad, "slurs_restored": slurs_restored,
+                      "instrument_refs_stripped": instrument_refs_stripped}, indent=2))
     sys.exit(1 if bad else 0)
 
 

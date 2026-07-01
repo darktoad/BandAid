@@ -78,6 +78,16 @@ processor detects and repairs this (`restore_slur_continues`, run automatically 
 write) by walking the written file and re-adding the missing interior tags between each
 unmatched start/stop pair. `slurs_restored` in the JSON output reports how many were fixed.
 
+**On accidentals not rendering in the app:** the app's renderer (alphaTab) has a bug where a
+per-note `<instrument>` reference — which music21 writes on every note unconditionally, even
+for a single-instrument part — breaks its accidental display for the whole bar: every
+sharp/flat/natural in that bar silently fails to draw, though the underlying pitch is still
+correct (confirmed by bisecting down to a 2-note repro against a live alphaTab instance).
+Since our charts are single solo-melody parts, per-note instrument disambiguation serves no
+purpose, so the processor strips it (`strip_note_instrument_refs`, run automatically after
+every write). The part-level `<score-instrument>`/`<midi-instrument>` (which set the default
+playback patch) are untouched. `instrument_refs_stripped` in the JSON output reports the count.
+
 ## Verification status of the bundled tunes
 
 The early Claude-OMR drafts were inaccurate. All four tunes now come from Soundslice OMR

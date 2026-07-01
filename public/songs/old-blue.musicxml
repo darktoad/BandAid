@@ -22,11 +22,11 @@
     <score-part id="P1">
       <part-name>Fiddle</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="Ice9865229f37aa2feefc53f4a30e6bff">
+      <score-instrument id="I8bb8754c4f9715a544e0d10e49dda7cf">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="Ice9865229f37aa2feefc53f4a30e6bff">
+      <midi-instrument id="I8bb8754c4f9715a544e0d10e49dda7cf">
         <midi-channel>2</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
@@ -71,7 +71,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -85,7 +84,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -99,7 +97,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -110,7 +107,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -121,7 +117,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>down</stem>
       </note>
@@ -131,7 +126,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -148,7 +142,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -174,7 +167,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -184,7 +176,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -198,7 +189,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -218,7 +208,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -229,7 +218,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -246,7 +234,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -257,7 +244,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -277,7 +263,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -291,7 +276,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -305,7 +289,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -316,7 +299,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -327,7 +309,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>down</stem>
       </note>
@@ -337,7 +318,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -354,7 +334,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -378,7 +357,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -388,7 +366,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -406,7 +383,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -420,7 +396,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -437,7 +412,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -448,7 +422,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -460,7 +433,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>flat</accidental>
         <stem>up</stem>
@@ -481,7 +453,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -497,7 +468,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -509,7 +479,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -527,7 +496,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -541,7 +509,6 @@
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>down</stem>
         <notations>
@@ -557,7 +524,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -572,7 +538,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -595,7 +560,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -611,7 +575,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -622,7 +585,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -633,7 +595,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -644,7 +605,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -655,7 +615,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -667,7 +626,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>down</stem>
@@ -685,7 +643,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -709,7 +666,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -720,7 +676,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -732,7 +687,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>down</stem>
@@ -747,7 +701,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -762,7 +715,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>natural</accidental>
         <stem>up</stem>
@@ -774,7 +726,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -785,7 +736,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -800,7 +750,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -824,7 +773,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -836,7 +784,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>flat</accidental>
         <stem>up</stem>
@@ -849,7 +796,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <accidental>natural</accidental>
         <stem>up</stem>
@@ -860,7 +806,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -890,7 +835,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
       </note>
@@ -900,7 +844,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>down</stem>
       </note>
@@ -910,7 +853,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
       </note>
@@ -920,7 +862,6 @@
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>down</stem>
       </note>
@@ -930,7 +871,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -941,7 +881,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -956,7 +895,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -967,7 +905,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -978,7 +915,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -989,7 +925,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -1001,7 +936,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -1016,7 +950,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1031,7 +964,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1045,7 +977,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -1069,7 +1000,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -1080,7 +1010,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>down</stem>
       </note>
@@ -1090,7 +1019,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
       </note>
@@ -1100,7 +1028,6 @@
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>down</stem>
       </note>
@@ -1110,7 +1037,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -1121,7 +1047,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -1141,7 +1066,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -1157,7 +1081,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1168,7 +1091,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1179,7 +1101,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -1190,7 +1111,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -1201,7 +1121,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1213,7 +1132,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>down</stem>
@@ -1225,7 +1143,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -1246,7 +1163,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <notations>
@@ -1261,7 +1177,6 @@
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>down</stem>
         <notations>
@@ -1276,7 +1191,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <notations>
@@ -1292,7 +1206,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -1303,7 +1216,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1318,7 +1230,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>down</stem>
@@ -1330,7 +1241,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -1344,7 +1254,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <notations>
@@ -1359,7 +1268,6 @@
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>down</stem>
         <notations>
@@ -1374,7 +1282,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <notations>
@@ -1387,7 +1294,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -1398,7 +1304,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1412,7 +1317,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1423,7 +1327,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -1443,7 +1346,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -1454,7 +1356,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1472,7 +1373,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>down</stem>
@@ -1487,7 +1387,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -1507,7 +1406,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -1518,7 +1416,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1536,7 +1433,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>down</stem>
@@ -1551,7 +1447,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -1575,7 +1470,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -1586,7 +1480,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1603,7 +1496,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1614,7 +1506,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -1631,7 +1522,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1649,7 +1539,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -1663,7 +1552,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1677,7 +1565,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1691,7 +1578,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -1711,7 +1597,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -1722,7 +1607,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1733,7 +1617,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1744,7 +1627,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -1764,7 +1646,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -1776,7 +1657,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>flat</accidental>
         <stem>up</stem>
@@ -1795,7 +1675,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <accidental>natural</accidental>
         <stem>up</stem>
@@ -1817,7 +1696,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
         <notations>
@@ -1833,7 +1711,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1861,7 +1738,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1872,7 +1748,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1882,7 +1757,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1893,7 +1767,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1903,7 +1776,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1914,7 +1786,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1925,7 +1796,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -1943,7 +1813,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -1960,7 +1829,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -1971,7 +1839,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1982,7 +1849,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1993,7 +1859,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2004,7 +1869,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2015,7 +1879,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2026,7 +1889,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2037,7 +1899,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2052,7 +1913,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -2067,7 +1927,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2081,7 +1940,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2092,7 +1950,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2103,7 +1960,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2114,7 +1970,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2126,7 +1981,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -2141,7 +1995,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2158,7 +2011,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2169,7 +2021,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2179,7 +2030,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2190,7 +2040,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2200,7 +2049,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2211,7 +2059,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2222,7 +2069,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -2237,7 +2083,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2255,7 +2100,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2266,7 +2110,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2277,7 +2120,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2288,7 +2130,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2299,7 +2140,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2310,7 +2150,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2321,7 +2160,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2332,7 +2170,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2346,7 +2183,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2357,7 +2193,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2368,7 +2203,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2379,7 +2213,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2390,7 +2223,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2401,7 +2233,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2412,7 +2243,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2423,7 +2253,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2443,7 +2272,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2453,7 +2281,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2463,7 +2290,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2487,7 +2313,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2498,7 +2323,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2508,7 +2332,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2519,7 +2342,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2529,7 +2351,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2540,7 +2361,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2551,7 +2371,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -2566,7 +2385,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2584,7 +2402,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2595,7 +2412,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2606,7 +2422,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2617,7 +2432,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2628,7 +2442,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2639,7 +2452,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2650,7 +2462,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2661,7 +2472,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2676,7 +2486,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -2691,7 +2500,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2706,7 +2514,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2717,7 +2524,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2729,7 +2535,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>natural</accidental>
         <stem>up</stem>
@@ -2741,7 +2546,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2752,7 +2556,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2763,7 +2566,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2783,7 +2585,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2794,7 +2595,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2812,7 +2612,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -2827,7 +2626,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2847,7 +2645,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2858,7 +2655,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2876,7 +2672,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2890,7 +2685,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2913,7 +2707,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2924,7 +2717,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2942,7 +2734,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -2957,7 +2748,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2977,7 +2767,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="Ice9865229f37aa2feefc53f4a30e6bff" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
