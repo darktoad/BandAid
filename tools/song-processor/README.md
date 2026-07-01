@@ -29,7 +29,7 @@ Writes `<out-dir>/<song-id>.musicxml` (+ the `.chordpro` when `--lyrics` is give
 prints a `library.json` manifest entry on stdout. It **validates every bar's duration
 against the meter** and exits non-zero (listing the offending bars) if any don't add up —
 this catches the "impossible durations" class of OMR error *without needing to listen*.
-Requires `music21`.
+Requires `music21` and `defusedxml`.
 
 ## Lyrics & performance notes (every song)
 
@@ -71,18 +71,51 @@ have quirks (varying `divisions`, missing `<mode>`, a `.xml` extension, the occa
 render+listen loop is mandatory — to correct a tune, edit its source (`.abc`) or re-export
 from Soundslice and re-run the processor.
 
+**On slur fidelity:** music21's MusicXML writer only tracks a slur's first and last note,
+so any slur spanning 3+ notes loses its interior `continue` notations on write — the notes
+underneath are untouched, but the drawn slur arc comes out shorter than the source. The
+processor detects and repairs this (`restore_slur_continues`, run automatically after every
+write) by walking the written file and re-adding the missing interior tags between each
+unmatched start/stop pair. `slurs_restored` in the JSON output reports how many were fixed.
+
+**On accidentals not rendering in the app:** the app's renderer (alphaTab) has a bug where a
+per-note `<instrument>` reference — which music21 writes on every note unconditionally, even
+for a single-instrument part — breaks its accidental display for the whole bar: every
+sharp/flat/natural in that bar silently fails to draw, though the underlying pitch is still
+correct (confirmed by bisecting down to a 2-note repro against a live alphaTab instance).
+Since our charts are single solo-melody parts, per-note instrument disambiguation serves no
+purpose, so the processor strips it (`strip_note_instrument_refs`, run automatically after
+every write). The part-level `<score-instrument>`/`<midi-instrument>` (which set the default
+playback patch) are untouched. `instrument_refs_stripped` in the JSON output reports the count.
+
+**Known, unfixed alphaTab quirk — a tune's opening note can mis-beam.** alphaTab decides
+whether a piece uses explicit MusicXML beam markup by watching for the first note that
+carries a `<beam>` tag; until it sees one, an unbeamed note falls back to auto-beaming instead
+of standing alone. If a tune's very first note is meant to stand alone and the *next* note is
+the first one carrying a `<beam>` tag (as in East Tennessee Blues bar 1: `E5` alone, then
+`F5`–`F♯5` beamed), that opening note gets auto-beamed into the following group instead.
+Pitch, rhythm, and playback are unaffected — it's a visual-only mis-beam, and by nature of the
+bug it can only ever affect a tune's opening note. Left as-is (no workaround attempted; a fix
+would mean writing semantically-inaccurate beam markup just to trick the importer).
+
 ## Verification status of the bundled tunes
 
-The early Claude-OMR drafts were inaccurate. Three tunes were re-transcribed from the
-Soundslice OMR exports (cleaner rhythm: all bars validate); **pitch still needs an in-app
-listen pass**. Wabash's melody is held — its Soundslice 2nd ending is garbled.
+The early Claude-OMR drafts were inaccurate. All four tunes now come from Soundslice OMR
+exports (cleaner rhythm: all bars validate); **pitch still needs an in-app listen pass**.
+
+Note on repeats: Soundslice exports carry the source sheet's written repeats and 1st/2nd
+endings. Song *form* (which repeats to take, how many passes) is treated as a performance
+decision, not bound into the chart — so a tune's `durationSec` and in-app playback may
+reflect the export's literal repeat structure rather than how the band actually plays it.
+Wabash's export, for instance, has backward repeats at bars 4/9/14 but only one forward
+repeat (bar 1), so literal playback loops back to bar 1; that's left as-is on purpose.
 
 | Tune | Source | Status |
 |------|--------|--------|
 | Stone's Rag | Soundslice OMR | Re-transcribed; bars valid → **verify pitch by ear** (Soundslice wrote the swing as literal ties) |
 | East Tennessee Blues | Soundslice OMR | Re-transcribed; bars valid, parenthetical alt-chords stripped → **verify pitch by ear** |
 | Old Blue | Soundslice OMR | Re-transcribed; bars valid → **verify pitch by ear**; instrumental (no lyrics) |
-| Wabash Cannonball | photo → Claude ABC (held) | Melody **needs a clean 2nd ending** (Soundslice m15 garbled, m8 fixable); lyrics + note authored ✓ |
+| Wabash Cannonball | Soundslice OMR | Re-transcribed; bars valid (m15 2nd-ending triplet fixed in Soundslice) → **verify pitch by ear**; lyrics + note authored ✓ |
 
 Soundslice exports live in `../../docs/reference/samples/soundslice/`; the Wabash lyrics
 source is in `lyrics/`. To correct a tune, fix its source (or re-export) and re-run the

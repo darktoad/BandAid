@@ -6,7 +6,7 @@
       <supports element="accidental" type="yes"/>
       <supports element="transpose" type="yes"/>
       <software>Soundslice MusicXML exporter</software>
-      <encoding-date>2026-06-25</encoding-date>
+      <encoding-date>2026-06-30</encoding-date>
     </encoding>
   </identification>
   <part-list>
@@ -53,6 +53,11 @@
         <type>16th</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
+        <notations>
+          <technical>
+            <down-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1018,9 +1023,6 @@
         <beam number="1">continue</beam>
         <notations>
           <slur placement="above" type="stop" number="1"/>
-          <articulations>
-            <staccato/>
-          </articulations>
         </notations>
       </note>
       <note>

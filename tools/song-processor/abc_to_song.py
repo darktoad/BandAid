@@ -28,6 +28,8 @@ render+listen loop in the app.
 """
 import sys, json, argparse, shutil
 from pathlib import Path
+from xml.etree import ElementTree as ET
+from defusedxml.ElementTree import parse as safe_parse_xml
 from music21 import converter, instrument, meter, harmony
 
 
@@ -42,6 +44,87 @@ def detect_format(path):
 # still need an explicit override upstream — see the unified-music-model spec.
 MAJOR_TONIC = {0: 'C', 1: 'G', 2: 'D', 3: 'A', 4: 'E', 5: 'B', 6: 'F#', 7: 'C#',
                -1: 'F', -2: 'B-', -3: 'E-', -4: 'A-', -5: 'D-', -6: 'G-', -7: 'C-'}
+
+
+def strip_note_instrument_refs(out_path):
+    """alphaTab (the app's rendering engine) has a rendering bug: a per-note <instrument>
+    reference — which music21 writes on every note unconditionally, even for a
+    single-instrument part — breaks its accidental display for the whole bar (every
+    sharp/flat/natural silently fails to draw, though the underlying pitch is still
+    correct). Confirmed via bisection down to a 2-note repro against a live alphaTab
+    instance; filed nowhere upstream yet. Our charts are single solo-melody parts, so
+    per-note instrument disambiguation serves no purpose — strip it. The part-level
+    <score-instrument>/<midi-instrument> (which set the default playback patch) are
+    untouched. Returns the count of <instrument> elements removed."""
+    tree = safe_parse_xml(out_path)
+    part = tree.getroot().find('part')
+    if part is None:
+        return 0
+    removed = 0
+    for m in part.findall('measure'):
+        for n in m.findall('note'):
+            inst = n.find('instrument')
+            if inst is not None:
+                n.remove(inst)
+                removed += 1
+    if removed:
+        tree.write(out_path, encoding='UTF-8', xml_declaration=True)
+    return removed
+
+
+def restore_slur_continues(out_path):
+    """music21's MusicXML writer only tracks a slur's first/last note, so any slur
+    spanning 3+ notes silently loses its 'continue' notations on write — the drawn
+    slur arc comes out shorter than the source (interior notes untouched otherwise).
+    The interior notes are still present in the output, just missing their slur tag,
+    so this is self-healing: walk the written file once, and for every note strictly
+    between an unmatched start/N and its stop/N, add the missing continue/N. Chord
+    tones (simultaneous with the surrounding note, not a sequential slur member) are
+    skipped. Returns the number of slur notations restored."""
+    tree = safe_parse_xml(out_path)
+    part = tree.getroot().find('part')
+    if part is None:
+        return 0
+    flat = [n for m in part.findall('measure') for n in m.findall('note')]
+
+    open_spans, spans = {}, []
+    for i, n in enumerate(flat):
+        notations = n.find('notations')
+        if notations is None:
+            continue
+        for s in notations.findall('slur'):
+            num = s.get('number') or '1'
+            if s.get('type') == 'start':
+                open_spans[num] = i
+            elif s.get('type') == 'stop' and num in open_spans:
+                spans.append((open_spans.pop(num), i, num))
+
+    restored = 0
+    for start_idx, stop_idx, num in spans:
+        for i in range(start_idx + 1, stop_idx):
+            n = flat[i]
+            if n.find('chord') is not None:
+                continue
+            notations = n.find('notations')
+            have = set() if notations is None else {
+                (s.get('type'), s.get('number') or '1') for s in notations.findall('slur')}
+            if ('continue', num) in have:
+                continue
+            if notations is None:
+                notations = ET.SubElement(n, 'notations')
+            new_slur = ET.Element('slur', type='continue', number=num)
+            # MusicXML notations are order-sensitive: slur must follow any tied.
+            tied_count = 0
+            for child in list(notations):
+                if child.tag == 'tied':
+                    tied_count += 1
+                else:
+                    break
+            notations.insert(tied_count, new_slur)
+            restored += 1
+    if restored:
+        tree.write(out_path, encoding='UTF-8', xml_declaration=True)
+    return restored
 
 
 def main():
@@ -108,6 +191,9 @@ def main():
     out_path = f"{args.out_dir}/{args.song_id}.musicxml"
     score.write('musicxml', fp=out_path)
 
+    instrument_refs_stripped = strip_note_instrument_refs(out_path)
+    slurs_restored = restore_slur_continues(out_path)
+
     content = {"hasMelody": True, "hasChords": has_chords, "hasTab": False}
 
     # Lyrics sidecar: authored separately as ChordPro; the processor just places + flags it.
@@ -130,7 +216,8 @@ def main():
 
     print(json.dumps({"entry": entry, "out": out_path, "lyrics_out": lyrics_out,
                       "measures": len(list(part.getElementsByClass('Measure'))),
-                      "bad_bars": bad}, indent=2))
+                      "bad_bars": bad, "slurs_restored": slurs_restored,
+                      "instrument_refs_stripped": instrument_refs_stripped}, indent=2))
     sys.exit(1 if bad else 0)
 
 

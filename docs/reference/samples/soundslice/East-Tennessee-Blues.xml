@@ -6,7 +6,7 @@
       <supports element="accidental" type="yes"/>
       <supports element="transpose" type="yes"/>
       <software>Soundslice MusicXML exporter</software>
-      <encoding-date>2026-06-25</encoding-date>
+      <encoding-date>2026-06-30</encoding-date>
     </encoding>
   </identification>
   <part-list>
@@ -383,6 +383,9 @@
         <beam number="1">begin</beam>
         <notations>
           <slur placement="above" type="start" number="1"/>
+          <technical>
+            <fingering placement="above">0</fingering>
+          </technical>
         </notations>
       </note>
       <note>
@@ -683,6 +686,9 @@
         <beam number="1">begin</beam>
         <notations>
           <slur placement="above" type="start" number="1"/>
+          <technical>
+            <down-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -733,6 +739,9 @@
         <beam number="1">begin</beam>
         <notations>
           <slur placement="above" type="start" number="1"/>
+          <technical>
+            <up-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -770,6 +779,9 @@
         <beam number="1">end</beam>
         <notations>
           <slur placement="above" type="start" number="1"/>
+          <technical>
+            <up-bow/>
+          </technical>
         </notations>
       </note>
     </measure>
@@ -1331,9 +1343,9 @@
       </note>
       <harmony>
         <root>
-          <root-step>C</root-step>
+          <root-step>A</root-step>
         </root>
-        <kind text="(A)">other</kind>
+        <kind text="">major</kind>
       </harmony>
       <note>
         <pitch>
@@ -1385,9 +1397,9 @@
     <measure number="16">
       <harmony>
         <root>
-          <root-step>C</root-step>
+          <root-step>D</root-step>
         </root>
-        <kind text="(D)">other</kind>
+        <kind text="">major</kind>
       </harmony>
       <note>
         <pitch>
@@ -1440,9 +1452,9 @@
       </note>
       <harmony>
         <root>
-          <root-step>C</root-step>
+          <root-step>G</root-step>
         </root>
-        <kind text="(G)">other</kind>
+        <kind text="">major</kind>
       </harmony>
       <note>
         <pitch>
@@ -2186,12 +2198,10 @@
           <octave>4</octave>
         </pitch>
         <duration>8</duration>
-        <tie type="start"/>
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
         <notations>
-          <tied type="start"/>
           <slur placement="below" type="start" number="1"/>
         </notations>
       </note>
@@ -2226,13 +2236,9 @@
           <octave>4</octave>
         </pitch>
         <duration>8</duration>
-        <tie type="stop"/>
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
-        <notations>
-          <tied type="stop"/>
-        </notations>
       </note>
       <note>
         <pitch>
@@ -2397,9 +2403,9 @@
       </note>
       <harmony>
         <root>
-          <root-step>C</root-step>
+          <root-step>A</root-step>
         </root>
-        <kind text="(A)">other</kind>
+        <kind text="">major</kind>
       </harmony>
       <note>
         <pitch>
@@ -2451,9 +2457,9 @@
     <measure number="32">
       <harmony>
         <root>
-          <root-step>C</root-step>
+          <root-step>D</root-step>
         </root>
-        <kind text="(D)">other</kind>
+        <kind text="">major</kind>
       </harmony>
       <note>
         <pitch>
@@ -2503,9 +2509,9 @@
       </note>
       <harmony>
         <root>
-          <root-step>C</root-step>
+          <root-step>G</root-step>
         </root>
-        <kind text="(G)">other</kind>
+        <kind text="">major</kind>
       </harmony>
       <note>
         <pitch>

@@ -6,12 +6,12 @@
       <supports element="accidental" type="yes"/>
       <supports element="transpose" type="yes"/>
       <software>Soundslice MusicXML exporter</software>
-      <encoding-date>2026-06-25</encoding-date>
+      <encoding-date>2026-06-30</encoding-date>
     </encoding>
   </identification>
   <part-list>
     <score-part id="P1">
-      <part-name>Fiddle</part-name>
+      <part-name>Track 1</part-name>
     </score-part>
   </part-list>
   <part id="P1">
@@ -732,22 +732,55 @@
       </note>
       <note>
         <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>24</duration>
+        <tie type="start"/>
+        <type>16th</type>
+        <stem>up</stem>
+        <beam number="1">begin</beam>
+        <notations>
+          <tied type="start"/>
+        </notations>
+      </note>
+      <note>
+        <chord/>
+        <pitch>
           <step>B</step>
           <octave>4</octave>
         </pitch>
         <duration>24</duration>
         <type>16th</type>
         <stem>up</stem>
+        <beam number="1">begin</beam>
       </note>
       <note>
         <pitch>
           <step>D</step>
           <octave>4</octave>
         </pitch>
-        <duration>36</duration>
-        <type>16th</type>
+        <duration>72</duration>
+        <tie type="stop"/>
+        <type>eighth</type>
         <dot/>
         <stem>up</stem>
+        <beam number="1">end</beam>
+        <notations>
+          <tied type="stop"/>
+        </notations>
+      </note>
+      <note>
+        <chord/>
+        <pitch>
+          <step>A</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>72</duration>
+        <type>eighth</type>
+        <dot/>
+        <stem>up</stem>
+        <beam number="1">end</beam>
       </note>
       <note>
         <pitch>
@@ -1522,6 +1555,9 @@
         <beam number="1">begin</beam>
         <notations>
           <slur placement="below" type="stop" number="1"/>
+          <technical>
+            <down-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -1535,6 +1571,9 @@
         <beam number="1">continue</beam>
         <notations>
           <slur placement="below" type="start" number="1"/>
+          <technical>
+            <up-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -1573,6 +1612,11 @@
         <type>16th</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
+        <notations>
+          <technical>
+            <down-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1585,6 +1629,9 @@
         <beam number="1">continue</beam>
         <notations>
           <slur placement="below" type="start" number="1"/>
+          <technical>
+            <up-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -1630,6 +1677,9 @@
         <stem>up</stem>
         <notations>
           <tied type="start"/>
+          <technical>
+            <down-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -1657,6 +1707,9 @@
         <beam number="1">continue</beam>
         <notations>
           <slur placement="below" type="start" number="1"/>
+          <technical>
+            <up-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -1752,6 +1805,9 @@
         <notations>
           <slur placement="below" type="start" number="1"/>
           <tuplet number="1" type="start"/>
+          <technical>
+            <down-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -1805,6 +1861,18 @@
       </note>
       <note>
         <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>12</duration>
+        <type>32nd</type>
+        <beam number="1">end</beam>
+        <notations>
+          <slur placement="below" type="stop" number="1"/>
+        </notations>
+      </note>
+      <note>
+        <pitch>
           <step>B</step>
           <alter>-1</alter>
           <octave>3</octave>
@@ -1813,10 +1881,12 @@
         <type>16th</type>
         <accidental>flat</accidental>
         <stem>up</stem>
-        <beam number="1">continue</beam>
+        <beam number="1">begin</beam>
         <notations>
-          <slur placement="below" type="continue" number="1"/>
-          <slur placement="below" type="start" number="2"/>
+          <slur placement="below" type="start" number="1"/>
+          <technical>
+            <up-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -1831,7 +1901,6 @@
         <beam number="1">continue</beam>
         <notations>
           <slur placement="below" type="continue" number="1"/>
-          <slur placement="below" type="continue" number="2"/>
         </notations>
       </note>
       <harmony>
@@ -1839,7 +1908,6 @@
           <root-step>G</root-step>
         </root>
         <kind text="">major</kind>
-        <offset>12</offset>
       </harmony>
       <note>
         <pitch>
@@ -1851,8 +1919,7 @@
         <stem>up</stem>
         <beam number="1">end</beam>
         <notations>
-          <slur placement="below" type="continue" number="1"/>
-          <slur placement="below" type="stop" number="2"/>
+          <slur placement="below" type="stop" number="1"/>
         </notations>
       </note>
       <note>
@@ -1865,10 +1932,32 @@
         <stem>up</stem>
         <beam number="1">begin</beam>
         <notations>
-          <slur placement="below" type="continue" number="1"/>
+          <technical>
+            <down-bow/>
+          </technical>
         </notations>
       </note>
       <note>
+        <pitch>
+          <step>B</step>
+          <alter>-1</alter>
+          <octave>3</octave>
+        </pitch>
+        <duration>48</duration>
+        <tie type="start"/>
+        <type>eighth</type>
+        <accidental>flat</accidental>
+        <stem>up</stem>
+        <beam number="1">end</beam>
+        <notations>
+          <tied type="start"/>
+          <technical>
+            <up-bow/>
+          </technical>
+        </notations>
+      </note>
+      <note>
+        <chord/>
         <pitch>
           <step>F</step>
           <octave>4</octave>
@@ -1878,21 +1967,25 @@
         <accidental>natural</accidental>
         <stem>up</stem>
         <beam number="1">end</beam>
-        <notations>
-          <slur placement="below" type="continue" number="1"/>
-        </notations>
       </note>
       <note>
         <pitch>
           <step>B</step>
+          <alter>-1</alter>
           <octave>3</octave>
         </pitch>
-        <duration>48</duration>
+        <duration>32</duration>
+        <tie type="stop"/>
         <type>eighth</type>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+        </time-modification>
         <stem>up</stem>
         <beam number="1">begin</beam>
         <notations>
-          <slur placement="below" type="stop" number="1"/>
+          <tied type="stop"/>
+          <tuplet number="1" type="start"/>
         </notations>
       </note>
       <note>
@@ -1901,23 +1994,34 @@
           <step>F</step>
           <octave>4</octave>
         </pitch>
-        <duration>48</duration>
+        <duration>32</duration>
         <type>eighth</type>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+        </time-modification>
         <stem>up</stem>
         <beam number="1">begin</beam>
+        <notations>
+          <tuplet number="1" type="start"/>
+        </notations>
       </note>
       <note>
         <pitch>
           <step>A</step>
           <octave>3</octave>
         </pitch>
-        <duration>48</duration>
+        <duration>32</duration>
         <type>eighth</type>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+        </time-modification>
         <stem>up</stem>
         <beam number="1">continue</beam>
         <notations>
           <technical>
-            <fingering placement="below">3</fingering>
+            <down-bow/>
           </technical>
         </notations>
       </note>
@@ -1927,8 +2031,12 @@
           <step>E</step>
           <octave>4</octave>
         </pitch>
-        <duration>48</duration>
+        <duration>32</duration>
         <type>eighth</type>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+        </time-modification>
         <stem>up</stem>
         <beam number="1">continue</beam>
       </note>
@@ -1938,11 +2046,21 @@
           <alter>-1</alter>
           <octave>3</octave>
         </pitch>
-        <duration>48</duration>
+        <duration>32</duration>
         <type>eighth</type>
         <accidental>flat</accidental>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+        </time-modification>
         <stem>up</stem>
         <beam number="1">end</beam>
+        <notations>
+          <tuplet number="1" type="stop"/>
+          <technical>
+            <up-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <chord/>
@@ -1951,11 +2069,18 @@
           <alter>-1</alter>
           <octave>4</octave>
         </pitch>
-        <duration>48</duration>
+        <duration>32</duration>
         <type>eighth</type>
         <accidental>flat</accidental>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+        </time-modification>
         <stem>up</stem>
         <beam number="1">end</beam>
+        <notations>
+          <tuplet number="1" type="stop"/>
+        </notations>
       </note>
       <barline location="right">
         <bar-style>light-light</bar-style>
@@ -1963,10 +2088,25 @@
       </barline>
     </measure>
     <measure number="16">
+      <harmony>
+        <root>
+          <root-step>G</root-step>
+        </root>
+        <kind text="">major</kind>
+      </harmony>
       <note>
         <pitch>
-          <step>E</step>
+          <step>G</step>
           <octave>3</octave>
+        </pitch>
+        <duration>384</duration>
+        <type>whole</type>
+      </note>
+      <note>
+        <chord/>
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
         </pitch>
         <duration>384</duration>
         <type>whole</type>

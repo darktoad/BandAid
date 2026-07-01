@@ -1,11 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE score-partwise  PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<?xml version='1.0' encoding='UTF-8'?>
 <score-partwise version="4.0">
   <movement-title>Old-Blue.xml</movement-title>
   <identification>
     <creator type="composer">Music21</creator>
     <encoding>
-      <encoding-date>2026-06-29</encoding-date>
+      <encoding-date>2026-06-30</encoding-date>
       <software>music21 v.10.5.0</software>
       <software>Soundslice MusicXML exporter</software>
       <supports element="beam" type="yes" />
@@ -23,19 +22,19 @@
     <score-part id="P1">
       <part-name>Fiddle</part-name>
       <part-abbreviation>Vln</part-abbreviation>
-      <score-instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d">
+      <score-instrument id="I8bb8754c4f9715a544e0d10e49dda7cf">
         <instrument-name>Violin</instrument-name>
         <instrument-abbreviation>Vln</instrument-abbreviation>
       </score-instrument>
-      <midi-instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d">
+      <midi-instrument id="I8bb8754c4f9715a544e0d10e49dda7cf">
         <midi-channel>2</midi-channel>
         <midi-program>41</midi-program>
       </midi-instrument>
     </score-part>
   </part-list>
-  <!--=========================== Part 1 ===========================-->
+  
   <part id="P1">
-    <!--========================= Measure 1 ==========================-->
+    
     <measure implicit="no" number="1">
       <attributes>
         <divisions>10080</divisions>
@@ -72,7 +71,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -86,7 +84,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -100,7 +97,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -111,7 +107,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -122,7 +117,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>down</stem>
       </note>
@@ -132,12 +126,14 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
         <notations>
           <slur number="2" placement="below" type="start" />
+          <technical>
+            <down-bow />
+          </technical>
         </notations>
       </note>
       <note>
@@ -146,16 +142,18 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
         <notations>
           <slur number="2" type="stop" />
+          <technical>
+            <up-bow />
+          </technical>
         </notations>
       </note>
     </measure>
-    <!--========================= Measure 2 ==========================-->
+    
     <measure implicit="no" number="2">
       <harmony>
         <root>
@@ -169,7 +167,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -179,7 +176,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -193,7 +189,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -213,7 +208,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -224,7 +218,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -241,7 +234,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -252,13 +244,12 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
       </note>
     </measure>
-    <!--========================= Measure 3 ==========================-->
+    
     <measure implicit="no" number="3">
       <harmony>
         <root>
@@ -272,7 +263,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -286,7 +276,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -300,7 +289,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -311,7 +299,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -322,7 +309,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>down</stem>
       </note>
@@ -332,12 +318,14 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
         <notations>
           <slur number="5" placement="below" type="start" />
+          <technical>
+            <down-bow />
+          </technical>
         </notations>
       </note>
       <note>
@@ -346,7 +334,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -355,7 +342,7 @@
         </notations>
       </note>
     </measure>
-    <!--========================= Measure 4 ==========================-->
+    
     <measure implicit="no" number="4">
       <print new-system="yes" />
       <harmony>
@@ -370,7 +357,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -380,12 +366,14 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
         <notations>
           <slur number="6" placement="below" type="start" />
+          <technical>
+            <down-bow />
+          </technical>
         </notations>
       </note>
       <note>
@@ -395,7 +383,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -409,10 +396,14 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
+        <notations>
+          <technical>
+            <up-bow />
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -421,7 +412,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -432,7 +422,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -444,25 +433,34 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>flat</accidental>
         <stem>up</stem>
         <beam number="1">end</beam>
       </note>
     </measure>
-    <!--========================= Measure 5 ==========================-->
+    
     <measure implicit="no" number="5">
+      <harmony>
+        <root>
+          <root-step>G</root-step>
+        </root>
+        <kind>major</kind>
+      </harmony>
       <note>
         <pitch>
           <step>D</step>
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
+        <notations>
+          <technical>
+            <up-bow />
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -470,7 +468,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -482,13 +479,15 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
         <beam number="1">continue</beam>
         <notations>
           <slur number="1" placement="below" type="start" />
+          <technical>
+            <up-bow />
+          </technical>
         </notations>
       </note>
       <note>
@@ -497,7 +496,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -511,9 +509,13 @@
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>down</stem>
+        <notations>
+          <technical>
+            <down-bow />
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -522,7 +524,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -537,7 +538,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -546,7 +546,7 @@
         </notations>
       </note>
     </measure>
-    <!--========================= Measure 6 ==========================-->
+    
     <measure implicit="no" number="6">
       <harmony>
         <root>
@@ -560,10 +560,14 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
+        <notations>
+          <technical>
+            <down-bow />
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -571,7 +575,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -582,7 +585,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -593,7 +595,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -604,7 +605,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -615,7 +615,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -627,11 +626,16 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>down</stem>
         <beam number="1">continue</beam>
+        <notations>
+          <slur number="3" placement="above" type="start" />
+          <technical>
+            <down-bow />
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -639,13 +643,15 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
+        <notations>
+          <slur number="3" type="stop" />
+        </notations>
       </note>
     </measure>
-    <!--========================= Measure 7 ==========================-->
+    
     <measure implicit="no" number="7">
       <print new-system="yes" />
       <harmony>
@@ -660,7 +666,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -671,7 +676,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -683,13 +687,12 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>down</stem>
         <beam number="1">continue</beam>
         <notations>
-          <slur number="3" placement="above" type="start" />
+          <slur number="4" placement="above" type="start" />
         </notations>
       </note>
       <note>
@@ -698,12 +701,11 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
         <notations>
-          <slur number="3" type="stop" />
+          <slur number="4" type="stop" />
         </notations>
       </note>
       <note>
@@ -713,7 +715,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>natural</accidental>
         <stem>up</stem>
@@ -725,7 +726,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -736,12 +736,11 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
         <notations>
-          <slur number="4" placement="below" type="start" />
+          <slur number="5" placement="below" type="start" />
         </notations>
       </note>
       <note>
@@ -751,17 +750,16 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
         <beam number="1">end</beam>
         <notations>
-          <slur number="4" type="stop" />
+          <slur number="5" type="stop" />
         </notations>
       </note>
     </measure>
-    <!--========================= Measure 8 ==========================-->
+    
     <measure implicit="no" number="8">
       <harmony>
         <root>
@@ -775,7 +773,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -787,7 +784,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>flat</accidental>
         <stem>up</stem>
@@ -800,7 +796,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <accidental>natural</accidental>
         <stem>up</stem>
@@ -811,7 +806,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -824,7 +818,7 @@
         <repeat direction="backward" />
       </barline>
     </measure>
-    <!--========================= Measure 9 ==========================-->
+    
     <measure implicit="no" number="9">
       <barline location="left">
         <repeat direction="forward" />
@@ -841,7 +835,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
       </note>
@@ -851,7 +844,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>down</stem>
       </note>
@@ -861,7 +853,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
       </note>
@@ -871,7 +862,6 @@
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>down</stem>
       </note>
@@ -881,7 +871,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -892,13 +881,12 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
       </note>
     </measure>
-    <!--========================= Measure 10 =========================-->
+    
     <measure implicit="no" number="10">
       <print new-system="yes" />
       <note>
@@ -907,7 +895,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -918,7 +905,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -929,7 +915,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -940,7 +925,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -952,40 +936,10 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
         <beam number="1">begin</beam>
-        <notations>
-          <slur number="5" placement="below" type="start" />
-        </notations>
-      </note>
-      <note>
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">continue</beam>
-        <notations>
-          <slur number="5" type="stop" />
-        </notations>
-      </note>
-      <note>
-        <pitch>
-          <step>C</step>
-          <alter>1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">continue</beam>
         <notations>
           <slur number="6" placement="below" type="start" />
         </notations>
@@ -996,16 +950,42 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
-        <beam number="1">end</beam>
+        <beam number="1">continue</beam>
         <notations>
           <slur number="6" type="stop" />
         </notations>
       </note>
+      <note>
+        <pitch>
+          <step>C</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">continue</beam>
+        <notations>
+          <slur number="1" placement="below" type="start" />
+        </notations>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">end</beam>
+        <notations>
+          <slur number="1" type="stop" />
+        </notations>
+      </note>
     </measure>
-    <!--========================= Measure 11 =========================-->
+    
     <measure implicit="no" number="11">
       <harmony>
         <root>
@@ -1020,7 +1000,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -1031,7 +1010,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>down</stem>
       </note>
@@ -1041,7 +1019,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
       </note>
@@ -1051,7 +1028,6 @@
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>down</stem>
       </note>
@@ -1061,7 +1037,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -1072,13 +1047,12 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
       </note>
     </measure>
-    <!--========================= Measure 12 =========================-->
+    
     <measure implicit="no" number="12">
       <harmony>
         <root>
@@ -1092,10 +1066,14 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
+        <notations>
+          <technical>
+            <down-bow />
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1103,7 +1081,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1114,7 +1091,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1125,7 +1101,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -1136,7 +1111,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -1147,7 +1121,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1159,7 +1132,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>down</stem>
@@ -1171,13 +1143,12 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
       </note>
     </measure>
-    <!--========================= Measure 13 =========================-->
+    
     <measure implicit="no" number="13">
       <print new-system="yes" />
       <harmony>
@@ -1192,9 +1163,13 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
+        <notations>
+          <technical>
+            <down-bow />
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1202,9 +1177,13 @@
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>down</stem>
+        <notations>
+          <technical>
+            <up-bow />
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1212,11 +1191,13 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <notations>
-          <slur number="1" placement="above" type="start" />
+          <slur number="2" placement="above" type="start" />
+          <technical>
+            <down-bow />
+          </technical>
         </notations>
       </note>
       <note>
@@ -1225,23 +1206,21 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
-      </note>
+      <notations><slur type="continue" number="2" /></notations></note>
       <note>
         <pitch>
           <step>G</step>
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
         <notations>
-          <slur number="1" type="stop" />
+          <slur number="2" type="stop" />
         </notations>
       </note>
       <note>
@@ -1251,7 +1230,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>down</stem>
@@ -1263,13 +1241,12 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
       </note>
     </measure>
-    <!--========================= Measure 14 =========================-->
+    
     <measure implicit="no" number="14">
       <note>
         <pitch>
@@ -1277,9 +1254,13 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
+        <notations>
+          <technical>
+            <up-bow />
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1287,9 +1268,13 @@
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>down</stem>
+        <notations>
+          <technical>
+            <down-bow />
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1297,11 +1282,10 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <notations>
-          <slur number="2" placement="above" type="start" />
+          <slur number="3" placement="above" type="start" />
         </notations>
       </note>
       <note>
@@ -1310,23 +1294,21 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
-      </note>
+      <notations><slur type="continue" number="3" /></notations></note>
       <note>
         <pitch>
           <step>D</step>
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
         <notations>
-          <slur number="2" type="stop" />
+          <slur number="3" type="stop" />
         </notations>
       </note>
       <note>
@@ -1335,7 +1317,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1346,13 +1327,12 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
       </note>
     </measure>
-    <!--========================= Measure 15 =========================-->
+    
     <measure implicit="no" number="15">
       <harmony>
         <root>
@@ -1366,7 +1346,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
@@ -1377,7 +1356,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">continue</beam>
@@ -1395,71 +1373,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <accidental>sharp</accidental>
-        <stem>down</stem>
-        <beam number="1">continue</beam>
-        <notations>
-          <slur number="3" placement="above" type="start" />
-        </notations>
-      </note>
-      <note>
-        <pitch>
-          <step>B</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>down</stem>
-        <beam number="1">end</beam>
-        <notations>
-          <slur number="3" type="stop" />
-        </notations>
-      </note>
-      <harmony>
-        <root>
-          <root-step>D</root-step>
-        </root>
-        <kind text="7">dominant</kind>
-      </harmony>
-      <note>
-        <pitch>
-          <step>E</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>down</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>D</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>down</stem>
-        <beam number="1">continue</beam>
-      </note>
-      <harmony>
-        <root>
-          <root-step>G</root-step>
-        </root>
-        <kind>major</kind>
-      </harmony>
-      <note>
-        <pitch>
-          <step>A</step>
-          <alter>1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>down</stem>
@@ -1474,7 +1387,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
@@ -1482,8 +1394,68 @@
           <slur number="4" type="stop" />
         </notations>
       </note>
+      <harmony>
+        <root>
+          <root-step>D</root-step>
+        </root>
+        <kind text="7">dominant</kind>
+      </harmony>
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>down</stem>
+        <beam number="1">begin</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>down</stem>
+        <beam number="1">continue</beam>
+      </note>
+      <harmony>
+        <root>
+          <root-step>G</root-step>
+        </root>
+        <kind>major</kind>
+      </harmony>
+      <note>
+        <pitch>
+          <step>A</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <accidental>sharp</accidental>
+        <stem>down</stem>
+        <beam number="1">continue</beam>
+        <notations>
+          <slur number="5" placement="above" type="start" />
+        </notations>
+      </note>
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>down</stem>
+        <beam number="1">end</beam>
+        <notations>
+          <slur number="5" type="stop" />
+        </notations>
+      </note>
     </measure>
-    <!--========================= Measure 16 =========================-->
+    
     <measure implicit="no" number="16">
       <print new-system="yes" />
       <harmony>
@@ -1498,7 +1470,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -1509,7 +1480,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1526,7 +1496,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1537,7 +1506,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -1554,7 +1522,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1564,7 +1531,7 @@
         <type>quarter</type>
       </note>
     </measure>
-    <!--========================= Measure 17 =========================-->
+    
     <measure implicit="no" number="17">
       <note>
         <pitch>
@@ -1572,38 +1539,9 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
-        <notations>
-          <slur number="5" placement="above" type="start" />
-        </notations>
-      </note>
-      <note>
-        <pitch>
-          <step>E</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>down</stem>
-        <beam number="1">continue</beam>
-        <notations>
-          <slur number="5" type="stop" />
-        </notations>
-      </note>
-      <note>
-        <pitch>
-          <step>G</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>down</stem>
-        <beam number="1">continue</beam>
         <notations>
           <slur number="6" placement="above" type="start" />
         </notations>
@@ -1614,12 +1552,37 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
+        <type>eighth</type>
+        <stem>down</stem>
+        <beam number="1">continue</beam>
+        <notations>
+          <slur number="6" type="stop" />
+        </notations>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>down</stem>
+        <beam number="1">continue</beam>
+        <notations>
+          <slur number="1" placement="above" type="start" />
+        </notations>
+      </note>
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>5040</duration>
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
         <notations>
-          <slur number="6" type="stop" />
+          <slur number="1" type="stop" />
         </notations>
       </note>
       <harmony>
@@ -1634,7 +1597,6 @@
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -1645,7 +1607,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1656,7 +1617,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1667,13 +1627,12 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
       </note>
     </measure>
-    <!--========================= Measure 18 =========================-->
+    
     <measure implicit="no" number="18">
       <harmony>
         <root>
@@ -1687,7 +1646,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -1699,7 +1657,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>flat</accidental>
         <stem>up</stem>
@@ -1718,10 +1675,14 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <accidental>natural</accidental>
         <stem>up</stem>
+        <notations>
+          <technical>
+            <down-bow />
+          </technical>
+        </notations>
       </note>
       <harmony>
         <root>
@@ -1735,9 +1696,13 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
+        <notations>
+          <technical>
+            <up-bow />
+          </technical>
+        </notations>
       </note>
       <note>
         <chord />
@@ -1746,7 +1711,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1759,7 +1723,7 @@
         <bar-style>light-light</bar-style>
       </barline>
     </measure>
-    <!--========================= Measure 19 =========================-->
+    
     <measure implicit="no" number="19">
       <print new-system="yes" />
       <harmony>
@@ -1774,7 +1738,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1785,7 +1748,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1795,7 +1757,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1806,7 +1767,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1816,7 +1776,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1827,7 +1786,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -1838,13 +1796,15 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
         <beam number="1">begin</beam>
         <notations>
-          <slur number="1" placement="below" type="start" />
+          <slur number="2" placement="below" type="start" />
+          <technical>
+            <up-bow />
+          </technical>
         </notations>
       </note>
       <note>
@@ -1853,16 +1813,15 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
         <notations>
-          <slur number="1" type="stop" />
+          <slur number="2" type="stop" />
         </notations>
       </note>
     </measure>
-    <!--========================= Measure 20 =========================-->
+    
     <measure implicit="no" number="20">
       <note>
         <pitch>
@@ -1870,7 +1829,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -1881,7 +1839,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1892,7 +1849,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1903,7 +1859,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -1914,7 +1869,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -1925,7 +1879,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1936,7 +1889,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -1947,13 +1899,12 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
       </note>
     </measure>
-    <!--========================= Measure 21 =========================-->
+    
     <measure implicit="no" number="21">
       <note>
         <pitch>
@@ -1962,13 +1913,12 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
         <beam number="1">begin</beam>
         <notations>
-          <slur number="2" placement="below" type="start" />
+          <slur number="3" placement="below" type="start" />
         </notations>
       </note>
       <note>
@@ -1977,12 +1927,11 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
         <notations>
-          <slur number="2" type="stop" />
+          <slur number="3" type="stop" />
         </notations>
       </note>
       <note>
@@ -1991,7 +1940,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2002,7 +1950,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2013,7 +1960,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2024,7 +1970,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2036,107 +1981,10 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
         <beam number="1">continue</beam>
-        <notations>
-          <slur number="3" placement="below" type="start" />
-        </notations>
-      </note>
-      <note>
-        <pitch>
-          <step>B</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">end</beam>
-        <notations>
-          <slur number="3" type="stop" />
-        </notations>
-      </note>
-    </measure>
-    <!--========================= Measure 22 =========================-->
-    <measure implicit="no" number="22">
-      <note>
-        <pitch>
-          <step>G</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>quarter</type>
-        <stem>up</stem>
-      </note>
-      <note>
-        <chord />
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>quarter</type>
-        <stem>up</stem>
-      </note>
-      <note>
-        <pitch>
-          <step>G</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>quarter</type>
-        <stem>up</stem>
-      </note>
-      <note>
-        <chord />
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>quarter</type>
-        <stem>up</stem>
-      </note>
-      <note>
-        <pitch>
-          <step>G</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>quarter</type>
-        <stem>up</stem>
-      </note>
-      <note>
-        <chord />
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>quarter</type>
-        <stem>up</stem>
-      </note>
-      <note>
-        <pitch>
-          <step>A</step>
-          <alter>1</alter>
-          <octave>3</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <accidental>sharp</accidental>
-        <stem>up</stem>
-        <beam number="1">begin</beam>
         <notations>
           <slur number="4" placement="below" type="start" />
         </notations>
@@ -2147,7 +1995,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2156,248 +2003,14 @@
         </notations>
       </note>
     </measure>
-    <!--========================= Measure 23 =========================-->
-    <measure implicit="no" number="23">
-      <print new-system="yes" />
-      <note>
-        <pitch>
-          <step>E</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">continue</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>G</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">continue</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>E</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">end</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>B</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">continue</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>E</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">continue</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">end</beam>
-      </note>
-    </measure>
-    <!--========================= Measure 24 =========================-->
-    <measure implicit="no" number="24">
-      <note>
-        <pitch>
-          <step>B</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>G</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">continue</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">continue</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>B</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">end</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>G</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">continue</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>B</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">continue</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>G</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">end</beam>
-      </note>
-    </measure>
-    <!--========================= Measure 25 =========================-->
-    <measure implicit="no" number="25">
-      <harmony>
-        <root>
-          <root-step>D</root-step>
-        </root>
-        <kind text="7">dominant</kind>
-      </harmony>
-      <note>
-        <pitch>
-          <step>A</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>quarter</type>
-        <stem>up</stem>
-      </note>
-      <note>
-        <pitch>
-          <step>A</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>quarter</type>
-        <stem>up</stem>
-      </note>
-      <note>
-        <pitch>
-          <step>A</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
-        <type>quarter</type>
-        <stem>up</stem>
-      </note>
-      <note>
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-    </measure>
-    <!--========================= Measure 26 =========================-->
-    <measure implicit="no" number="26">
-      <harmony>
-        <root>
-          <root-step>G</root-step>
-        </root>
-        <kind>major</kind>
-      </harmony>
+    
+    <measure implicit="no" number="22">
       <note>
         <pitch>
           <step>G</step>
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2408,7 +2021,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2418,7 +2030,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2429,7 +2040,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2439,7 +2049,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2450,7 +2059,6 @@
           <octave>4</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
@@ -2461,7 +2069,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -2476,7 +2083,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2485,8 +2091,8 @@
         </notations>
       </note>
     </measure>
-    <!--========================= Measure 27 =========================-->
-    <measure implicit="no" number="27">
+    
+    <measure implicit="no" number="23">
       <print new-system="yes" />
       <note>
         <pitch>
@@ -2494,7 +2100,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2505,7 +2110,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2516,7 +2120,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2527,7 +2130,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2538,7 +2140,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2549,7 +2150,6 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2560,7 +2160,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2571,22 +2170,207 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
       </note>
     </measure>
-    <!--========================= Measure 28 =========================-->
-    <measure implicit="no" number="28">
+    
+    <measure implicit="no" number="24">
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">begin</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">continue</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">continue</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">end</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">begin</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">continue</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">continue</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">end</beam>
+      </note>
+    </measure>
+    
+    <measure implicit="no" number="25">
+      <harmony>
+        <root>
+          <root-step>D</root-step>
+        </root>
+        <kind text="7">dominant</kind>
+      </harmony>
+      <note>
+        <pitch>
+          <step>A</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem>up</stem>
+      </note>
+      <note>
+        <pitch>
+          <step>A</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem>up</stem>
+      </note>
+      <note>
+        <pitch>
+          <step>A</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem>up</stem>
+      </note>
+      <note>
+        <rest />
+        <duration>10080</duration>
+        <type>quarter</type>
+      </note>
+    </measure>
+    
+    <measure implicit="no" number="26">
+      <harmony>
+        <root>
+          <root-step>G</root-step>
+        </root>
+        <kind>major</kind>
+      </harmony>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem>up</stem>
+      </note>
+      <note>
+        <chord />
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem>up</stem>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem>up</stem>
+      </note>
+      <note>
+        <chord />
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem>up</stem>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem>up</stem>
+      </note>
+      <note>
+        <chord />
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem>up</stem>
+      </note>
       <note>
         <pitch>
           <step>A</step>
           <alter>1</alter>
-          <octave>4</octave>
+          <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
@@ -2598,15 +2382,129 @@
       <note>
         <pitch>
           <step>B</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">end</beam>
+        <notations>
+          <slur number="6" type="stop" />
+        </notations>
+      </note>
+    </measure>
+    
+    <measure implicit="no" number="27">
+      <print new-system="yes" />
+      <note>
+        <pitch>
+          <step>E</step>
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">begin</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">continue</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">continue</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">end</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">begin</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">continue</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">continue</beam>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem>up</stem>
+        <beam number="1">end</beam>
+      </note>
+    </measure>
+    
+    <measure implicit="no" number="28">
+      <note>
+        <pitch>
+          <step>A</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <accidental>sharp</accidental>
+        <stem>up</stem>
+        <beam number="1">begin</beam>
+        <notations>
+          <slur number="1" placement="below" type="start" />
+        </notations>
+      </note>
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
         <notations>
-          <slur number="6" type="stop" />
+          <slur number="1" type="stop" />
         </notations>
       </note>
       <note>
@@ -2616,7 +2514,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2627,7 +2524,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
@@ -2639,7 +2535,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>natural</accidental>
         <stem>up</stem>
@@ -2651,7 +2546,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2662,7 +2556,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2673,13 +2566,12 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
       </note>
     </measure>
-    <!--========================= Measure 29 =========================-->
+    
     <measure implicit="no" number="29">
       <harmony>
         <root>
@@ -2693,7 +2585,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2704,7 +2595,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2722,13 +2612,12 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
         <beam number="1">continue</beam>
         <notations>
-          <slur number="1" placement="below" type="start" />
+          <slur number="2" placement="below" type="start" />
         </notations>
       </note>
       <note>
@@ -2737,12 +2626,11 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
         <notations>
-          <slur number="1" type="stop" />
+          <slur number="2" type="stop" />
         </notations>
       </note>
       <harmony>
@@ -2757,7 +2645,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2768,7 +2655,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2786,12 +2672,11 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
         <notations>
-          <slur number="2" placement="below" type="start" />
+          <slur number="3" placement="below" type="start" />
         </notations>
       </note>
       <note>
@@ -2800,16 +2685,15 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
         <notations>
-          <slur number="2" type="stop" />
+          <slur number="3" type="stop" />
         </notations>
       </note>
     </measure>
-    <!--========================= Measure 30 =========================-->
+    
     <measure implicit="no" number="30">
       <harmony>
         <root>
@@ -2823,7 +2707,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
@@ -2834,7 +2717,6 @@
           <octave>4</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">continue</beam>
@@ -2852,13 +2734,12 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <accidental>sharp</accidental>
         <stem>up</stem>
         <beam number="1">continue</beam>
         <notations>
-          <slur number="3" placement="below" type="start" />
+          <slur number="4" placement="below" type="start" />
         </notations>
       </note>
       <note>
@@ -2867,12 +2748,11 @@
           <octave>3</octave>
         </pitch>
         <duration>5040</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">end</beam>
         <notations>
-          <slur number="3" type="stop" />
+          <slur number="4" type="stop" />
         </notations>
       </note>
       <harmony>
@@ -2887,7 +2767,6 @@
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
-        <instrument id="I5a0c6b4b46876542f88bd7b4934e0f8d" />
         <type>quarter</type>
         <stem>up</stem>
       </note>
