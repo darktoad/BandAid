@@ -410,7 +410,7 @@
     <div class="row">
       <span class="label">Title</span>
       <div class="chips">
-        <button class:active={showMasthead} onclick={toggleMasthead}>{showMasthead ? 'Shown' : 'Hidden'}</button>
+        <button class:active={showMasthead} aria-pressed={showMasthead} onclick={toggleMasthead}>{showMasthead ? 'Shown' : 'Hidden'}</button>
       </div>
     </div>
 
@@ -440,9 +440,9 @@
     <div class="row">
       <span class="label">Audio</span>
       <div class="chips">
-        <button class:active={synth} onclick={toggleSynth} disabled={!controller}><Icon name="sound" size={16} /> Sound</button>
-        <button class:active={click} onclick={toggleClick} disabled={!controller}><Icon name="click" size={16} /> Click</button>
-        <button class:active={countIn} onclick={toggleCountIn} disabled={!transport}><Icon name="countin" size={16} /> Count-in</button>
+        <button class:active={synth} aria-pressed={synth} onclick={toggleSynth} disabled={!controller}><Icon name="sound" size={16} /> Sound</button>
+        <button class:active={click} aria-pressed={click} onclick={toggleClick} disabled={!controller}><Icon name="click" size={16} /> Click</button>
+        <button class:active={countIn} aria-pressed={countIn} onclick={toggleCountIn} disabled={!transport}><Icon name="countin" size={16} /> Count-in</button>
       </div>
     </div>
 
@@ -452,9 +452,9 @@
       <div class="row">
         <span class="label">My part</span>
         <div class="chips">
-          <button class:active={myPart === null} onclick={() => selectMyPart(null)}>Melody only</button>
+          <button class:active={myPart === null} aria-pressed={myPart === null} onclick={() => selectMyPart(null)}>Melody only</button>
           {#each overlayParts as t}
-            <button class:active={t.index === myPart} onclick={() => selectMyPart(t.index)}>{t.name}</button>
+            <button class:active={t.index === myPart} aria-pressed={t.index === myPart} onclick={() => selectMyPart(t.index)}>{t.name}</button>
           {/each}
         </div>
       </div>
@@ -463,13 +463,13 @@
     <div class="row">
       <span class="label">Chords</span>
       <div class="chips">
-        <button class:active={overlayOn} onclick={() => (overlayOn = !overlayOn)}>
+        <button class:active={overlayOn} aria-pressed={overlayOn} onclick={() => (overlayOn = !overlayOn)}>
           <Icon name="chords" size={16} /> Overlay
         </button>
-        <button class:active={showCharts} onclick={() => (showCharts = !showCharts)} disabled={!overlayOn}>Charts</button>
+        <button class:active={showCharts} aria-pressed={showCharts} onclick={() => (showCharts = !showCharts)} disabled={!overlayOn}>Charts</button>
         {#if overlayOn && showCharts}
-          <button class:active={chartInstrument === 'guitar'} onclick={() => (chartInstrument = 'guitar')}>Guitar</button>
-          <button class:active={chartInstrument === 'ukulele'} onclick={() => (chartInstrument = 'ukulele')}>Uke</button>
+          <button class:active={chartInstrument === 'guitar'} aria-pressed={chartInstrument === 'guitar'} onclick={() => (chartInstrument = 'guitar')}>Guitar</button>
+          <button class:active={chartInstrument === 'ukulele'} aria-pressed={chartInstrument === 'ukulele'} onclick={() => (chartInstrument = 'ukulele')}>Uke</button>
         {/if}
       </div>
     </div>

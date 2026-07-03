@@ -87,7 +87,7 @@
       <ul class="list">
         {#each shownSongs as s}
           <li>
-            <button class="srow" class:active={s.id === activeId} onclick={() => onopen(s)}>
+            <button class="srow" class:active={s.id === activeId} aria-current={s.id === activeId} onclick={() => onopen(s)}>
               <span class="stitle">
                 {s.title}
                 {#if s.id === activeId}<span class="now">▶ now</span>{/if}
