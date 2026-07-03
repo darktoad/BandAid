@@ -59,7 +59,7 @@
 
 <div class="picker">
   <header class="phead">
-    <span class="brand">BandAid</span>
+    <h1 class="brand">BandAid</h1>
     <span class="ptitle">Songs</span>
     {#if onclose}
       <button class="iconbtn" onclick={onclose} aria-label="Close">✕</button>
@@ -114,7 +114,7 @@
     border-bottom: 1px solid var(--line);
     background: var(--panel);
   }
-  .brand { font-weight: 700; letter-spacing: 0.02em; }
+  .brand { margin: 0; font-size: 1rem; font-weight: 700; letter-spacing: 0.02em; }
   .ptitle { color: var(--muted); font-size: 0.82rem; flex: 1 1 auto; }
   .iconbtn { flex: 0 0 auto; width: 2rem; height: 2rem; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
 

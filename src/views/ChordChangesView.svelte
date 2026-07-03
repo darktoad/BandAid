@@ -350,7 +350,7 @@
       <circle cx="4" cy="18" r="1.3" fill="currentColor" stroke="none" /><line x1="9" y1="18" x2="20" y2="18" />
     </svg>
   </button>
-  <span class="song">{song.title}</span>
+  <h1 class="song">{song.title}</h1>
   {#if song.notes || song.lyricsUrl}
     <button class="iconbtn" onclick={openLyrics} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -512,7 +512,7 @@
   <button class="scrim" onclick={closeLyrics} aria-label="Close lyrics"></button>
   <aside class="lyrics-panel">
     <header class="lyrics-head">
-      <span>{song.title}</span>
+      <h2 class="lyrics-title">{song.title}</h2>
       <button class="iconbtn" onclick={closeLyrics} aria-label="Close">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
       </button>
@@ -548,12 +548,15 @@
     padding: 0;
   }
   .iconbtn.active { border-color: var(--accent); color: var(--accent); }
-  /* Small, subtle song name — takes the slack so the pills/buttons stay put. */
+  /* Small, subtle song name — takes the slack so the pills/buttons stay put.
+     Semantically the page's h1 (screen-reader structure); visually unchanged. */
   .song {
     flex: 1 1 auto;
     min-width: 0;
+    margin: 0;
     color: var(--muted);
     font-size: 0.82rem;
+    font-weight: 400;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -727,9 +730,9 @@
     gap: 0.5rem;
     padding: 0.7rem 0.9rem;
     border-bottom: 1px solid var(--line);
-    font-weight: 600;
     color: var(--ink);
   }
+  .lyrics-title { margin: 0; font-size: 1rem; font-weight: 600; }
   .lyrics-body {
     flex: 1 1 auto;
     overflow-y: auto;
