@@ -377,6 +377,12 @@
     <Icon name={!canPlay ? 'loading' : playing ? 'pause' : 'play'} size={20} />
   </button>
 
+  {#if !canPlay}
+    <!-- The soundfont + MIDI take a few seconds on first load; say so instead of
+         leaving a mysteriously disabled Play button. -->
+    <span class="loading-note" role="status">Loading audio…</span>
+  {/if}
+
   <input
     class="scrub"
     type="range"
@@ -390,11 +396,13 @@
   />
 </div>
 
-<!-- Settings sheet (opened by the ☰, or the Key / Tempo pills). -->
+<!-- Settings sheet (opened by the ☰, or the Key / Tempo pills). Inline on wide
+     screens; a bottom sheet over a scrim on phones so the music stays visible. -->
 {#if showMore}
+  <button class="sheet-scrim" onclick={() => (showMore = false)} aria-label="Close settings"></button>
   <div class="sheet">
     <div class="row">
-      <span class="label">Masthead</span>
+      <span class="label">Title</span>
       <div class="chips">
         <button class:active={showMasthead} onclick={toggleMasthead}>{showMasthead ? 'Shown' : 'Hidden'}</button>
       </div>
@@ -432,15 +440,19 @@
       </div>
     </div>
 
-    <div class="row">
-      <span class="label">My part</span>
-      <div class="chips">
-        <button class:active={myPart === null} onclick={() => selectMyPart(null)}>Melody only</button>
-        {#each overlayParts as t}
-          <button class:active={t.index === myPart} onclick={() => selectMyPart(t.index)}>{t.name}</button>
-        {/each}
+    <!-- Only offer "My part" when the chart actually has another part to stack —
+         a lone pre-selected "Melody only" chip is dead UI on single-track songs. -->
+    {#if overlayParts.length > 0}
+      <div class="row">
+        <span class="label">My part</span>
+        <div class="chips">
+          <button class:active={myPart === null} onclick={() => selectMyPart(null)}>Melody only</button>
+          {#each overlayParts as t}
+            <button class:active={t.index === myPart} onclick={() => selectMyPart(t.index)}>{t.name}</button>
+          {/each}
+        </div>
       </div>
-    </div>
+    {/if}
 
     <div class="row">
       <span class="label">Chords</span>
@@ -578,6 +590,7 @@
   }
   .scrub { flex: 1 1 auto; min-width: 0; }
   .readout { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.85rem; flex: 0 0 auto; }
+  .loading-note { color: var(--muted); font-size: 0.82rem; flex: 0 0 auto; white-space: nowrap; }
 
   /* The overflow sheet stacks its rows vertically so each control gets full width. */
   .sheet {
@@ -615,6 +628,45 @@
     min-height: 2.2rem;
   }
   .chips button.active { border-color: var(--accent); color: var(--accent); }
+
+  /* Touch screens get full-size (≥44px) targets on the controls tapped mid-practice;
+     pointer precision keeps the compact sizes on desktop. */
+  @media (pointer: coarse) {
+    .iconbtn { width: 2.75rem; height: 2.75rem; }
+    .pill { min-height: 2.75rem; }
+    .stepper button,
+    .chips button,
+    .reset { min-width: 2.75rem; min-height: 2.75rem; }
+  }
+
+  /* On phones the settings become a bottom sheet over a scrim, so adjusting tempo/key
+     doesn't shove the notation off-screen. Above alphaTab's cursors (z-index 1000). */
+  .sheet-scrim { display: none; }
+  @media (max-width: 480px) {
+    .sheet-scrim {
+      display: block;
+      position: fixed;
+      inset: 0;
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1003;
+    }
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1004;
+      max-height: 60dvh;
+      overflow-y: auto;
+      border-top: 1px solid var(--line);
+      border-radius: 14px 14px 0 0;
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.45);
+      padding-bottom: calc(0.9rem + env(safe-area-inset-bottom));
+    }
+  }
 
   .error {
     padding: 0.5rem 1rem;
