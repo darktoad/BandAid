@@ -79,9 +79,11 @@ export default defineConfig(({ command }) => ({
         // the core it imports) next to the chunk. The worklet is emitted instead
         // by alphaTabWorkletBundle() — pre-bundled so it loads on iOS Safari.
         { src: `${alphaTabDist}/alphaTab.worker.mjs`, dest: 'assets' },
-        // The worker imports './alphaTab.core.mjs'; serve the minified core
-        // under that name to keep the worker payload smaller.
-        { src: `${alphaTabDist}/alphaTab.core.min.mjs`, dest: 'assets', rename: 'alphaTab.core.mjs' },
+        // The worker imports './alphaTab.core.mjs'. Ship the NON-minified core: it is
+        // the file patch-package patches (patches/@coderline+alphatab+*.patch — chord
+        // band sharing), and the pristine .min build would silently undo the fix in
+        // the production layout worker. Bigger payload, but correct engraving.
+        { src: `${alphaTabDist}/alphaTab.core.mjs`, dest: 'assets' },
       ],
     }),
   ],
