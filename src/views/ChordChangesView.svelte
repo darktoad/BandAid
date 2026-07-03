@@ -327,8 +327,14 @@
     onprogress?.(measureCount > 1 ? Math.min(1, Math.max(0, (b - 1) / (measureCount - 1))) : 0);
   }
 
-  // Spacebar toggles play/pause on laptop. Ignore when focused in a control.
+  // Spacebar toggles play/pause on laptop; Escape closes the topmost overlay.
+  // Ignore Space when focused in a control.
   function onKeydown(e: KeyboardEvent) {
+    if (e.code === 'Escape') {
+      if (lyricsOpen) closeLyrics();
+      else if (showMore) showMore = false;
+      return;
+    }
     if (e.code !== 'Space') return;
     const el = e.target as HTMLElement;
     if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'BUTTON')) return;

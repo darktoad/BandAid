@@ -97,7 +97,14 @@
     history.pushState(null, '', location.pathname + searchWithSong(location.search, s.id));
     showSong(s);
   }
+
+  // Escape closes the song-picker slide-over (its scrim is mouse-only).
+  function onKeydown(e: KeyboardEvent) {
+    if (e.code === 'Escape' && pickerOpen) pickerOpen = false;
+  }
 </script>
+
+<svelte:window onkeydown={onKeydown} />
 
 {#if current}
   <!-- Re-mount per song so the renderer reloads the new score. -->
