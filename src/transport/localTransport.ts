@@ -102,13 +102,19 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
   }
 
   // The renderer advances the cursor; keep currentBar in step so the next stamp anchors
-  // correctly. During playback a position tick is just the cursor moving — no stamp. But
-  // a position change while paused is a user tap-a-bar seek through alphaTab's native
-  // click-to-seek (D2), so wire it through the store like an explicit seek.
+  // correctly. During playback a sequential tick (bar N → N+1) is just the cursor moving —
+  // no stamp. But two cursor moves must restamp:
+  //  - while paused, a position change is a user tap-a-bar seek through alphaTab's native
+  //    click-to-seek (D2) — wire it through the store like an explicit seek;
+  //  - while playing, a NON-sequential move is a repeat barline or volta jump. projectBar
+  //    extrapolates linearly from the last stamp, so without a re-anchor the projection
+  //    runs ahead of the cursor after every repeat (the overlay's beat-progress saturates
+  //    full, and an M2 peer following the stamp would drift the same way).
   renderer.onPosition((bar) => {
     const tappedWhilePaused = !playing && bar !== currentBar;
+    const jumpedWhilePlaying = playing && bar !== currentBar + 1;
     currentBar = bar;
-    if (tappedWhilePaused) stamp({ startBar: bar });
+    if (tappedWhilePaused || jumpedWhilePlaying) stamp({ startBar: bar });
   });
   // Reflect the renderer's actual playing state, but don't re-stamp from it: our action
   // methods already stamped the intended state immediately (NFR-1).
