@@ -100,15 +100,28 @@ export function transposeSheet(sheet: SongSheet, semitones: number, preferFlats:
   };
 }
 
-/** Split a line into chord-anchored chunks for chord-over-word rendering. */
+/**
+ * Split a line into chord-anchored chunks for chord-over-word rendering.
+ *
+ * Chunks are word-granular: a chord anchors to its first word and the rest of the run
+ * becomes chord-less word chunks, so a long lyric under one chord wraps at any word
+ * boundary instead of overflowing a narrow screen. Trailing whitespace rides with its
+ * word (the renderer preserves it via `white-space: pre`).
+ */
 export function lineChunks(line: LyricLine): LyricChunk[] {
   const out: LyricChunk[] = [];
+  const push = (sym: string, text: string) => {
+    // Word + its trailing spaces per piece; pure-whitespace runs survive as their own
+    // piece. An empty run still emits one chunk so an end-of-line chord keeps a slot.
+    const pieces = text.match(/\S+\s*|\s+/g) ?? [text];
+    pieces.forEach((p, i) => out.push({ sym: i === 0 ? sym : '', text: p }));
+  };
   const cs = line.chords;
   const first = cs[0]?.index ?? line.text.length;
-  if (cs.length === 0 || first > 0) out.push({ sym: '', text: line.text.slice(0, first) });
+  if (cs.length === 0 || first > 0) push('', line.text.slice(0, first));
   for (let i = 0; i < cs.length; i++) {
     const end = cs[i + 1]?.index ?? line.text.length;
-    out.push({ sym: cs[i].sym, text: line.text.slice(cs[i].index, end) });
+    push(cs[i].sym, line.text.slice(cs[i].index, end));
   }
   return out;
 }

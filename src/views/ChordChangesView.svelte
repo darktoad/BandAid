@@ -29,7 +29,7 @@
    * Local choices (part, tempo %, audio, zoom) live here; only Transport is synced.
    */
   let { song, store, onsongs, onprogress }: {
-    song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string; fifths?: number }; notes?: string; lyricsUrl?: string };
+    song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string; fifths?: number }; composer?: string; notes?: string; lyricsUrl?: string };
     store: SessionStore;
     onsongs?: () => void; // open the slide-over song picker
     onprogress?: (fraction: number) => void; // 0–1 playback position, for the picker
@@ -179,7 +179,10 @@
     const info = c.getSongInfo();
     tempoBpm = info?.tempoBpm ?? 120;
     measureCount = info?.measureCount ?? 1;
-    composer = info?.composer ?? '';
+    // Masthead credit: the curated manifest composer wins; fall back to the score's
+    // credit unless it's an export toolchain stamping its own name (e.g. Music21).
+    const scoreCredit = info?.composer ?? '';
+    composer = song.composer ?? (/^music21$/i.test(scoreCredit.trim()) ? '' : scoreCredit);
     chordTimeline = c.getChordTimeline();
     timeSig = info?.timeSignature ?? '4/4';
     beatsPerBar = Number(timeSig.split('/')[0]) || 4;
