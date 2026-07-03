@@ -1,0 +1,17 @@
+diff --git a/node_modules/@coderline/alphatab/dist/alphaTab.core.mjs b/node_modules/@coderline/alphatab/dist/alphaTab.core.mjs
+index a16d140..3e1bc28 100644
+--- a/node_modules/@coderline/alphatab/dist/alphaTab.core.mjs
++++ b/node_modules/@coderline/alphatab/dist/alphaTab.core.mjs
+@@ -50873,7 +50873,11 @@ class ChordsEffectInfo extends EffectInfo {
+ 		return false;
+ 	}
+ 	get canShareBand() {
+-		return true;
++		// PATCHED (BandAid): chord names must own their band row. EffectBandSlot.canBeUsed
++		// shares rows by beat order without checking glyph widths, so wide chord names
++		// collided with pick-stroke (bow) glyphs — superimposed when on the same beat.
++		// See docs/reference/upstream-bugs/alphatab-chord-pickstroke-band-collision.md
++		return false;
+ 	}
+ 	get sizingMode() {
+ 		return EffectBarGlyphSizing.SingleOnBeat;
