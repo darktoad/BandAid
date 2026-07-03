@@ -66,14 +66,16 @@
     {/if}
   </header>
 
-  <div class="tabs">
+  <nav class="tabs" aria-label="Song lists">
     {#each setLists as l}
-      <button class="tab" class:active={selected === l.id} onclick={() => pick(l.id)}>{l.name}</button>
+      <button class="tab" class:active={selected === l.id} aria-current={selected === l.id} onclick={() => pick(l.id)}>{l.name}</button>
     {/each}
-    <button class="tab" class:active={selected === 'all'} onclick={() => pick('all')}>All songs</button>
-  </div>
+    <button class="tab" class:active={selected === 'all'} aria-current={selected === 'all'} onclick={() => pick('all')}>All songs</button>
+  </nav>
 
-  <div class="pbody">
+  <!-- <main> when full-screen; a plain region inside the slide-over (the drill view
+       underneath already owns the page's <main>). -->
+  <svelte:element this={onclose ? 'div' : 'main'} class="pbody">
     {#if shownSongs.length === 0}
       <p class="empty">No songs here yet.</p>
     {:else}
@@ -101,7 +103,7 @@
         {/each}
       </ul>
     {/if}
-  </div>
+  </svelte:element>
 </div>
 
 <style>

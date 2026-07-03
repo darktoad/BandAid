@@ -106,7 +106,7 @@
   {/key}
   {#if service && pickerOpen}
     <button class="scrim" onclick={() => (pickerOpen = false)} aria-label="Close song picker"></button>
-    <aside class="picker-panel">
+    <aside class="picker-panel" role="dialog" aria-modal="true" aria-label="Song picker">
       <BrowseView {service} onopen={openSong} onclose={() => (pickerOpen = false)} activeId={current.id} {progress} />
     </aside>
   {/if}
