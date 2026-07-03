@@ -1,5 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { parseChordPro, lineChunks } from './chordpro';
+import { parseChordPro, lineChunks, transposeSheet } from './chordpro';
+
+describe('transposeSheet', () => {
+  it('transposes every chord symbol and leaves lyrics/offsets alone', () => {
+    const sheet = parseChordPro('[G]From the [C]great Atlantic shore');
+    const up2 = transposeSheet(sheet, 2, false);
+    expect(up2.sections[0].lines[0].chords).toEqual([
+      { sym: 'A', index: 0 },
+      { sym: 'D', index: 9 },
+    ]);
+    expect(up2.sections[0].lines[0].text).toBe('From the great Atlantic shore');
+  });
+
+  it('spells with flats when asked', () => {
+    const sheet = parseChordPro('[G]row your [D7]boat');
+    const up3 = transposeSheet(sheet, 3, true);
+    expect(up3.sections[0].lines[0].chords.map((c) => c.sym)).toEqual(['Bb', 'F7']);
+  });
+
+  it('returns the same sheet object for a 0-semitone transpose', () => {
+    const sheet = parseChordPro('[G]line');
+    expect(transposeSheet(sheet, 0, false)).toBe(sheet);
+  });
+});
 
 describe('parseChordPro', () => {
   it('extracts chords with their char offset into the stripped text', () => {

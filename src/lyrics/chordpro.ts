@@ -7,6 +7,8 @@
  * compatible with standard ChordPro tooling.
  */
 
+import { transposeChordLabel } from '../chords/transposeChord';
+
 export interface ChordToken {
   sym: string;
   index: number; // char offset into `text` where the chord lands
@@ -79,6 +81,23 @@ export function parseChordPro(input: string): SongSheet {
   }
 
   return { sections };
+}
+
+/**
+ * A sheet with every chord symbol transposed (lyrics untouched). Returns the input
+ * sheet unchanged for a 0-semitone transpose so `$derived` consumers keep identity.
+ */
+export function transposeSheet(sheet: SongSheet, semitones: number, preferFlats: boolean): SongSheet {
+  if (semitones % 12 === 0) return sheet;
+  return {
+    sections: sheet.sections.map((s) => ({
+      ...s,
+      lines: s.lines.map((l) => ({
+        ...l,
+        chords: l.chords.map((c) => ({ ...c, sym: transposeChordLabel(c.sym, semitones, preferFlats) })),
+      })),
+    })),
+  };
 }
 
 /** Split a line into chord-anchored chunks for chord-over-word rendering. */

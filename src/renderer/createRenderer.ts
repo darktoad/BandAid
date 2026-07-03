@@ -1,5 +1,6 @@
 import * as alphaTab from '@coderline/alphatab';
 import { parseChordTimeline, type ChordOnset } from '../chords/chordTimeline';
+import { prefersFlats, transposeChordLabel } from '../chords/transposeChord';
 
 /**
  * The single integration point with alphaTab (renderer-playhead decision D3).
@@ -140,6 +141,9 @@ export async function createRenderer(
 
   let tracks: TrackInfo[] = [];
   let currentBar = 1;
+  // As-written chord names, snapshotted before the first transpose so repeated
+  // transposes always derive from the original spelling (never re-transpose).
+  let writtenChordNames: Map<alphaTab.model.Chord, string> | null = null;
   // The rendered track set (1+ stacked staves), kept so zoom/bars-per-row re-render
   // the same selection instead of dropping back to every track.
   let currentTrackIndices: number[] = [0];
@@ -239,6 +243,20 @@ export async function createRenderer(
       // One offset per track → the whole arrangement moves together. transpositionPitches
       // (not displayTranspositionPitches) shifts notation AND playback.
       api.settings.notation.transpositionPitches = new Array(score.tracks.length).fill(semitones);
+      // transpositionPitches moves pitches only — the chord symbols above the staff are
+      // plain text on the score model, so rewrite them from their as-written originals.
+      // Spell for the *target* key (flat keys read in flats). Every render serializes the
+      // main-thread score to the layout worker, so rerenderCurrent() picks the names up.
+      if (!writtenChordNames) {
+        writtenChordNames = new Map();
+        for (const track of score.tracks)
+          for (const staff of track.staves)
+            for (const chord of staff.chords?.values() ?? []) writtenChordNames.set(chord, chord.name);
+      }
+      const writtenFifths = (score.masterBars[0]?.keySignature as unknown as number) ?? 0;
+      const flats = prefersFlats(writtenFifths, semitones);
+      for (const [chord, written] of writtenChordNames)
+        chord.name = transposeChordLabel(written, semitones, flats);
       api.updateSettings();
       rerenderCurrent();
     },
