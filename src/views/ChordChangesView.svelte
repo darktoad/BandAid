@@ -399,6 +399,7 @@
     oninput={onScrub}
     disabled={!transport}
     aria-label="Seek to bar"
+    aria-valuetext={`Bar ${bar} of ${measureCount}`}
   />
 </div>
 
@@ -416,7 +417,7 @@
 
     <label class="row">
       <span class="label">Tempo{#if tempoModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
-      <input type="range" min="50" max="150" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} />
+      <input type="range" min="50" max="150" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} aria-valuetext={`${speedPct}% of original, ${currentBpm} beats per minute`} />
       <span class="readout">{speedPct}% · {Math.round((tempoBpm * speedPct) / 100)} bpm</span>
       <button class="reset" onclick={resetTempo} disabled={!transport || !tempoModified} title="Reset to original tempo" aria-label="Reset to original tempo"><Icon name="reset" size={16} /></button>
     </label>
@@ -433,7 +434,7 @@
 
     <label class="row">
       <span class="label">Size</span>
-      <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} />
+      <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} aria-valuetext={`${scalePct}%`} />
       <span class="readout">{scalePct}%</span>
     </label>
 
