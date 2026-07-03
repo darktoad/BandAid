@@ -5,6 +5,7 @@
   import { createLocalSessionStore } from './session/store';
   import { createLibraryService, type LibraryService } from './library/libraryService';
   import type { SongSummary, SongKey } from './library/types';
+  import { songFromSearch, searchWithSong } from './library/urlState';
 
   // The app owns the session (a session of one in M1). Browsing writes currentSongId
   // (the seam to the renderer); in M2 the same store becomes a CRDT with no change here.
@@ -21,15 +22,62 @@
   // Cache-buster for the runtime-fetched files GitHub Pages caches; bumps each deploy.
   const v = `?v=${__BUILD_ID__}`;
 
-  onMount(async () => {
+  // Deep links + resume: the open song lives in the URL (?song=<id>) and the last open
+  // song in localStorage, so a shared link lands on the tune and a mid-rehearsal reload
+  // picks up where you were. Back always returns to the picker, not out of the app.
+  const LAST_SONG_KEY = 'bandaid.lastSong.v1';
+  function loadLastSong(): string | null {
     try {
-      service = await createLibraryService(`${import.meta.env.BASE_URL}library.json${v}`);
-    } catch (e) {
-      loadError = e instanceof Error ? e.message : String(e);
+      return typeof localStorage === 'undefined' ? null : localStorage.getItem(LAST_SONG_KEY);
+    } catch {
+      return null;
     }
+  }
+  function saveLastSong(id: string | null) {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      if (id === null) localStorage.removeItem(LAST_SONG_KEY);
+      else localStorage.setItem(LAST_SONG_KEY, id);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  onMount(() => {
+    (async () => {
+      try {
+        service = await createLibraryService(`${import.meta.env.BASE_URL}library.json${v}`);
+      } catch (e) {
+        loadError = e instanceof Error ? e.message : String(e);
+        return;
+      }
+      // Boot pick: an explicit ?song= link wins, else resume the last open song.
+      const bootId = songFromSearch(location.search) ?? loadLastSong();
+      const s = bootId ? service.getSongSummary(bootId) : null;
+      if (s) {
+        // Seed a bare picker entry underneath, then push the song, so Back from a
+        // deep link / resume goes to the picker instead of leaving the app.
+        history.replaceState(null, '', location.pathname + searchWithSong(location.search, null));
+        openSong(s);
+      }
+    })();
+
+    // Browser Back/Forward: mirror the URL's song into the view without re-pushing.
+    const onPop = () => {
+      const id = songFromSearch(location.search);
+      const s = id && service ? service.getSongSummary(id) : null;
+      if (s) showSong(s);
+      else {
+        current = undefined; // back to the full-screen picker
+        pickerOpen = false;
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   });
 
-  function openSong(s: SongSummary) {
+  // Render a song (no history side effects — used by open, Back, and Forward alike).
+  function showSong(s: SongSummary) {
     store.setCurrentSong(s.id); // the only write to currentSongId (D5/FR-7)
     // Convention: a song's canonical file is songs/<id>.musicxml (NFR-3).
     current = {
@@ -42,6 +90,12 @@
       lyricsUrl: s.content.hasLyrics ? `${import.meta.env.BASE_URL}songs/${s.id}.chordpro${v}` : undefined,
     };
     pickerOpen = false; // switching a song closes the picker; we stay in the drill view
+    saveLastSong(s.id);
+  }
+
+  function openSong(s: SongSummary) {
+    history.pushState(null, '', location.pathname + searchWithSong(location.search, s.id));
+    showSong(s);
   }
 </script>
 

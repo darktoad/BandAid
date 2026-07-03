@@ -39,6 +39,13 @@ button {
 button:hover { border-color: var(--accent); }
 button:disabled { opacity: 0.4; cursor: default; }
 
+/* Keyboard focus must be visible (spacebar-play users tab around): accent ring on
+   keyboard focus only — pointer clicks don't match :focus-visible, so taps stay clean. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* alphaTab injects these cursor elements into the render surface but does not
    style them, so by default the playhead is invisible. Make the active bar a
    translucent wash and the beat a solid line so the moving playhead is visible. */
