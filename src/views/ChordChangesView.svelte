@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import Renderer from '../renderer/Renderer.svelte';
   import type { RendererController, TrackInfo } from '../renderer/createRenderer';
-  import { createLocalTransport, type LocalTransport } from '../transport/localTransport';
+  import { createLocalTransport, maxTempoPercent, type LocalTransport } from '../transport/localTransport';
   import type { SessionStore } from '../session/types';
   import Icon from '../icons/Icon.svelte';
   import ChordOverlay from '../chords/ChordOverlay.svelte';
@@ -50,16 +50,20 @@
   let scalePct = $state(100); // notation zoom (local presentation, not transport)
   let tempoBpm = $state(120); // replaced by the score's real tempo once it loads
   let measureCount = $state(1); // scrubber range; replaced from the score once loaded
-  // Audio: local, never synced. Default to hearing the arrangement; click off.
-  // The melody-only default is a single instrument, which alphaTab's soundfont renders
-  // far quieter than the percussive count-in/metronome click — quiet enough to read as
-  // "no music" next to the click. alphaTab's masterVolume is a gain (1 = unity), so lift
-  // the synth above unity to bring a lone melody up to a clearly audible level. A single
-  // voice has plenty of headroom; this stays well clear of clipping.
-  const SYNTH_VOLUME = 3;
+  // Audio: on/off is local and never synced — a fast, hands-free toggle for use
+  // mid-song. Default to hearing the arrangement; click off.
   let synth = $state(true);
   let click = $state(false);
   let countIn = $state(true); // one-bar count-in before play (local pref, FR-6)
+  // Volume level is a personal, per-device preference (localStorage, like the chord
+  // overlay below) so it's dialed in once, not reset every song. 100% is alphaTab's
+  // own "1 = full" gain — no artificial boost. (An earlier version defaulted to 300%
+  // to compensate the old sonivox soundfont's thin solo violin; the warmer Florestan
+  // strings font doesn't need it, and the boost just made the default loud.) Headroom
+  // to 150% stays available for any future instrument that does need a lift.
+  const savedVolume = loadVolumePrefs();
+  let synthVolumePct = $state(savedVolume.synth ?? 100);
+  let clickVolumePct = $state(savedVolume.click ?? 100);
   let showMore = $state(false); // the settings sheet (opened by the ☰ / key / tempo)
   let composer = $state(''); // score credit, for the masthead
   let showMasthead = $state(loadMastheadPref()); // local viewing pref, persisted
@@ -74,10 +78,11 @@
   let lyricsError = $state<string | null>(null);
 
   // Chord overlay: a personal, per-device preference (localStorage) — deliberately NOT
-  // per-song or session/band state. Charts default on when the overlay is enabled.
+  // per-song or session/band state. On by default (it's the point of the app); charts
+  // (fretboard diagrams) off by default — most players read the chord name alone.
   const savedOverlay = loadOverlayPrefs();
-  let overlayOn = $state<boolean>(savedOverlay.on ?? false);
-  let showCharts = $state<boolean>(savedOverlay.charts ?? true);
+  let overlayOn = $state<boolean>(savedOverlay.on ?? true);
+  let showCharts = $state<boolean>(savedOverlay.charts ?? false);
   let chartInstrument = $state<Instrument>(savedOverlay.instrument === 'ukulele' ? 'ukulele' : 'guitar');
   let chordTimeline = $state<ChordOnset[]>([]);
   let barProgress = $state(0); // 0..1 within the current bar, for the beat-progress track
@@ -85,11 +90,12 @@
   let timeSig = $state('4/4');
 
   // Masthead visibility is a local viewing preference (not song/session state).
+  // Default hidden — the topbar already shows the title; the masthead is opt-in polish.
   function loadMastheadPref(): boolean {
     try {
-      return typeof localStorage === 'undefined' || localStorage.getItem('bandaid.showMasthead') !== '0';
+      return typeof localStorage !== 'undefined' && localStorage.getItem('bandaid.showMasthead') === '1';
     } catch {
-      return true;
+      return false;
     }
   }
   function toggleMasthead() {
@@ -119,6 +125,27 @@
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('bandaid.chordOverlay', JSON.stringify(prefs));
+      }
+    } catch {
+      /* ignore */
+    }
+  });
+
+  // Volume level is a personal, per-device preference — same rationale as the chord
+  // overlay above.
+  function loadVolumePrefs(): { synth?: number; click?: number } {
+    try {
+      if (typeof localStorage === 'undefined') return {};
+      return JSON.parse(localStorage.getItem('bandaid.volume') ?? '{}');
+    } catch {
+      return {};
+    }
+  }
+  $effect(() => {
+    const prefs = { synth: synthVolumePct, click: clickVolumePct };
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('bandaid.volume', JSON.stringify(prefs));
       }
     } catch {
       /* ignore */
@@ -225,20 +252,28 @@
   }
 
   function applyAudio() {
-    controller?.setMasterVolume(synth ? SYNTH_VOLUME : 0);
-    controller?.setMetronomeVolume(click ? 1 : 0);
+    controller?.setMasterVolume(synth ? synthVolumePct / 100 : 0);
+    controller?.setMetronomeVolume(click ? clickVolumePct / 100 : 0);
   }
   function toggleSynth() {
     synth = !synth;
-    controller?.setMasterVolume(synth ? SYNTH_VOLUME : 0);
+    controller?.setMasterVolume(synth ? synthVolumePct / 100 : 0);
   }
   function toggleClick() {
     click = !click;
-    controller?.setMetronomeVolume(click ? 1 : 0);
+    controller?.setMetronomeVolume(click ? clickVolumePct / 100 : 0);
   }
   function toggleCountIn() {
     countIn = !countIn;
     transport?.setCountIn(countIn);
+  }
+  function onSynthVolume(e: Event) {
+    synthVolumePct = Number((e.target as HTMLInputElement).value);
+    if (synth) controller?.setMasterVolume(synthVolumePct / 100);
+  }
+  function onClickVolume(e: Event) {
+    clickVolumePct = Number((e.target as HTMLInputElement).value);
+    if (click) controller?.setMetronomeVolume(clickVolumePct / 100);
   }
 
   // Keyboard flow for the slide-over: focus lands on its close button when it opens
@@ -289,6 +324,10 @@
   }
   // True when tempo differs from the canonical default (drives the modified dot + reset).
   let tempoModified = $derived(speedPct !== 100);
+  // The slider's ceiling: matches what the transport will actually allow for this
+  // song's written tempo (see maxTempoPercent — an absolute BPM cap, not a flat
+  // percentage), rounded down to the slider's step so every value is reachable.
+  let maxSpeedPct = $derived(Math.max(100, Math.floor((maxTempoPercent(tempoBpm) * 100) / 5) * 5));
 
   // Key / transpose. Clamped to ±6 semitones (a tritone either way covers any key).
   function stepTranspose(delta: number) {
@@ -432,7 +471,7 @@
 
     <label class="row">
       <span class="label">Tempo{#if tempoModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
-      <input type="range" min="50" max="150" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} aria-valuetext={`${speedPct}% of original, ${currentBpm} beats per minute`} />
+      <input type="range" min="50" max={maxSpeedPct} step="5" value={speedPct} oninput={onSpeed} disabled={!transport} aria-valuetext={`${speedPct}% of original, ${currentBpm} beats per minute`} />
       <span class="readout">{speedPct}% · {Math.round((tempoBpm * speedPct) / 100)} bpm</span>
       <button class="reset" onclick={resetTempo} disabled={!transport || !tempoModified} title="Reset to original tempo" aria-label="Reset to original tempo"><Icon name="reset" size={16} /></button>
     </label>
@@ -461,6 +500,18 @@
         <button class:active={countIn} aria-pressed={countIn} onclick={toggleCountIn} disabled={!transport}><Icon name="countin" size={16} /> Count-in</button>
       </div>
     </div>
+
+    <label class="row">
+      <span class="label">Sound</span>
+      <input type="range" min="0" max="150" step="5" value={synthVolumePct} oninput={onSynthVolume} disabled={!controller || !synth} aria-valuetext={`${synthVolumePct}%`} />
+      <span class="readout">{synthVolumePct}%</span>
+    </label>
+
+    <label class="row">
+      <span class="label">Click</span>
+      <input type="range" min="0" max="150" step="5" value={clickVolumePct} oninput={onClickVolume} disabled={!controller || !click} aria-valuetext={`${clickVolumePct}%`} />
+      <span class="readout">{clickVolumePct}%</span>
+    </label>
 
     <!-- Only offer "My part" when the chart actually has another part to stack —
          a lone pre-selected "Melody only" chip is dead UI on single-track songs. -->
