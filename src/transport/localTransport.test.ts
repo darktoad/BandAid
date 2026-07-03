@@ -188,6 +188,41 @@ describe('local transport (sole writer of Transport)', () => {
     expect(store.getState().transport).toBe(stampsBefore);
   });
 
+  it('a repeat jump while playing restamps so projection re-anchors (regression: stuck overlay fill)', () => {
+    let t = 1000;
+    const { fake, store, transport } = setup({ now: () => t });
+    transport.setCountIn(false);
+    transport.play();
+    fake.advanceTo(2);
+    fake.advanceTo(3);
+    fake.advanceTo(4);
+    const before = store.getState().transport!;
+
+    // Repeat barline: alphaTab's cursor jumps 4 -> 1. Without a restamp, projectBar
+    // keeps projecting linearly (~bar 4+) and the overlay's progress saturates full.
+    t = 9000;
+    fake.advanceTo(1);
+
+    const after = store.getState().transport!;
+    expect(after).not.toBe(before);
+    expect(after.playing).toBe(true);
+    expect(after.startBar).toBe(1);
+    expect(after.startTimestamp).toBe(9000);
+    // The projection now agrees with the cursor again.
+    expect(projectBar(after, 9000, 4)).toBe(1);
+  });
+
+  it('a volta skip forward while playing also restamps', () => {
+    const { fake, store, transport } = setup();
+    transport.play();
+    fake.advanceTo(2);
+    const before = store.getState().transport!;
+    fake.advanceTo(9); // second ending: cursor skips ahead non-sequentially
+    const after = store.getState().transport!;
+    expect(after).not.toBe(before);
+    expect(after.startBar).toBe(9);
+  });
+
   it('notifies onTransportChange subscribers and reflects the latest snapshot', () => {
     const { transport } = setup();
     const seen = vi.fn();
