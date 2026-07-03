@@ -48,6 +48,9 @@
     }
   }
 
+  // As a slide-over, receive keyboard focus on open (the close button is first).
+  const focusOnMount = (el: HTMLElement) => el.focus();
+
   const keyLabel = (s: SongSummary) => `${s.defaultKey.tonalCenter} ${s.defaultKey.mode}`;
   const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
 
@@ -62,7 +65,7 @@
     <h1 class="brand">BandAid</h1>
     <span class="ptitle">Songs</span>
     {#if onclose}
-      <button class="iconbtn" onclick={onclose} aria-label="Close">✕</button>
+      <button class="iconbtn" use:focusOnMount onclick={onclose} aria-label="Close">✕</button>
     {/if}
   </header>
 

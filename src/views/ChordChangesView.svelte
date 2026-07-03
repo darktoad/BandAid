@@ -235,7 +235,13 @@
     transport?.setCountIn(countIn);
   }
 
+  // Keyboard flow for the slide-over: focus lands on its close button when it opens
+  // (the action below) and returns to the opener when it closes.
+  let lyricsReturnFocus: HTMLElement | null = null;
+  const focusOnMount = (el: HTMLElement) => el.focus();
+
   async function openLyrics() {
+    lyricsReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     lyricsOpen = true;
     // The note renders immediately from the manifest; only lyrics need a fetch, and only once.
     if (!song.lyricsUrl || lyricsSheet || lyricsLoading) return;
@@ -251,7 +257,10 @@
       lyricsLoading = false;
     }
   }
-  const closeLyrics = () => (lyricsOpen = false);
+  const closeLyrics = () => {
+    lyricsOpen = false;
+    lyricsReturnFocus?.focus();
+  };
 
   function togglePlay() {
     if (!transport) return;
@@ -520,7 +529,7 @@
   <aside class="lyrics-panel" role="dialog" aria-modal="true" aria-label="Notes and lyrics">
     <header class="lyrics-head">
       <h2 class="lyrics-title">{song.title}</h2>
-      <button class="iconbtn" onclick={closeLyrics} aria-label="Close">
+      <button class="iconbtn" use:focusOnMount onclick={closeLyrics} aria-label="Close">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
       </button>
     </header>
