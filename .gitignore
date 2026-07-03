@@ -9,3 +9,6 @@ coverage/
 # Python
 __pycache__/
 *.pyc
+
+# Claude Code local permission settings (machine-local, never shared)
+.claude/settings.local.json
