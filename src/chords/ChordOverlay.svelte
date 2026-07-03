@@ -57,7 +57,7 @@
   }
 </script>
 
-<div class="strip" style={`--n:${n}`}>
+<div class="strip" class:nocharts={!showCharts} style={`--n:${n}`}>
   {#key pageStart}
     <div class="page" in:fly={{ x: 40, duration: reducedMotion ? 0 : 220 }}>
       {#each bars as bar (bar)}
@@ -135,6 +135,19 @@
     font-size: 0.95rem;
     font-weight: 600;
     line-height: 1;
+  }
+  /* With the diagrams hidden, spend their space on the name instead — a big chord
+     letter reads at music-stand distance, which is the point of names-only mode. */
+  .strip.nocharts .chords {
+    height: 34px;
+  }
+  .strip.nocharts .chord {
+    top: auto;
+    bottom: 2px; /* sit the larger name just above the beat track */
+  }
+  .strip.nocharts .name {
+    font-size: 1.55rem;
+    font-weight: 700;
   }
   .bar.current .name {
     color: var(--ink);
