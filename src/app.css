@@ -5,6 +5,9 @@
   --muted: #a89c8c;
   --accent: #d98a3d;
   --line: #2e2823;
+  /* Identity type: the same serif the engraved sheet and masthead use (Georgia via
+     alphaTab chord font + .masthead). Titles carry it; controls stay system-ui. */
+  --font-display: Georgia, 'Times New Roman', serif;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color-scheme: dark;
 }
@@ -39,8 +42,31 @@ button {
 button:hover { border-color: var(--accent); }
 button:disabled { opacity: 0.4; cursor: default; }
 
+/* Keyboard focus must be visible (spacebar-play users tab around): accent ring on
+   keyboard focus only — pointer clicks don't match :focus-visible, so taps stay clean. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Vestibular safety: collapse decorative motion (panel slide-ins, page-turn slides,
+   progress easing) when the OS asks for reduced motion. Svelte's JS transitions are
+   gated separately where they're created. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* alphaTab injects these cursor elements into the render surface but does not
    style them, so by default the playhead is invisible. Make the active bar a
    translucent wash and the beat a solid line so the moving playhead is visible. */
 .at-cursor-bar { background: rgba(217, 138, 61, 0.20); }
-.at-cursor-beat { background: var(--accent); }
+/* Deeper orange than --accent: the beat line sits on the cream sheet, where the UI
+   accent only reaches 2.57:1 — this hits 4.06:1 (WCAG non-text 3:1) and survives
+   glare on an outdoor music stand. */
+.at-cursor-beat { background: #b5651d; }

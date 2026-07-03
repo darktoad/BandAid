@@ -6,7 +6,7 @@
       <supports element="accidental" type="yes"/>
       <supports element="transpose" type="yes"/>
       <software>Soundslice MusicXML exporter</software>
-      <encoding-date>2026-06-25</encoding-date>
+      <encoding-date>2026-06-30</encoding-date>
     </encoding>
   </identification>
   <part-list>
@@ -110,6 +110,9 @@
         <beam number="1">begin</beam>
         <notations>
           <slur placement="below" type="start" number="1"/>
+          <technical>
+            <down-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -123,6 +126,9 @@
         <beam number="1">end</beam>
         <notations>
           <slur placement="below" type="stop" number="1"/>
+          <technical>
+            <up-bow/>
+          </technical>
         </notations>
       </note>
     </measure>
@@ -294,6 +300,9 @@
         <beam number="1">begin</beam>
         <notations>
           <slur placement="below" type="start" number="1"/>
+          <technical>
+            <down-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -338,6 +347,9 @@
         <beam number="1">begin</beam>
         <notations>
           <slur placement="below" type="start" number="1"/>
+          <technical>
+            <down-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -363,6 +375,11 @@
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
+        <notations>
+          <technical>
+            <up-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -399,6 +416,12 @@
       </note>
     </measure>
     <measure number="5">
+      <harmony>
+        <root>
+          <root-step>G</root-step>
+        </root>
+        <kind text="">major</kind>
+      </harmony>
       <note>
         <pitch>
           <step>D</step>
@@ -408,6 +431,11 @@
         <type>eighth</type>
         <stem>up</stem>
         <beam number="1">begin</beam>
+        <notations>
+          <technical>
+            <up-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -432,6 +460,9 @@
         <beam number="1">continue</beam>
         <notations>
           <slur placement="below" type="start" number="1"/>
+          <technical>
+            <up-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -455,6 +486,11 @@
         <duration>8</duration>
         <type>quarter</type>
         <stem>down</stem>
+        <notations>
+          <technical>
+            <down-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -501,6 +537,11 @@
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
+        <notations>
+          <technical>
+            <down-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -563,6 +604,12 @@
         <accidental>sharp</accidental>
         <stem>down</stem>
         <beam number="1">continue</beam>
+        <notations>
+          <slur placement="above" type="start" number="1"/>
+          <technical>
+            <down-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -573,6 +620,9 @@
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">end</beam>
+        <notations>
+          <slur placement="above" type="stop" number="1"/>
+        </notations>
       </note>
     </measure>
     <measure number="7">
@@ -987,6 +1037,11 @@
         <type>eighth</type>
         <stem>down</stem>
         <beam number="1">begin</beam>
+        <notations>
+          <technical>
+            <down-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1077,6 +1132,11 @@
         <duration>4</duration>
         <type>eighth</type>
         <stem>down</stem>
+        <notations>
+          <technical>
+            <down-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1086,6 +1146,11 @@
         <duration>8</duration>
         <type>quarter</type>
         <stem>down</stem>
+        <notations>
+          <technical>
+            <up-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1097,6 +1162,9 @@
         <stem>down</stem>
         <notations>
           <slur placement="above" type="start" number="1"/>
+          <technical>
+            <down-bow/>
+          </technical>
         </notations>
       </note>
       <note>
@@ -1157,6 +1225,11 @@
         <duration>4</duration>
         <type>eighth</type>
         <stem>down</stem>
+        <notations>
+          <technical>
+            <up-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1166,6 +1239,11 @@
         <duration>8</duration>
         <type>quarter</type>
         <stem>down</stem>
+        <notations>
+          <technical>
+            <down-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <pitch>
@@ -1567,6 +1645,11 @@
         <type>quarter</type>
         <accidental>natural</accidental>
         <stem>up</stem>
+        <notations>
+          <technical>
+            <down-bow/>
+          </technical>
+        </notations>
       </note>
       <harmony>
         <root>
@@ -1582,6 +1665,11 @@
         <duration>8</duration>
         <type>quarter</type>
         <stem>up</stem>
+        <notations>
+          <technical>
+            <up-bow/>
+          </technical>
+        </notations>
       </note>
       <note>
         <chord/>
@@ -1680,6 +1768,9 @@
         <beam number="1">begin</beam>
         <notations>
           <slur placement="below" type="start" number="1"/>
+          <technical>
+            <up-bow/>
+          </technical>
         </notations>
       </note>
       <note>

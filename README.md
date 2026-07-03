@@ -25,7 +25,7 @@ Prereqs: Node 20+ (built on Node 24), npm.
 ```bash
 npm install      # installs Svelte, Vite, alphaTab, Vitest
 npm run dev      # http://localhost:5173 — loads a sample tune in guitar tab
-npm test         # 17 unit tests (session store + playhead math)
+npm test         # unit suite (session store, playhead, chords, lyrics, library)
 npm run build    # production build (also catches bundling issues)
 npm run check    # svelte-check / TypeScript typecheck
 ```
@@ -36,6 +36,26 @@ the staff; click Play to start the cursor and audio.
 
 To try the deployed build instead of running locally, just open the
 [live app](https://darktoad.github.io/BandAid/).
+
+## Development workflow
+
+Changes land through a pull request into `main` — not direct pushes. Since every push
+to `main` auto-deploys to the [live app](https://darktoad.github.io/BandAid/), the PR
+branch *is* the staging step: **verify locally before you merge.**
+
+```bash
+git switch -c <topic>     # branch off main
+npm test                  # unit suite
+npm run check             # typecheck
+npm run dev               # http://localhost:5173 — check it in a real browser
+gh pr create              # open the PR; merge when it looks and sounds right
+```
+
+For song changes, open the dev server and **play the tune through** — pitch and rhythm
+can only be confirmed by ear, and the audio needs a real browser (a headless one won't
+start the AudioContext). To rehearse the exact production bundle instead of the dev
+server, run `npm run build && npm run preview`. Merging the PR deploys to the live site
+automatically; there is no separate staging host.
 
 ## Deployment
 

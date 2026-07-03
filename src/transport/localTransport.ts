@@ -46,7 +46,7 @@ export interface LocalTransportDeps {
 export interface LocalTransport {
   play(): void;
   pause(): void;
-  /** Tempo as a fraction of the song default (~0.5–1.1); restamps if playing. */
+  /** Tempo as a fraction of the song default (0.5–1.5); restamps if playing. */
   setTempoPercent(pct: number): void;
   /** Move to a bar (from tap-a-bar or scrubber); restamps, preserves playing state. */
   seekToBar(bar: number): void;
@@ -57,7 +57,9 @@ export interface LocalTransport {
 }
 
 export const MIN_TEMPO_PCT = 0.5;
-export const MAX_TEMPO_PCT = 1.1;
+// 150% headroom: jam tempos routinely run well past the practice-chart marking (a
+// 126 bpm chart at 150% reaches 189), while alphaTab's synth stays clean at 1.5×.
+export const MAX_TEMPO_PCT = 1.5;
 const COUNT_IN_VOLUME = 1;
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));

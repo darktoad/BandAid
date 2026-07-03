@@ -10,7 +10,8 @@
   import type { ChordOnset } from '../chords/chordTimeline';
   import { projectBar, quarterNotesPerBar } from '../playhead/projectBar';
   import LyricsSheet from '../lyrics/LyricsSheet.svelte';
-  import { parseChordPro, type SongSheet } from '../lyrics/chordpro';
+  import { parseChordPro, transposeSheet, type SongSheet } from '../lyrics/chordpro';
+  import { prefersFlats, transposeChordLabel, transposeNote } from '../chords/transposeChord';
 
   /**
    * Chord-Changes-in-Time view (M1). A presentation template over the unified music
@@ -28,7 +29,7 @@
    * Local choices (part, tempo %, audio, zoom) live here; only Transport is synced.
    */
   let { song, store, onsongs, onprogress }: {
-    song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string }; notes?: string; lyricsUrl?: string };
+    song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string; fifths?: number }; composer?: string; notes?: string; lyricsUrl?: string };
     store: SessionStore;
     onsongs?: () => void; // open the slide-over song picker
     onprogress?: (fraction: number) => void; // 0–1 playback position, for the picker
@@ -184,7 +185,10 @@
     const info = c.getSongInfo();
     tempoBpm = info?.tempoBpm ?? 120;
     measureCount = info?.measureCount ?? 1;
-    composer = info?.composer ?? '';
+    // Masthead credit: the curated manifest composer wins; fall back to the score's
+    // credit unless it's an export toolchain stamping its own name (e.g. Music21).
+    const scoreCredit = info?.composer ?? '';
+    composer = song.composer ?? (/^music21$/i.test(scoreCredit.trim()) ? '' : scoreCredit);
     chordTimeline = c.getChordTimeline();
     timeSig = info?.timeSignature ?? '4/4';
     beatsPerBar = Number(timeSig.split('/')[0]) || 4;
@@ -237,7 +241,13 @@
     transport?.setCountIn(countIn);
   }
 
+  // Keyboard flow for the slide-over: focus lands on its close button when it opens
+  // (the action below) and returns to the opener when it closes.
+  let lyricsReturnFocus: HTMLElement | null = null;
+  const focusOnMount = (el: HTMLElement) => el.focus();
+
   async function openLyrics() {
+    lyricsReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     lyricsOpen = true;
     // The note renders immediately from the manifest; only lyrics need a fetch, and only once.
     if (!song.lyricsUrl || lyricsSheet || lyricsLoading) return;
@@ -253,7 +263,10 @@
       lyricsLoading = false;
     }
   }
-  const closeLyrics = () => (lyricsOpen = false);
+  const closeLyrics = () => {
+    lyricsOpen = false;
+    lyricsReturnFocus?.focus();
+  };
 
   function togglePlay() {
     if (!transport) return;
@@ -278,11 +291,6 @@
   let tempoModified = $derived(speedPct !== 100);
 
   // Key / transpose. Clamped to ±6 semitones (a tritone either way covers any key).
-  const NOTES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
-  const NOTE_INDEX: Record<string, number> = {
-    C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6,
-    Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11,
-  };
   function stepTranspose(delta: number) {
     transpose = Math.max(-6, Math.min(6, transpose + delta));
     controller?.setTranspose(transpose);
@@ -295,12 +303,25 @@
     store.resetSongSetting(song.id, 'transpose');
   }
   let transposeModified = $derived(transpose !== 0);
+  // Spell transposed labels for the *target* key: flat keys read in flats (G +3 → B♭, not A♯).
+  let flats = $derived(prefersFlats(song.key?.fifths ?? 0, transpose));
+  // Chord labels follow the key everywhere they're shown: the overlay timeline and the
+  // lyrics sheet transpose here (the sheet-music symbols transpose inside the renderer).
+  let displayTimeline = $derived(
+    transpose === 0
+      ? chordTimeline
+      : chordTimeline.map((o) => ({
+          ...o,
+          label: transposeChordLabel(o.label, transpose, flats),
+          root: transposeNote(o.root, transpose, flats),
+        })),
+  );
+  let displaySheet = $derived(lyricsSheet && transposeSheet(lyricsSheet, transpose, flats));
   // The sounding tonic after transposition (header pill); falls back to a semitone count.
   let keyName = $derived.by(() => {
     const tc = song.key?.tonalCenter?.replace('♯', '#').replace('♭', 'b');
-    const base = tc !== undefined ? NOTE_INDEX[tc] : undefined;
-    if (base === undefined) return transpose === 0 ? '—' : `${transpose > 0 ? '+' : ''}${transpose}`;
-    return NOTES[(base + transpose + 120) % 12];
+    if (tc === undefined) return transpose === 0 ? '—' : `${transpose > 0 ? '+' : ''}${transpose}`;
+    return transposeNote(tc, transpose, flats).replace('#', '♯').replace('b', '♭');
   });
   // With the mode, for the settings stepper readout.
   let keyLabel = $derived(song.key?.mode ? `${keyName} ${song.key.mode}` : keyName);
@@ -321,8 +342,14 @@
     onprogress?.(measureCount > 1 ? Math.min(1, Math.max(0, (b - 1) / (measureCount - 1))) : 0);
   }
 
-  // Spacebar toggles play/pause on laptop. Ignore when focused in a control.
+  // Spacebar toggles play/pause on laptop; Escape closes the topmost overlay.
+  // Ignore Space when focused in a control.
   function onKeydown(e: KeyboardEvent) {
+    if (e.code === 'Escape') {
+      if (lyricsOpen) closeLyrics();
+      else if (showMore) showMore = false;
+      return;
+    }
     if (e.code !== 'Space') return;
     const el = e.target as HTMLElement;
     if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'BUTTON')) return;
@@ -344,7 +371,7 @@
       <circle cx="4" cy="18" r="1.3" fill="currentColor" stroke="none" /><line x1="9" y1="18" x2="20" y2="18" />
     </svg>
   </button>
-  <span class="song">{song.title}</span>
+  <h1 class="song">{song.title}</h1>
   {#if song.notes || song.lyricsUrl}
     <button class="iconbtn" onclick={openLyrics} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -371,6 +398,12 @@
     <Icon name={!canPlay ? 'loading' : playing ? 'pause' : 'play'} size={20} />
   </button>
 
+  {#if !canPlay}
+    <!-- The soundfont + MIDI take a few seconds on first load; say so instead of
+         leaving a mysteriously disabled Play button. -->
+    <span class="loading-note" role="status">Loading audio…</span>
+  {/if}
+
   <input
     class="scrub"
     type="range"
@@ -381,22 +414,25 @@
     oninput={onScrub}
     disabled={!transport}
     aria-label="Seek to bar"
+    aria-valuetext={`Bar ${bar} of ${measureCount}`}
   />
 </div>
 
-<!-- Settings sheet (opened by the ☰, or the Key / Tempo pills). -->
+<!-- Settings sheet (opened by the ☰, or the Key / Tempo pills). Inline on wide
+     screens; a bottom sheet over a scrim on phones so the music stays visible. -->
 {#if showMore}
+  <button class="sheet-scrim" onclick={() => (showMore = false)} aria-label="Close settings"></button>
   <div class="sheet">
     <div class="row">
-      <span class="label">Masthead</span>
+      <span class="label">Title</span>
       <div class="chips">
-        <button class:active={showMasthead} onclick={toggleMasthead}>{showMasthead ? 'Shown' : 'Hidden'}</button>
+        <button class:active={showMasthead} aria-pressed={showMasthead} onclick={toggleMasthead}>{showMasthead ? 'Shown' : 'Hidden'}</button>
       </div>
     </div>
 
     <label class="row">
       <span class="label">Tempo{#if tempoModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
-      <input type="range" min="50" max="110" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} />
+      <input type="range" min="50" max="150" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} aria-valuetext={`${speedPct}% of original, ${currentBpm} beats per minute`} />
       <span class="readout">{speedPct}% · {Math.round((tempoBpm * speedPct) / 100)} bpm</span>
       <button class="reset" onclick={resetTempo} disabled={!transport || !tempoModified} title="Reset to original tempo" aria-label="Reset to original tempo"><Icon name="reset" size={16} /></button>
     </label>
@@ -413,39 +449,43 @@
 
     <label class="row">
       <span class="label">Size</span>
-      <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} />
+      <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} aria-valuetext={`${scalePct}%`} />
       <span class="readout">{scalePct}%</span>
     </label>
 
     <div class="row">
       <span class="label">Audio</span>
       <div class="chips">
-        <button class:active={synth} onclick={toggleSynth} disabled={!controller}><Icon name="sound" size={16} /> Sound</button>
-        <button class:active={click} onclick={toggleClick} disabled={!controller}><Icon name="click" size={16} /> Click</button>
-        <button class:active={countIn} onclick={toggleCountIn} disabled={!transport}><Icon name="countin" size={16} /> Count-in</button>
+        <button class:active={synth} aria-pressed={synth} onclick={toggleSynth} disabled={!controller}><Icon name="sound" size={16} /> Sound</button>
+        <button class:active={click} aria-pressed={click} onclick={toggleClick} disabled={!controller}><Icon name="click" size={16} /> Click</button>
+        <button class:active={countIn} aria-pressed={countIn} onclick={toggleCountIn} disabled={!transport}><Icon name="countin" size={16} /> Count-in</button>
       </div>
     </div>
 
-    <div class="row">
-      <span class="label">My part</span>
-      <div class="chips">
-        <button class:active={myPart === null} onclick={() => selectMyPart(null)}>Melody only</button>
-        {#each overlayParts as t}
-          <button class:active={t.index === myPart} onclick={() => selectMyPart(t.index)}>{t.name}</button>
-        {/each}
+    <!-- Only offer "My part" when the chart actually has another part to stack —
+         a lone pre-selected "Melody only" chip is dead UI on single-track songs. -->
+    {#if overlayParts.length > 0}
+      <div class="row">
+        <span class="label">My part</span>
+        <div class="chips">
+          <button class:active={myPart === null} aria-pressed={myPart === null} onclick={() => selectMyPart(null)}>Melody only</button>
+          {#each overlayParts as t}
+            <button class:active={t.index === myPart} aria-pressed={t.index === myPart} onclick={() => selectMyPart(t.index)}>{t.name}</button>
+          {/each}
+        </div>
       </div>
-    </div>
+    {/if}
 
     <div class="row">
       <span class="label">Chords</span>
       <div class="chips">
-        <button class:active={overlayOn} onclick={() => (overlayOn = !overlayOn)}>
+        <button class:active={overlayOn} aria-pressed={overlayOn} onclick={() => (overlayOn = !overlayOn)}>
           <Icon name="chords" size={16} /> Overlay
         </button>
-        <button class:active={showCharts} onclick={() => (showCharts = !showCharts)} disabled={!overlayOn}>Charts</button>
+        <button class:active={showCharts} aria-pressed={showCharts} onclick={() => (showCharts = !showCharts)} disabled={!overlayOn}>Charts</button>
         {#if overlayOn && showCharts}
-          <button class:active={chartInstrument === 'guitar'} onclick={() => (chartInstrument = 'guitar')}>Guitar</button>
-          <button class:active={chartInstrument === 'ukulele'} onclick={() => (chartInstrument = 'ukulele')}>Uke</button>
+          <button class:active={chartInstrument === 'guitar'} aria-pressed={chartInstrument === 'guitar'} onclick={() => (chartInstrument = 'guitar')}>Guitar</button>
+          <button class:active={chartInstrument === 'ukulele'} aria-pressed={chartInstrument === 'ukulele'} onclick={() => (chartInstrument = 'ukulele')}>Uke</button>
         {/if}
       </div>
     </div>
@@ -482,7 +522,7 @@
 
 {#if overlayOn}
   <ChordOverlay
-    timeline={chordTimeline}
+    timeline={displayTimeline}
     currentBar={bar}
     {barProgress}
     {beatsPerBar}
@@ -495,10 +535,10 @@
 
 {#if lyricsOpen}
   <button class="scrim" onclick={closeLyrics} aria-label="Close lyrics"></button>
-  <aside class="lyrics-panel">
+  <div class="lyrics-panel" role="dialog" aria-modal="true" aria-label="Notes and lyrics">
     <header class="lyrics-head">
-      <span>{song.title}</span>
-      <button class="iconbtn" onclick={closeLyrics} aria-label="Close">
+      <h2 class="lyrics-title">{song.title}</h2>
+      <button class="iconbtn" use:focusOnMount onclick={closeLyrics} aria-label="Close">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
       </button>
     </header>
@@ -508,10 +548,10 @@
       {:else if lyricsLoading && !lyricsSheet}
         <p class="lyrics-msg">Loading…</p>
       {:else}
-        <LyricsSheet note={song.notes} sheet={lyricsSheet ?? undefined} />
+        <LyricsSheet note={song.notes} sheet={displaySheet ?? undefined} />
       {/if}
     </div>
-  </aside>
+  </div>
 {/if}
 
 <style>
@@ -533,12 +573,16 @@
     padding: 0;
   }
   .iconbtn.active { border-color: var(--accent); color: var(--accent); }
-  /* Small, subtle song name — takes the slack so the pills/buttons stay put. */
+  /* Small, subtle song name — takes the slack so the pills/buttons stay put.
+     Semantically the page's h1 (screen-reader structure); visually unchanged. */
   .song {
     flex: 1 1 auto;
     min-width: 0;
+    margin: 0;
     color: var(--muted);
-    font-size: 0.82rem;
+    font-family: var(--font-display);
+    font-size: 0.88rem;
+    font-weight: 400;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -575,6 +619,7 @@
   }
   .scrub { flex: 1 1 auto; min-width: 0; }
   .readout { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.85rem; flex: 0 0 auto; }
+  .loading-note { color: var(--muted); font-size: 0.82rem; flex: 0 0 auto; white-space: nowrap; }
 
   /* The overflow sheet stacks its rows vertically so each control gets full width. */
   .sheet {
@@ -612,6 +657,45 @@
     min-height: 2.2rem;
   }
   .chips button.active { border-color: var(--accent); color: var(--accent); }
+
+  /* Touch screens get full-size (≥44px) targets on the controls tapped mid-practice;
+     pointer precision keeps the compact sizes on desktop. */
+  @media (pointer: coarse) {
+    .iconbtn { width: 2.75rem; height: 2.75rem; }
+    .pill { min-height: 2.75rem; }
+    .stepper button,
+    .chips button,
+    .reset { min-width: 2.75rem; min-height: 2.75rem; }
+  }
+
+  /* On phones the settings become a bottom sheet over a scrim, so adjusting tempo/key
+     doesn't shove the notation off-screen. Above alphaTab's cursors (z-index 1000). */
+  .sheet-scrim { display: none; }
+  @media (max-width: 480px) {
+    .sheet-scrim {
+      display: block;
+      position: fixed;
+      inset: 0;
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1003;
+    }
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1004;
+      max-height: 60dvh;
+      overflow-y: auto;
+      border-top: 1px solid var(--line);
+      border-radius: 14px 14px 0 0;
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.45);
+      padding-bottom: calc(0.9rem + env(safe-area-inset-bottom));
+    }
+  }
 
   .error {
     padding: 0.5rem 1rem;
@@ -672,9 +756,9 @@
     gap: 0.5rem;
     padding: 0.7rem 0.9rem;
     border-bottom: 1px solid var(--line);
-    font-weight: 600;
     color: var(--ink);
   }
+  .lyrics-title { margin: 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; }
   .lyrics-body {
     flex: 1 1 auto;
     overflow-y: auto;

@@ -48,6 +48,9 @@
     }
   }
 
+  // As a slide-over, receive keyboard focus on open (the close button is first).
+  const focusOnMount = (el: HTMLElement) => el.focus();
+
   const keyLabel = (s: SongSummary) => `${s.defaultKey.tonalCenter} ${s.defaultKey.mode}`;
   const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
 
@@ -59,21 +62,23 @@
 
 <div class="picker">
   <header class="phead">
-    <span class="brand">BandAid</span>
+    <h1 class="brand">BandAid</h1>
     <span class="ptitle">Songs</span>
     {#if onclose}
-      <button class="iconbtn" onclick={onclose} aria-label="Close">✕</button>
+      <button class="iconbtn" use:focusOnMount onclick={onclose} aria-label="Close">✕</button>
     {/if}
   </header>
 
-  <div class="tabs">
+  <nav class="tabs" aria-label="Song lists">
     {#each setLists as l}
-      <button class="tab" class:active={selected === l.id} onclick={() => pick(l.id)}>{l.name}</button>
+      <button class="tab" class:active={selected === l.id} aria-current={selected === l.id} onclick={() => pick(l.id)}>{l.name}</button>
     {/each}
-    <button class="tab" class:active={selected === 'all'} onclick={() => pick('all')}>All songs</button>
-  </div>
+    <button class="tab" class:active={selected === 'all'} aria-current={selected === 'all'} onclick={() => pick('all')}>All songs</button>
+  </nav>
 
-  <div class="pbody">
+  <!-- <main> when full-screen; a plain region inside the slide-over (the drill view
+       underneath already owns the page's <main>). -->
+  <svelte:element this={onclose ? 'div' : 'main'} class="pbody">
     {#if shownSongs.length === 0}
       <p class="empty">No songs here yet.</p>
     {:else}
@@ -85,7 +90,7 @@
       <ul class="list">
         {#each shownSongs as s}
           <li>
-            <button class="srow" class:active={s.id === activeId} onclick={() => onopen(s)}>
+            <button class="srow" class:active={s.id === activeId} aria-current={s.id === activeId} onclick={() => onopen(s)}>
               <span class="stitle">
                 {s.title}
                 {#if s.id === activeId}<span class="now">▶ now</span>{/if}
@@ -101,7 +106,7 @@
         {/each}
       </ul>
     {/if}
-  </div>
+  </svelte:element>
 </div>
 
 <style>
@@ -114,7 +119,7 @@
     border-bottom: 1px solid var(--line);
     background: var(--panel);
   }
-  .brand { font-weight: 700; letter-spacing: 0.02em; }
+  .brand { margin: 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: 0.02em; }
   .ptitle { color: var(--muted); font-size: 0.82rem; flex: 1 1 auto; }
   .iconbtn { flex: 0 0 auto; width: 2rem; height: 2rem; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
 
@@ -161,7 +166,7 @@
   .srow:hover { border-color: var(--accent); }
   /* The currently-open song. */
   .srow.active { border-color: var(--accent); background: rgba(217, 138, 61, 0.1); }
-  .stitle { font-weight: 600; }
+  .stitle { font-family: var(--font-display); font-weight: 600; }
   .now { color: var(--accent); font-size: 0.7rem; font-weight: 600; margin-left: 0.4rem; white-space: nowrap; }
   .smeta { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
   /* Live playback progress along the bottom of the active row. */

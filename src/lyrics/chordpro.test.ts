@@ -1,5 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { parseChordPro, lineChunks } from './chordpro';
+import { parseChordPro, lineChunks, transposeSheet } from './chordpro';
+
+describe('transposeSheet', () => {
+  it('transposes every chord symbol and leaves lyrics/offsets alone', () => {
+    const sheet = parseChordPro('[G]From the [C]great Atlantic shore');
+    const up2 = transposeSheet(sheet, 2, false);
+    expect(up2.sections[0].lines[0].chords).toEqual([
+      { sym: 'A', index: 0 },
+      { sym: 'D', index: 9 },
+    ]);
+    expect(up2.sections[0].lines[0].text).toBe('From the great Atlantic shore');
+  });
+
+  it('spells with flats when asked', () => {
+    const sheet = parseChordPro('[G]row your [D7]boat');
+    const up3 = transposeSheet(sheet, 3, true);
+    expect(up3.sections[0].lines[0].chords.map((c) => c.sym)).toEqual(['Bb', 'F7']);
+  });
+
+  it('returns the same sheet object for a 0-semitone transpose', () => {
+    const sheet = parseChordPro('[G]line');
+    expect(transposeSheet(sheet, 0, false)).toBe(sheet);
+  });
+});
 
 describe('parseChordPro', () => {
   it('extracts chords with their char offset into the stripped text', () => {
@@ -63,12 +86,14 @@ describe('parseChordPro', () => {
 });
 
 describe('lineChunks', () => {
-  it('splits a line into chord-anchored chunks, with leading text first', () => {
+  it('anchors each chord to its first word and splits the rest into word chunks', () => {
     const line = parseChordPro('Oh [G]say can [C]you see').sections[0].lines[0];
     expect(lineChunks(line)).toEqual([
       { sym: '', text: 'Oh ' },
-      { sym: 'G', text: 'say can ' },
-      { sym: 'C', text: 'you see' },
+      { sym: 'G', text: 'say ' },
+      { sym: '', text: 'can ' },
+      { sym: 'C', text: 'you ' },
+      { sym: '', text: 'see' },
     ]);
   });
 
@@ -77,8 +102,34 @@ describe('lineChunks', () => {
     expect(lineChunks(line)).toEqual([{ sym: 'G', text: 'hello' }]);
   });
 
-  it('a chord-less line is one chunk with no symbol', () => {
-    const line = parseChordPro('plain').sections[0].lines[0];
-    expect(lineChunks(line)).toEqual([{ sym: '', text: 'plain' }]);
+  it('a chord-less line splits into word chunks with no symbols', () => {
+    const line = parseChordPro('plain words').sections[0].lines[0];
+    expect(lineChunks(line)).toEqual([
+      { sym: '', text: 'plain ' },
+      { sym: '', text: 'words' },
+    ]);
+  });
+
+  it('a long run under one chord becomes wrappable word chunks (regression: mobile clipping)', () => {
+    const line = parseChordPro('As she [D]glides along the woodlands').sections[0].lines[0];
+    const chunks = lineChunks(line);
+    expect(chunks).toEqual([
+      { sym: '', text: 'As ' },
+      { sym: '', text: 'she ' },
+      { sym: 'D', text: 'glides ' },
+      { sym: '', text: 'along ' },
+      { sym: '', text: 'the ' },
+      { sym: '', text: 'woodlands' },
+    ]);
+    // Lossless: chunk texts reassemble the exact original line.
+    expect(chunks.map((c) => c.text).join('')).toBe(line.text);
+  });
+
+  it('keeps a slot for an end-of-line chord', () => {
+    const line = parseChordPro('shore[G]').sections[0].lines[0];
+    expect(lineChunks(line)).toEqual([
+      { sym: '', text: 'shore' },
+      { sym: 'G', text: '' },
+    ]);
   });
 });
