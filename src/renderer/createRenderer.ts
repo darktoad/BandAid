@@ -108,6 +108,21 @@ export async function createRenderer(
     },
   });
 
+  // Warmer solo strings: sonivox (above) stays the GM base — it supplies the metronome
+  // click and every non-string program — and the 3.2MB Florestan String Quartet
+  // (public domain, presets 40–43: violin/viola/cello/contrabass) is APPENDED on top.
+  // alphaTab's preset lookup scans backwards (last loaded wins), so the appended
+  // Florestan violin replaces sonivox's thin, fatiguing one for the fiddle parts.
+  // Order matters: the settings soundFont loads on player.ready with append=false,
+  // which discards anything loaded earlier — so append on the FIRST soundFontLoaded
+  // (base in place), guarded because the append itself fires the same event.
+  let stringsAppended = false;
+  api.soundFontLoaded.on(() => {
+    if (stringsAppended) return;
+    stringsAppended = true;
+    api.loadSoundFont(`${ALPHATAB_ASSET_BASE}/soundfont/florestan-strings.sf2`, true);
+  });
+
   // The app renders its own deduped masthead (title + composer), so suppress alphaTab's
   // built-in score-info block — the MusicXML often sets title AND subtitle to the same
   // text, which would otherwise print the name twice.
