@@ -10,7 +10,8 @@
   import type { ChordOnset } from '../chords/chordTimeline';
   import { projectBar, quarterNotesPerBar } from '../playhead/projectBar';
   import LyricsSheet from '../lyrics/LyricsSheet.svelte';
-  import { parseChordPro, type SongSheet } from '../lyrics/chordpro';
+  import { parseChordPro, transposeSheet, type SongSheet } from '../lyrics/chordpro';
+  import { prefersFlats, transposeChordLabel, transposeNote } from '../chords/transposeChord';
 
   /**
    * Chord-Changes-in-Time view (M1). A presentation template over the unified music
@@ -28,7 +29,7 @@
    * Local choices (part, tempo %, audio, zoom) live here; only Transport is synced.
    */
   let { song, store, onsongs, onprogress }: {
-    song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string }; notes?: string; lyricsUrl?: string };
+    song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string; fifths?: number }; notes?: string; lyricsUrl?: string };
     store: SessionStore;
     onsongs?: () => void; // open the slide-over song picker
     onprogress?: (fraction: number) => void; // 0–1 playback position, for the picker
@@ -272,11 +273,6 @@
   let tempoModified = $derived(speedPct !== 100);
 
   // Key / transpose. Clamped to ±6 semitones (a tritone either way covers any key).
-  const NOTES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
-  const NOTE_INDEX: Record<string, number> = {
-    C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6,
-    Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11,
-  };
   function stepTranspose(delta: number) {
     transpose = Math.max(-6, Math.min(6, transpose + delta));
     controller?.setTranspose(transpose);
@@ -289,12 +285,25 @@
     store.resetSongSetting(song.id, 'transpose');
   }
   let transposeModified = $derived(transpose !== 0);
+  // Spell transposed labels for the *target* key: flat keys read in flats (G +3 → B♭, not A♯).
+  let flats = $derived(prefersFlats(song.key?.fifths ?? 0, transpose));
+  // Chord labels follow the key everywhere they're shown: the overlay timeline and the
+  // lyrics sheet transpose here (the sheet-music symbols transpose inside the renderer).
+  let displayTimeline = $derived(
+    transpose === 0
+      ? chordTimeline
+      : chordTimeline.map((o) => ({
+          ...o,
+          label: transposeChordLabel(o.label, transpose, flats),
+          root: transposeNote(o.root, transpose, flats),
+        })),
+  );
+  let displaySheet = $derived(lyricsSheet && transposeSheet(lyricsSheet, transpose, flats));
   // The sounding tonic after transposition (header pill); falls back to a semitone count.
   let keyName = $derived.by(() => {
     const tc = song.key?.tonalCenter?.replace('♯', '#').replace('♭', 'b');
-    const base = tc !== undefined ? NOTE_INDEX[tc] : undefined;
-    if (base === undefined) return transpose === 0 ? '—' : `${transpose > 0 ? '+' : ''}${transpose}`;
-    return NOTES[(base + transpose + 120) % 12];
+    if (tc === undefined) return transpose === 0 ? '—' : `${transpose > 0 ? '+' : ''}${transpose}`;
+    return transposeNote(tc, transpose, flats).replace('#', '♯').replace('b', '♭');
   });
   // With the mode, for the settings stepper readout.
   let keyLabel = $derived(song.key?.mode ? `${keyName} ${song.key.mode}` : keyName);
@@ -390,7 +399,7 @@
 
     <label class="row">
       <span class="label">Tempo{#if tempoModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
-      <input type="range" min="50" max="110" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} />
+      <input type="range" min="50" max="150" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} />
       <span class="readout">{speedPct}% · {Math.round((tempoBpm * speedPct) / 100)} bpm</span>
       <button class="reset" onclick={resetTempo} disabled={!transport || !tempoModified} title="Reset to original tempo" aria-label="Reset to original tempo"><Icon name="reset" size={16} /></button>
     </label>
@@ -473,7 +482,7 @@
 
 {#if overlayOn}
   <ChordOverlay
-    timeline={chordTimeline}
+    timeline={displayTimeline}
     currentBar={bar}
     {barProgress}
     {beatsPerBar}
@@ -499,7 +508,7 @@
       {:else if lyricsLoading && !lyricsSheet}
         <p class="lyrics-msg">Loading…</p>
       {:else}
-        <LyricsSheet note={song.notes} sheet={lyricsSheet ?? undefined} />
+        <LyricsSheet note={song.notes} sheet={displaySheet ?? undefined} />
       {/if}
     </div>
   </aside>
