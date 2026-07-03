@@ -78,6 +78,18 @@ Browse library / set list
 - [ ] Scale maps per tuning (scale degrees on each fretboard/fingerboard, SVG)
 - [ ] Song card (feel, form/roadmap, solo order, reference track)
 - [ ] Local template-switching UI (per device, never synced)
+- [ ] **Lyrics chord-progress sync** — live highlight of the current chord/verse in the
+      notes-and-lyrics slide-over, mirroring the chord-overlay's sweeping fill.
+      **Not started; backlog, no urgency.** Scoping note (2026-07-03): `chordTimeline`
+      (parsed from MusicXML `<harmony>`, has real bar/beat) and `chordpro` (the lyrics
+      file, chord tokens only know their char-offset in a line) are unlinked today, and
+      most charts repeat the same bars once per verse — a naive chord-sequence match
+      between the two breaks after verse 1. Cheapest real version: highlight the whole
+      current verse/section by counting repeat-passes (the transport already restamps on
+      repeats); reuses existing machinery, no new authoring. Precise per-chord sync needs
+      a one-time bar-alignment pass per song, most naturally added to the offline
+      song-processing tool, before the app-side highlighting (straightforward reuse of
+      the `ChordOverlay` pattern) is worth building.
 
 ### Milestone 4: Tighten When Needed
 **Goal:** Add precision and live intelligence only after real use proves it's needed.
