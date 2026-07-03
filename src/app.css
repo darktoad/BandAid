@@ -46,6 +46,19 @@ button:disabled { opacity: 0.4; cursor: default; }
   outline-offset: 2px;
 }
 
+/* Vestibular safety: collapse decorative motion (panel slide-ins, page-turn slides,
+   progress easing) when the OS asks for reduced motion. Svelte's JS transitions are
+   gated separately where they're created. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* alphaTab injects these cursor elements into the render surface but does not
    style them, so by default the playhead is invisible. Make the active bar a
    translucent wash and the beat a solid line so the moving playhead is visible. */
