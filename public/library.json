@@ -8,6 +8,7 @@
         "mode": "major",
         "tonalCenter": "C"
       },
+      "composer": "Traditional",
       "defaultTempoBpm": 88,
       "timeSignature": "2/4",
       "durationSec": 44,
@@ -32,6 +33,7 @@
         "mode": "major",
         "tonalCenter": "C"
       },
+      "composer": "Charlie Bowman",
       "defaultTempoBpm": 126,
       "timeSignature": "2/4",
       "durationSec": 31,
@@ -56,6 +58,7 @@
         "mode": "major",
         "tonalCenter": "G"
       },
+      "composer": "Traditional",
       "defaultTempoBpm": 108,
       "timeSignature": "4/4",
       "durationSec": 53,
@@ -81,6 +84,7 @@
         "mode": "major",
         "tonalCenter": "G"
       },
+      "composer": "Traditional",
       "defaultTempoBpm": 86,
       "timeSignature": "4/4",
       "durationSec": 84,

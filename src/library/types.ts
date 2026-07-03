@@ -27,6 +27,10 @@ export interface SongSummary {
   id: string;
   title: string;
   defaultKey: SongKey;
+  /** Curated composer/attribution credit for the masthead (e.g. "Traditional",
+   *  "Charlie Bowman"). Preferred over the score's credit, which export toolchains
+   *  often stamp with their own name. */
+  composer?: string;
   defaultTempoBpm: number;
   timeSignature: string;
   /** Played running time for one pass through the chart, in seconds (for set-length

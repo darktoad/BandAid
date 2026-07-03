@@ -86,12 +86,14 @@ describe('parseChordPro', () => {
 });
 
 describe('lineChunks', () => {
-  it('splits a line into chord-anchored chunks, with leading text first', () => {
+  it('anchors each chord to its first word and splits the rest into word chunks', () => {
     const line = parseChordPro('Oh [G]say can [C]you see').sections[0].lines[0];
     expect(lineChunks(line)).toEqual([
       { sym: '', text: 'Oh ' },
-      { sym: 'G', text: 'say can ' },
-      { sym: 'C', text: 'you see' },
+      { sym: 'G', text: 'say ' },
+      { sym: '', text: 'can ' },
+      { sym: 'C', text: 'you ' },
+      { sym: '', text: 'see' },
     ]);
   });
 
@@ -100,8 +102,34 @@ describe('lineChunks', () => {
     expect(lineChunks(line)).toEqual([{ sym: 'G', text: 'hello' }]);
   });
 
-  it('a chord-less line is one chunk with no symbol', () => {
-    const line = parseChordPro('plain').sections[0].lines[0];
-    expect(lineChunks(line)).toEqual([{ sym: '', text: 'plain' }]);
+  it('a chord-less line splits into word chunks with no symbols', () => {
+    const line = parseChordPro('plain words').sections[0].lines[0];
+    expect(lineChunks(line)).toEqual([
+      { sym: '', text: 'plain ' },
+      { sym: '', text: 'words' },
+    ]);
+  });
+
+  it('a long run under one chord becomes wrappable word chunks (regression: mobile clipping)', () => {
+    const line = parseChordPro('As she [D]glides along the woodlands').sections[0].lines[0];
+    const chunks = lineChunks(line);
+    expect(chunks).toEqual([
+      { sym: '', text: 'As ' },
+      { sym: '', text: 'she ' },
+      { sym: 'D', text: 'glides ' },
+      { sym: '', text: 'along ' },
+      { sym: '', text: 'the ' },
+      { sym: '', text: 'woodlands' },
+    ]);
+    // Lossless: chunk texts reassemble the exact original line.
+    expect(chunks.map((c) => c.text).join('')).toBe(line.text);
+  });
+
+  it('keeps a slot for an end-of-line chord', () => {
+    const line = parseChordPro('shore[G]').sections[0].lines[0];
+    expect(lineChunks(line)).toEqual([
+      { sym: '', text: 'shore' },
+      { sym: 'G', text: '' },
+    ]);
   });
 });
