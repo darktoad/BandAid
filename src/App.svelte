@@ -123,9 +123,9 @@
   {/key}
   {#if service && pickerOpen}
     <button class="scrim" onclick={closePicker} aria-label="Close song picker"></button>
-    <aside class="picker-panel" role="dialog" aria-modal="true" aria-label="Song picker">
+    <div class="picker-panel" role="dialog" aria-modal="true" aria-label="Song picker">
       <BrowseView {service} onopen={openSong} onclose={closePicker} activeId={current.id} {progress} />
-    </aside>
+    </div>
   {/if}
 {:else if service}
   <!-- First load: the integrated picker, full screen. -->

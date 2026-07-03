@@ -526,7 +526,7 @@
 
 {#if lyricsOpen}
   <button class="scrim" onclick={closeLyrics} aria-label="Close lyrics"></button>
-  <aside class="lyrics-panel" role="dialog" aria-modal="true" aria-label="Notes and lyrics">
+  <div class="lyrics-panel" role="dialog" aria-modal="true" aria-label="Notes and lyrics">
     <header class="lyrics-head">
       <h2 class="lyrics-title">{song.title}</h2>
       <button class="iconbtn" use:focusOnMount onclick={closeLyrics} aria-label="Close">
@@ -542,7 +542,7 @@
         <LyricsSheet note={song.notes} sheet={displaySheet ?? undefined} />
       {/if}
     </div>
-  </aside>
+  </div>
 {/if}
 
 <style>
