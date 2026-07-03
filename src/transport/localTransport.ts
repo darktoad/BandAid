@@ -46,7 +46,8 @@ export interface LocalTransportDeps {
 export interface LocalTransport {
   play(): void;
   pause(): void;
-  /** Tempo as a fraction of the song default (0.5–1.5); restamps if playing. */
+  /** Tempo as a fraction of the song default; clamped to [MIN_TEMPO_PCT,
+   *  maxTempoPercent(defaultTempoBpm)]. Restamps if playing. */
   setTempoPercent(pct: number): void;
   /** Move to a bar (from tap-a-bar or scrubber); restamps, preserves playing state. */
   seekToBar(bar: number): void;
@@ -57,12 +58,24 @@ export interface LocalTransport {
 }
 
 export const MIN_TEMPO_PCT = 0.5;
-// 150% headroom: jam tempos routinely run well past the practice-chart marking (a
-// 126 bpm chart at 150% reaches 189), while alphaTab's synth stays clean at 1.5×.
-export const MAX_TEMPO_PCT = 1.5;
+// A flat percentage cap gives a fast chart (say 126bpm) and a slow one (say 86bpm)
+// wildly different absolute headroom. Cap instead on absolute BPM: a fiddler pushing
+// a jam tempo cares about "how fast can this actually go", not "what percent of the
+// chart marking". MAX_TEMPO_PCT below is just an outer safety bound for degenerate
+// cases (e.g. a very slow future chart); MAX_TEMPO_BPM is what normally binds.
+export const MAX_TEMPO_PCT = 3;
+export const MAX_TEMPO_BPM = 200;
 const COUNT_IN_VOLUME = 1;
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+
+/** The highest tempo fraction allowed for a song with this written tempo: whichever
+ *  is smaller, the flat percentage ceiling or what it takes to reach MAX_TEMPO_BPM.
+ *  Exported so a tempo slider's `max` can match exactly what the transport allows. */
+export function maxTempoPercent(defaultTempoBpm: number): number {
+  if (defaultTempoBpm <= 0) return MAX_TEMPO_PCT;
+  return Math.min(MAX_TEMPO_PCT, MAX_TEMPO_BPM / defaultTempoBpm);
+}
 
 export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
   const { songId, defaultTempoBpm, measureCount, quarterNotesPerBar, renderer, store } = deps;
@@ -142,7 +155,7 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
     },
 
     setTempoPercent(next: number) {
-      pct = clamp(next, MIN_TEMPO_PCT, MAX_TEMPO_PCT);
+      pct = clamp(next, MIN_TEMPO_PCT, maxTempoPercent(defaultTempoBpm));
       renderer.setSpeed(pct);
       // Restamp from the current bar + now so position stays continuous (FR-3): the
       // elapsed-time anchor resets at the bar we're on, so projectBar sees no jump.

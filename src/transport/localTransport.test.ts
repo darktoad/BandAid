@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createLocalTransport, MIN_TEMPO_PCT, MAX_TEMPO_PCT, type TransportRenderer } from './localTransport';
+import { createLocalTransport, MIN_TEMPO_PCT, MAX_TEMPO_PCT, MAX_TEMPO_BPM, maxTempoPercent, type TransportRenderer } from './localTransport';
 import { createLocalSessionStore } from '../session/store';
 import { projectBar, quarterNotesPerBar } from '../playhead/projectBar';
 
@@ -116,11 +116,30 @@ describe('local transport (sole writer of Transport)', () => {
     expect(fake.calls.speed.at(-1)).toBe(0.7);
     expect(store.getState().transport!.tempo).toBeCloseTo(84);
 
-    transport.setTempoPercent(2.0); // over max
-    expect(fake.calls.speed.at(-1)).toBe(MAX_TEMPO_PCT);
+    transport.setTempoPercent(2.0); // over the per-song ceiling (200bpm / 120bpm)
+    expect(fake.calls.speed.at(-1)).toBeCloseTo(MAX_TEMPO_BPM / 120);
 
     transport.setTempoPercent(0.1); // under min
     expect(fake.calls.speed.at(-1)).toBe(MIN_TEMPO_PCT);
+  });
+
+  it('the ceiling is an absolute BPM cap, not a flat percentage: slow tunes get more headroom than fast ones', () => {
+    // Slow tune (86bpm, like Old Blue): the 200bpm ceiling allows well over 200%.
+    const slow = setup({ defaultTempoBpm: 86 });
+    slow.transport.setTempoPercent(10); // absurdly high input, well past any real ceiling
+    expect(slow.fake.calls.speed.at(-1)).toBeCloseTo(MAX_TEMPO_BPM / 86);
+
+    // Fast tune (126bpm, like East Tennessee Blues): same 200bpm ceiling caps lower.
+    const fast = setup({ defaultTempoBpm: 126 });
+    fast.transport.setTempoPercent(10);
+    expect(fast.fake.calls.speed.at(-1)).toBeCloseTo(MAX_TEMPO_BPM / 126);
+  });
+
+  it('maxTempoPercent exposes exactly the ceiling the transport enforces, for the slider to match', () => {
+    expect(maxTempoPercent(86)).toBeCloseTo(MAX_TEMPO_BPM / 86);
+    expect(maxTempoPercent(126)).toBeCloseTo(MAX_TEMPO_BPM / 126);
+    // A hypothetical very slow chart: the flat percentage ceiling wins instead.
+    expect(maxTempoPercent(40)).toBe(MAX_TEMPO_PCT);
   });
 
   it('changing tempo mid-playback keeps the position continuous (no jump)', () => {
