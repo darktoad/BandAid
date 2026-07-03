@@ -32,6 +32,11 @@
     showCharts: boolean;
   } = $props();
 
+  // Svelte's fly is JS-driven (inline styles), so the CSS reduced-motion kill-switch
+  // can't reach it — honor the preference here by zeroing the page-turn duration.
+  const reducedMotion =
+    typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   let n = $derived(Math.max(1, barsPerRow));
   // The row of bars containing the current bar, aligned to row boundaries.
   let pageStart = $derived(Math.floor((currentBar - 1) / n) * n + 1);
@@ -54,7 +59,7 @@
 
 <div class="strip" style={`--n:${n}`}>
   {#key pageStart}
-    <div class="page" in:fly={{ x: 40, duration: 220 }}>
+    <div class="page" in:fly={{ x: 40, duration: reducedMotion ? 0 : 220 }}>
       {#each bars as bar (bar)}
         <div class="bar" class:current={bar === currentBar}>
           <div class="chords">

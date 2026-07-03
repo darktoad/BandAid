@@ -17,7 +17,7 @@
 {#if sheet}
   {#each sheet.sections as section}
     <section class="sec">
-      {#if section.label}<h4 class="label">{section.label}</h4>{/if}
+      {#if section.label}<h3 class="label">{section.label}</h3>{/if}
       {#each section.lines as line}
         <div class="line">
           {#each lineChunks(line) as chunk}

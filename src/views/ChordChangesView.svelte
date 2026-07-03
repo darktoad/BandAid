@@ -235,7 +235,13 @@
     transport?.setCountIn(countIn);
   }
 
+  // Keyboard flow for the slide-over: focus lands on its close button when it opens
+  // (the action below) and returns to the opener when it closes.
+  let lyricsReturnFocus: HTMLElement | null = null;
+  const focusOnMount = (el: HTMLElement) => el.focus();
+
   async function openLyrics() {
+    lyricsReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     lyricsOpen = true;
     // The note renders immediately from the manifest; only lyrics need a fetch, and only once.
     if (!song.lyricsUrl || lyricsSheet || lyricsLoading) return;
@@ -251,7 +257,10 @@
       lyricsLoading = false;
     }
   }
-  const closeLyrics = () => (lyricsOpen = false);
+  const closeLyrics = () => {
+    lyricsOpen = false;
+    lyricsReturnFocus?.focus();
+  };
 
   function togglePlay() {
     if (!transport) return;
@@ -327,8 +336,14 @@
     onprogress?.(measureCount > 1 ? Math.min(1, Math.max(0, (b - 1) / (measureCount - 1))) : 0);
   }
 
-  // Spacebar toggles play/pause on laptop. Ignore when focused in a control.
+  // Spacebar toggles play/pause on laptop; Escape closes the topmost overlay.
+  // Ignore Space when focused in a control.
   function onKeydown(e: KeyboardEvent) {
+    if (e.code === 'Escape') {
+      if (lyricsOpen) closeLyrics();
+      else if (showMore) showMore = false;
+      return;
+    }
     if (e.code !== 'Space') return;
     const el = e.target as HTMLElement;
     if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'BUTTON')) return;
@@ -350,7 +365,7 @@
       <circle cx="4" cy="18" r="1.3" fill="currentColor" stroke="none" /><line x1="9" y1="18" x2="20" y2="18" />
     </svg>
   </button>
-  <span class="song">{song.title}</span>
+  <h1 class="song">{song.title}</h1>
   {#if song.notes || song.lyricsUrl}
     <button class="iconbtn" onclick={openLyrics} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -393,6 +408,7 @@
     oninput={onScrub}
     disabled={!transport}
     aria-label="Seek to bar"
+    aria-valuetext={`Bar ${bar} of ${measureCount}`}
   />
 </div>
 
@@ -404,13 +420,13 @@
     <div class="row">
       <span class="label">Title</span>
       <div class="chips">
-        <button class:active={showMasthead} onclick={toggleMasthead}>{showMasthead ? 'Shown' : 'Hidden'}</button>
+        <button class:active={showMasthead} aria-pressed={showMasthead} onclick={toggleMasthead}>{showMasthead ? 'Shown' : 'Hidden'}</button>
       </div>
     </div>
 
     <label class="row">
       <span class="label">Tempo{#if tempoModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
-      <input type="range" min="50" max="150" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} />
+      <input type="range" min="50" max="150" step="5" value={speedPct} oninput={onSpeed} disabled={!transport} aria-valuetext={`${speedPct}% of original, ${currentBpm} beats per minute`} />
       <span class="readout">{speedPct}% · {Math.round((tempoBpm * speedPct) / 100)} bpm</span>
       <button class="reset" onclick={resetTempo} disabled={!transport || !tempoModified} title="Reset to original tempo" aria-label="Reset to original tempo"><Icon name="reset" size={16} /></button>
     </label>
@@ -427,16 +443,16 @@
 
     <label class="row">
       <span class="label">Size</span>
-      <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} />
+      <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} aria-valuetext={`${scalePct}%`} />
       <span class="readout">{scalePct}%</span>
     </label>
 
     <div class="row">
       <span class="label">Audio</span>
       <div class="chips">
-        <button class:active={synth} onclick={toggleSynth} disabled={!controller}><Icon name="sound" size={16} /> Sound</button>
-        <button class:active={click} onclick={toggleClick} disabled={!controller}><Icon name="click" size={16} /> Click</button>
-        <button class:active={countIn} onclick={toggleCountIn} disabled={!transport}><Icon name="countin" size={16} /> Count-in</button>
+        <button class:active={synth} aria-pressed={synth} onclick={toggleSynth} disabled={!controller}><Icon name="sound" size={16} /> Sound</button>
+        <button class:active={click} aria-pressed={click} onclick={toggleClick} disabled={!controller}><Icon name="click" size={16} /> Click</button>
+        <button class:active={countIn} aria-pressed={countIn} onclick={toggleCountIn} disabled={!transport}><Icon name="countin" size={16} /> Count-in</button>
       </div>
     </div>
 
@@ -446,9 +462,9 @@
       <div class="row">
         <span class="label">My part</span>
         <div class="chips">
-          <button class:active={myPart === null} onclick={() => selectMyPart(null)}>Melody only</button>
+          <button class:active={myPart === null} aria-pressed={myPart === null} onclick={() => selectMyPart(null)}>Melody only</button>
           {#each overlayParts as t}
-            <button class:active={t.index === myPart} onclick={() => selectMyPart(t.index)}>{t.name}</button>
+            <button class:active={t.index === myPart} aria-pressed={t.index === myPart} onclick={() => selectMyPart(t.index)}>{t.name}</button>
           {/each}
         </div>
       </div>
@@ -457,13 +473,13 @@
     <div class="row">
       <span class="label">Chords</span>
       <div class="chips">
-        <button class:active={overlayOn} onclick={() => (overlayOn = !overlayOn)}>
+        <button class:active={overlayOn} aria-pressed={overlayOn} onclick={() => (overlayOn = !overlayOn)}>
           <Icon name="chords" size={16} /> Overlay
         </button>
-        <button class:active={showCharts} onclick={() => (showCharts = !showCharts)} disabled={!overlayOn}>Charts</button>
+        <button class:active={showCharts} aria-pressed={showCharts} onclick={() => (showCharts = !showCharts)} disabled={!overlayOn}>Charts</button>
         {#if overlayOn && showCharts}
-          <button class:active={chartInstrument === 'guitar'} onclick={() => (chartInstrument = 'guitar')}>Guitar</button>
-          <button class:active={chartInstrument === 'ukulele'} onclick={() => (chartInstrument = 'ukulele')}>Uke</button>
+          <button class:active={chartInstrument === 'guitar'} aria-pressed={chartInstrument === 'guitar'} onclick={() => (chartInstrument = 'guitar')}>Guitar</button>
+          <button class:active={chartInstrument === 'ukulele'} aria-pressed={chartInstrument === 'ukulele'} onclick={() => (chartInstrument = 'ukulele')}>Uke</button>
         {/if}
       </div>
     </div>
@@ -510,10 +526,10 @@
 
 {#if lyricsOpen}
   <button class="scrim" onclick={closeLyrics} aria-label="Close lyrics"></button>
-  <aside class="lyrics-panel">
+  <div class="lyrics-panel" role="dialog" aria-modal="true" aria-label="Notes and lyrics">
     <header class="lyrics-head">
-      <span>{song.title}</span>
-      <button class="iconbtn" onclick={closeLyrics} aria-label="Close">
+      <h2 class="lyrics-title">{song.title}</h2>
+      <button class="iconbtn" use:focusOnMount onclick={closeLyrics} aria-label="Close">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
       </button>
     </header>
@@ -526,7 +542,7 @@
         <LyricsSheet note={song.notes} sheet={displaySheet ?? undefined} />
       {/if}
     </div>
-  </aside>
+  </div>
 {/if}
 
 <style>
@@ -548,12 +564,16 @@
     padding: 0;
   }
   .iconbtn.active { border-color: var(--accent); color: var(--accent); }
-  /* Small, subtle song name — takes the slack so the pills/buttons stay put. */
+  /* Small, subtle song name — takes the slack so the pills/buttons stay put.
+     Semantically the page's h1 (screen-reader structure); visually unchanged. */
   .song {
     flex: 1 1 auto;
     min-width: 0;
+    margin: 0;
     color: var(--muted);
-    font-size: 0.82rem;
+    font-family: var(--font-display);
+    font-size: 0.88rem;
+    font-weight: 400;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -727,9 +747,9 @@
     gap: 0.5rem;
     padding: 0.7rem 0.9rem;
     border-bottom: 1px solid var(--line);
-    font-weight: 600;
     color: var(--ink);
   }
+  .lyrics-title { margin: 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; }
   .lyrics-body {
     flex: 1 1 auto;
     overflow-y: auto;

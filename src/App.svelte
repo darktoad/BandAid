@@ -97,18 +97,35 @@
     history.pushState(null, '', location.pathname + searchWithSong(location.search, s.id));
     showSong(s);
   }
+
+  // Keyboard flow for the picker slide-over: remember the opener, restore focus on
+  // close, and let Escape close it (its scrim is mouse-only).
+  let pickerReturnFocus: HTMLElement | null = null;
+  function openPicker() {
+    pickerReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    pickerOpen = true;
+  }
+  function closePicker() {
+    pickerOpen = false;
+    pickerReturnFocus?.focus();
+  }
+  function onKeydown(e: KeyboardEvent) {
+    if (e.code === 'Escape' && pickerOpen) closePicker();
+  }
 </script>
+
+<svelte:window onkeydown={onKeydown} />
 
 {#if current}
   <!-- Re-mount per song so the renderer reloads the new score. -->
   {#key current.id}
-    <ChordChangesView song={current} {store} onsongs={() => (pickerOpen = true)} onprogress={(f) => (progress = f)} />
+    <ChordChangesView song={current} {store} onsongs={openPicker} onprogress={(f) => (progress = f)} />
   {/key}
   {#if service && pickerOpen}
-    <button class="scrim" onclick={() => (pickerOpen = false)} aria-label="Close song picker"></button>
-    <aside class="picker-panel">
-      <BrowseView {service} onopen={openSong} onclose={() => (pickerOpen = false)} activeId={current.id} {progress} />
-    </aside>
+    <button class="scrim" onclick={closePicker} aria-label="Close song picker"></button>
+    <div class="picker-panel" role="dialog" aria-modal="true" aria-label="Song picker">
+      <BrowseView {service} onopen={openSong} onclose={closePicker} activeId={current.id} {progress} />
+    </div>
   {/if}
 {:else if service}
   <!-- First load: the integrated picker, full screen. -->
