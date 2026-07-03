@@ -5,6 +5,9 @@
   --muted: #a89c8c;
   --accent: #d98a3d;
   --line: #2e2823;
+  /* Identity type: the same serif the engraved sheet and masthead use (Georgia via
+     alphaTab chord font + .masthead). Titles carry it; controls stay system-ui. */
+  --font-display: Georgia, 'Times New Roman', serif;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color-scheme: dark;
 }

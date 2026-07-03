@@ -562,7 +562,8 @@
     min-width: 0;
     margin: 0;
     color: var(--muted);
-    font-size: 0.82rem;
+    font-family: var(--font-display);
+    font-size: 0.88rem;
     font-weight: 400;
     white-space: nowrap;
     overflow: hidden;
@@ -739,7 +740,7 @@
     border-bottom: 1px solid var(--line);
     color: var(--ink);
   }
-  .lyrics-title { margin: 0; font-size: 1rem; font-weight: 600; }
+  .lyrics-title { margin: 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; }
   .lyrics-body {
     flex: 1 1 auto;
     overflow-y: auto;

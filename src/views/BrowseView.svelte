@@ -116,7 +116,7 @@
     border-bottom: 1px solid var(--line);
     background: var(--panel);
   }
-  .brand { margin: 0; font-size: 1rem; font-weight: 700; letter-spacing: 0.02em; }
+  .brand { margin: 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: 0.02em; }
   .ptitle { color: var(--muted); font-size: 0.82rem; flex: 1 1 auto; }
   .iconbtn { flex: 0 0 auto; width: 2rem; height: 2rem; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
 
@@ -163,7 +163,7 @@
   .srow:hover { border-color: var(--accent); }
   /* The currently-open song. */
   .srow.active { border-color: var(--accent); background: rgba(217, 138, 61, 0.1); }
-  .stitle { font-weight: 600; }
+  .stitle { font-family: var(--font-display); font-weight: 600; }
   .now { color: var(--accent); font-size: 0.7rem; font-weight: 600; margin-left: 0.4rem; white-space: nowrap; }
   .smeta { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
   /* Live playback progress along the bottom of the active row. */
