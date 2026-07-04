@@ -1,10 +1,10 @@
 import type { Correction, NewCorrection, InboxFile, InboxEntry } from './types';
 
 export function makeCorrection(
-  input: NewCorrection,
+  input: NewCorrection & { status?: Correction['status'] },
   opts: { id?: string; now?: number } = {},
 ): Correction {
-  const { status, ...rest } = input as any;
+  const { status, ...rest } = input;
   return {
     ...rest,
     id: opts.id ?? crypto.randomUUID(),
