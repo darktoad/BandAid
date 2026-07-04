@@ -1,6 +1,11 @@
 # Multi-User (M2 "Join") — Review & Plan
 
 > Date: 2026-07-02 · Status: Review of existing design + proposed build sequence
+> **Updated 2026-07-03** — see the [addendum](#addendum-2026-07-03--re-verified-against-main-after-prs-2133)
+> at the bottom: Phase 0 is effectively done, decisions D1–D5 are captured in
+> [ADR-002](architecture-decisions/002-sync-stack.md), the hosted tier moved from
+> PartyKit to Cloudflare PartyServer, and PR #28 added a transport-stamping
+> distinction Phase 3 must design around.
 > Inputs: [vision.md](vision.md), [roadmap.md](roadmap.md),
 > [corrections-sync-substrate design](../superpowers/specs/2026-06-29-corrections-sync-substrate-design.md) (approved),
 > [corrections-sync-substrate plan](../superpowers/plans/2026-06-29-corrections-sync-substrate.md) (written, 0/8 tasks executed),
@@ -189,3 +194,85 @@ Ordered inside the phase by risk:
 | D3 | Offline-join posture (G4) | v1: internet required to *join*; document; revisit LAN signaling only if it bites |
 | D4 | PartyKit deploy ownership | David's Cloudflare account; host URL via `VITE_PARTYKIT_HOST` build env (per plan Task 6) |
 | D5 | `inbox.json` in git? | Gitignore it (plan already does); the audit trail is the resolved pins in the doc |
+
+> **2026-07-03:** D1–D5 are now decided and captured in
+> [ADR-002](architecture-decisions/002-sync-stack.md), with two material updates:
+> the hosted tier (D1/D4) is **Cloudflare PartyServer (`y-partyserver`)**, not the
+> legacy PartyKit platform, and the D2 conflict rule compares a dedicated `issuedAt`
+> press time, **not** `startTimestamp` (which `play()` deliberately stamps in the
+> future for count-in) — see the addendum below.
+
+---
+
+## Addendum (2026-07-03) — re-verified against main after PRs #21–#33
+
+The review above was written against PR #20. Everything merged since was re-checked for
+multi-user impact; the store seam, `SongSettings` shape, and local store are unchanged,
+and all four gaps (G1–G4) still stand. What changed:
+
+### Phase 0 is done
+
+- **PR #20 merged** (transpose/tempo, post ear-check). ✓
+- **ISSUE-001 (lyric clipping) fixed** by #27 — lyric lines now wrap at word boundaries. ✓
+- **ISSUE-004 shipped as designed** by #24: `?song=<id>` deep links + resume via
+  `src/library/urlState.ts`, written explicitly so `?band=<code>` rides the same
+  plumbing (param helpers preserve unrelated params). ✓
+- **ADR-002 captured** (2026-07-03) with the G2/G4 decisions and D1–D5. ✓
+
+Phase 1 (the corrections-substrate plan) is unblocked. The store swap point moved one
+line (`App.svelte:12`); the plan's Task 6 wiring instructions still apply, amended for
+the deep-link code now present (see the plan's own 2026-07-03 amendment).
+
+### R1 resolved — PartyKit → Cloudflare PartyServer
+
+PartyKit was acquired by Cloudflare (April 2024). The legacy `y-partykit` package and
+`partykit.io` deploy path the spec/plan named are superseded by **`partyserver` /
+`y-partyserver`** (still releasing as of mid-2026): a `YServer` Durable Object deployed
+to David's Cloudflare account with `wrangler`, client provider from
+`y-partyserver/provider` (same constructor shape). The provider interface absorbs this
+exactly as intended; plan Tasks 5–8 are amended in place. Env var renamed
+`VITE_PARTYKIT_HOST` → `VITE_SYNC_HOST`.
+
+### New Phase 3 design inputs (fold into the Phase 3 spec)
+
+1. **Intent vs anchor stamps (sharpens G1/G2; from PR #28).** The transport now
+   restamps *mid-playback* whenever the cursor moves non-sequentially (repeat barlines,
+   volta jumps) — a mechanical projection re-anchor, not a user action. In a session of
+   N, every device's renderer hits the same jumps itself, so **anchor stamps must stay
+   local**; only **intent stamps** (play/pause/seek/tempo, incl. paused tap-a-bar) sync.
+   Otherwise N devices write near-identical transports at every repeat, injecting their
+   mutual clock skew into each other's projections. The `stamp()` call in
+   `localTransport.ts` needs an origin distinction — this is a seam change the original
+   "swap the store" story didn't include. Decided in ADR-002 D2.
+2. **Count-in future-stamps.** `play()` stamps `startTimestamp: now() + countInMs` so
+   projection holds through the local count-in. Two consequences: (a) `startTimestamp`
+   is therefore *not* a press time and must never be used for conflict ordering —
+   ADR-002 D2 puts a dedicated `issuedAt` on intent writes instead; (b) a follower that
+   also drives its own audio must decide whether to honor the writer's count-in offset
+   or start at the stamped instant — and count-in is a local, never-synced pref. Phase
+   3 spec must pick the follower audio policy (recommend: followers seek/play with
+   count-in *off*, trusting the stamp).
+3. **Remote song switch must integrate with the new history/resume plumbing (#24).**
+   `App.svelte` now owns `pushState`/`popstate`/`bandaid.lastSong.v1`. A remote
+   `currentSongId` apply should reuse the rendering of `showSong()` but with
+   `history.replaceState`, not `pushState` — Back should not walk through every song
+   change a bandmate made. Caveat: `showSong()` as written also calls
+   `store.setCurrentSong()` (it is "the only write to currentSongId"), so reusing it
+   verbatim would write the remote value straight back into the shared doc — the same
+   ping-pong item 4 forbids for tempo. Split it (render + `saveLastSong` vs the store
+   write) or suppress the write via the echo guard.
+4. **Clamp on apply, never write back (#33).** Tempo ceilings are per-song and absolute
+   (`maxTempoPercent`); a remote `tempoPct` outside the local range is clamped locally
+   and **not** re-persisted, to avoid write ping-pong. (Charts are identical across
+   devices today, so this is belt-and-braces.)
+5. **Migration inventory is exactly one key.** Only `bandaid.songSettings.v1` folds
+   into the doc. `bandaid.volume`, `bandaid.chordOverlay`, `bandaid.showMasthead`,
+   `bandaid.lastSong.v1`, `bandaid.lastList`, and the count-in pref are deliberately
+   per-device — enumerated in ADR-002 so no future pass "helpfully" syncs them.
+
+### Non-impacts (checked, fine)
+
+Soundfont layering (#31), overlay scaling (#29), design pass (#25), chord-name collision
+fix (#26), accidental-root diagrams (#21), AudioWorklet bundling (#17/#30) — all local
+presentation/audio. The M3 lyrics chord-progress backlog note (#34) plans to *count
+repeat passes* off the restamp stream; keeping anchor stamps local-only preserves that.

@@ -41,7 +41,7 @@ None. No public users, no accounts, no sharing beyond the band.
 - **Sync tightness:** Playhead drift between devices stays tight enough to confidently follow the fiddle. (Exact tolerance TBD — quantify a millisecond/bar budget during eng review; "good enough to follow-along" is the bar, not sample-accuracy.)
 - **Hands-free operability:** The non-techy fiddle player can control her view, tempo, and shared settings during play without assistance.
 - **Cross-platform:** Runs on iPhone, Android phone, iPad, and laptop.
-- **Offline-capable:** Works in the same room without depending on an internet connection wherever possible.
+- **Offline-capable:** Works in the same room without depending on an internet connection wherever possible. *(Refined in [ADR-002](architecture-decisions/002-sync-stack.md) D3: solo practice, local durability, and file export/import are fully offline; joining a live session requires internet in v1.)*
 - **Real-world adoption:** The band actually runs a rehearsal (and an upcoming gig) on it, and the struggling bandmate learns the songs faster using solo-practice mode.
 
 ## Constraints & Non-Goals
@@ -91,7 +91,7 @@ _These are initial ideas — prioritize and detail them using `/define-roadmap` 
 
 The user explicitly wants constraints and technical choices captured as decisions (use `/decide`):
 - **Renderer:** Soundslice embed (path A, fastest, reuses owned arrangements, soft-seek drift correction) vs. alphaTab custom (path B, tightest lock, most build). Brief expects a hybrid end state (path C).
-- **Sync stack:** Yjs + Trystero / y-webrtc (P2P) vs. a ~30-line LAN WebSocket relay for pure same-room (simpler, offline by default). The "no internet required, same-room" constraint may favor the LAN relay for v1.
+- **Sync stack:** ✅ Decided 2026-07-03 — [ADR-002](architecture-decisions/002-sync-stack.md): Yjs + layered providers (IndexedDB / Cloudflare PartyServer / y-webrtc / file export). Posture on the offline constraint: solo practice and file exchange are fully offline, but *joining* a live session requires internet in v1 (ADR-002 D3) — LAN signaling is a revisit-if-it-bites, not a v1 build.
 - **Drift tolerance:** quantify acceptable playhead drift.
 - **Setup-friction target:** quantify "easy to join a session."
 
