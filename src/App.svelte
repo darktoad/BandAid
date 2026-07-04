@@ -1,15 +1,31 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import BrowseView from './views/BrowseView.svelte';
   import ChordChangesView from './views/ChordChangesView.svelte';
-  import { createLocalSessionStore } from './session/store';
+  import { createSyncedSessionStore } from './sync/syncedSessionStore';
+  import { attachProviders } from './sync/providers/attach';
+  import { indexeddbProvider } from './sync/providers/indexeddb';
+  import { webrtcProvider } from './sync/providers/webrtc';
+  import { partyserverProvider } from './sync/providers/partyserver';
+  import { readBandCode } from './sync/bandCode';
   import { createLibraryService, type LibraryService } from './library/libraryService';
   import type { SongSummary, SongKey } from './library/types';
   import { songFromSearch, searchWithSong } from './library/urlState';
 
-  // The app owns the session (a session of one in M1). Browsing writes currentSongId
-  // (the seam to the renderer); in M2 the same store becomes a CRDT with no change here.
-  const store = createLocalSessionStore();
+  // Synced store over a Yjs doc. With a band code we attach transports; without one
+  // the same store works fully local (IndexedDB only, no network).
+  const store = createSyncedSessionStore();
+  const bandCode = readBandCode(typeof location !== 'undefined' ? location.search : '');
+  let detach: (() => void) | undefined;
+  if (bandCode) {
+    const host = import.meta.env.VITE_SYNC_HOST;
+    const factories = [indexeddbProvider, webrtcProvider, ...(host ? [partyserverProvider(host)] : [])];
+    detach = attachProviders(store.doc, bandCode, factories);
+  } else {
+    // Local-only durability even without a band: persist to IndexedDB.
+    detach = attachProviders(store.doc, 'solo', [indexeddbProvider]);
+  }
+  onDestroy(() => detach?.());
 
   let service = $state<LibraryService | undefined>(undefined);
   let loadError = $state<string | null>(null);
