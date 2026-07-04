@@ -2,11 +2,25 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Amended 2026-07-03** (before execution; 0/8 tasks were done):
+> 1. **PartyKit → Cloudflare PartyServer.** PartyKit was acquired by Cloudflare; the
+>    maintained packages are `partyserver` + `y-partyserver` (client provider:
+>    `y-partyserver/provider`). Tasks 5–8 below are updated in place; the deploy is
+>    `wrangler deploy` to David's Cloudflare account, and the env var is
+>    **`VITE_SYNC_HOST`** (a `*.workers.dev` host). See
+>    [ADR-002](../../project/architecture-decisions/002-sync-stack.md).
+> 2. **App.svelte has grown since this plan was written** (deep links + resume, PR #24).
+>    Task 6's wiring instructions are updated to merge with, not replace, that code.
+> 3. **Migration scope:** only `bandaid.songSettings.v1` migrates into the doc.
+>    `bandaid.volume`, `bandaid.chordOverlay`, `bandaid.showMasthead`,
+>    `bandaid.lastSong.v1`, `bandaid.lastList` are deliberately per-device — do not sync
+>    them (ADR-002).
+
 **Goal:** Build a Yjs CRDT document per band room, with layered convergent transports, that carries song "corrections" durably across devices and exposes the existing `SessionStore` seam — plus the headless pull/resolve scripts that feed a Claude session editing the MusicXML.
 
-**Architecture:** One `Y.Doc` per band code holds `corrections` / `songSettings` / `session` maps. Transport *providers* (local `y-indexeddb`, durable PartyKit, optional `y-webrtc`, plus export/import) all bind to that one doc and converge because it is a CRDT. `createSyncedSessionStore()` implements today's `SessionStore` interface over the doc so app consumers are unchanged; it degrades to local-only with no band code.
+**Architecture:** One `Y.Doc` per band code holds `corrections` / `songSettings` / `session` maps. Transport *providers* (local `y-indexeddb`, durable PartyServer, optional `y-webrtc`, plus export/import) all bind to that one doc and converge because it is a CRDT. `createSyncedSessionStore()` implements today's `SessionStore` interface over the doc so app consumers are unchanged; it degrades to local-only with no band code.
 
-**Tech Stack:** Svelte 5 (runes) + Vite 6 + TypeScript 5.7 (strict) + Vitest. Yjs (`yjs`, `y-indexeddb`, `y-webrtc`, `y-partykit`), PartyKit server (Cloudflare). Static SPA on GitHub Pages; the only server-side piece is the external PartyKit party.
+**Tech Stack:** Svelte 5 (runes) + Vite 6 + TypeScript 5.7 (strict) + Vitest. Yjs (`yjs`, `y-indexeddb`, `y-webrtc`, `y-partyserver`), PartyServer (`partyserver`, a Cloudflare Durable Object deployed with `wrangler`). Static SPA on GitHub Pages; the only server-side piece is the external PartyServer worker.
 
 ## Global Constraints
 
@@ -28,11 +42,11 @@
 - `src/sync/identity.ts` — `loadIdentity`, `setDisplayName` over an injectable `Storage`.
 - `src/sync/doc.ts` — `createBandDoc`, corrections/songSettings accessors, `migrateSongSettings`, `exportUpdate`/`importUpdate`.
 - `src/sync/providers/types.ts` — `SyncProvider` contract + `makeProviders` factory inputs.
-- `src/sync/providers/{indexeddb,partykit,webrtc}.ts` — thin wrappers (browser-only).
+- `src/sync/providers/{indexeddb,partyserver,webrtc}.ts` — thin wrappers (browser-only).
 - `src/sync/syncedSessionStore.ts` — `createSyncedSessionStore` implementing `SessionStore` + corrections/identity over the doc.
 - `src/session/store.ts` — unchanged (kept as the no-band local fallback).
 - `src/App.svelte` — read band code (`?band=` / localStorage), construct the synced store, fall back to local.
-- `party/corrections.ts`, `partykit.json` — the PartyKit server (deploy is a manual step).
+- `party/index.ts`, `wrangler.jsonc` — the PartyServer worker (deploy is a manual step).
 - `scripts/corrections-pull.ts`, `scripts/corrections-resolve.ts` — headless Node tooling.
 - `package.json` — new deps + `corrections:pull` / `corrections:resolve` scripts.
 
@@ -717,11 +731,11 @@ git commit -m "feat: synced session store over Yjs doc (local mode)"
 ## Task 5: Provider interface + transport wrappers
 
 **Files:**
-- Modify: `package.json` (add `y-indexeddb`, `y-webrtc`, `y-partykit`)
+- Modify: `package.json` (add `y-indexeddb`, `y-webrtc`, `y-partyserver`)
 - Create: `src/sync/providers/types.ts`
 - Create: `src/sync/providers/indexeddb.ts`
 - Create: `src/sync/providers/webrtc.ts`
-- Create: `src/sync/providers/partykit.ts`
+- Create: `src/sync/providers/partyserver.ts`
 - Create: `src/sync/providers/attach.ts`
 - Test: `src/sync/providers/attach.test.ts`
 
@@ -731,11 +745,11 @@ git commit -m "feat: synced session store over Yjs doc (local mode)"
   - `interface SyncProvider { name: string; disconnect(): void }`
   - `type ProviderFactory = (doc: Y.Doc, bandCode: string) => SyncProvider`
   - `attachProviders(doc: Y.Doc, bandCode: string, factories: ProviderFactory[]): () => void` — builds all providers, returns a disconnect-all cleanup. Tolerates a factory that throws (logs + skips) so one bad transport never blocks the rest.
-  - `indexeddbProvider`, `webrtcProvider`, `partykitProvider(host: string): ProviderFactory`
+  - `indexeddbProvider`, `webrtcProvider`, `partyserverProvider(host: string): ProviderFactory`
 
 - [ ] **Step 1: Add dependencies**
 
-Run: `npm install y-indexeddb y-webrtc y-partykit`
+Run: `npm install y-indexeddb y-webrtc y-partyserver`
 Expected: the three packages appear under `dependencies`.
 
 - [ ] **Step 2: Write the failing test (provider-agnostic orchestration)**
@@ -836,17 +850,23 @@ export const webrtcProvider: ProviderFactory = (doc, bandCode) => {
 ```
 
 ```typescript
-// src/sync/providers/partykit.ts
-import YPartyKitProvider from 'y-partykit/provider';
+// src/sync/providers/partyserver.ts
+import YProvider from 'y-partyserver/provider';
 import type { ProviderFactory } from './types';
-/** host: the deployed PartyKit host, e.g. "bandaid.<user>.partykit.dev". */
-export function partykitProvider(host: string): ProviderFactory {
+/** host: the deployed worker host, e.g. "bandaid-sync.<account>.workers.dev". */
+export function partyserverProvider(host: string): ProviderFactory {
   return (doc, bandCode) => {
-    const p = new YPartyKitProvider(host, bandCode, doc, { party: 'corrections' });
-    return { name: 'partykit', disconnect: () => p.disconnect() };
+    // `party` must match the Durable Object binding name, kebab-cased
+    // (binding `Corrections` → party `corrections`, Task 7).
+    const p = new YProvider(host, bandCode, doc, { party: 'corrections' });
+    return { name: 'partyserver', disconnect: () => p.disconnect() };
   };
 }
 ```
+
+If `YProvider`'s option shape differs in the installed version (its options follow
+PartySocket's), adjust to the current `y-partyserver` README — keep the factory
+signature and returned `SyncProvider` exactly as above.
 
 - [ ] **Step 6: Run tests + type-check**
 
@@ -857,7 +877,7 @@ Expected: PASS (2 tests), 0 type errors. (The concrete wrappers are import-only 
 
 ```bash
 git add package.json package-lock.json src/sync/providers/
-git commit -m "feat: sync provider interface + indexeddb/webrtc/partykit wrappers"
+git commit -m "feat: sync provider interface + indexeddb/webrtc/partyserver wrappers"
 ```
 
 ---
@@ -868,7 +888,7 @@ git commit -m "feat: sync provider interface + indexeddb/webrtc/partykit wrapper
 - Create: `src/sync/bandCode.ts`
 - Test: `src/sync/bandCode.test.ts`
 - Modify: `src/App.svelte` (store construction)
-- Modify: `.env.example` (Create) — document `VITE_PARTYKIT_HOST`
+- Modify: `.env.example` (Create) — document `VITE_SYNC_HOST`
 
 **Interfaces:**
 - Consumes: `createSyncedSessionStore` (Task 4), `attachProviders` + provider factories (Task 5).
@@ -947,14 +967,19 @@ Expected: PASS (2 tests).
 
 - [ ] **Step 5: Wire the store in `App.svelte`**
 
-Replace the store construction at the top of `src/App.svelte`:
+Replace the store construction (the `createLocalSessionStore()` line and its import,
+currently `App.svelte:5,12`) with the block below. **Keep everything else** — since PR
+#24 the file also owns deep-link/resume plumbing (`songFromSearch`/`searchWithSong`
+imports, `onMount` boot pick, `popstate` handler, `bandaid.lastSong.v1`); none of that
+changes. `readBandCode` reads `?band=` off the same `location.search` the song param
+uses; the `urlState.ts` helpers preserve unrelated params, so the two coexist.
 
 ```svelte
   import { createSyncedSessionStore } from './sync/syncedSessionStore';
   import { attachProviders } from './sync/providers/attach';
   import { indexeddbProvider } from './sync/providers/indexeddb';
   import { webrtcProvider } from './sync/providers/webrtc';
-  import { partykitProvider } from './sync/providers/partykit';
+  import { partyserverProvider } from './sync/providers/partyserver';
   import { readBandCode } from './sync/bandCode';
   import { onDestroy } from 'svelte';
 
@@ -964,8 +989,8 @@ Replace the store construction at the top of `src/App.svelte`:
   const bandCode = readBandCode(typeof location !== 'undefined' ? location.search : '');
   let detach: (() => void) | undefined;
   if (bandCode) {
-    const host = import.meta.env.VITE_PARTYKIT_HOST;
-    const factories = [indexeddbProvider, webrtcProvider, ...(host ? [partykitProvider(host)] : [])];
+    const host = import.meta.env.VITE_SYNC_HOST;
+    const factories = [indexeddbProvider, webrtcProvider, ...(host ? [partyserverProvider(host)] : [])];
     detach = attachProviders(store.doc, bandCode, factories);
   } else {
     // Local-only durability even without a band: persist to IndexedDB.
@@ -974,14 +999,14 @@ Replace the store construction at the top of `src/App.svelte`:
   onDestroy(() => detach?.());
 ```
 
-Remove the old `import { createLocalSessionStore }` line and its `const store = createLocalSessionStore();`. Everything else in `App.svelte` is unchanged because `store` still satisfies `SessionStore`.
+(`onMount` is already imported; add `onDestroy` alongside it.)
 
 - [ ] **Step 6: Document the env var**
 
 ```bash
 # .env.example
-# Deployed PartyKit host for durable correction sync (omit for local/P2P-only).
-VITE_PARTYKIT_HOST=bandaid.<your-account>.partykit.dev
+# Deployed PartyServer worker host for durable correction sync (omit for local/P2P-only).
+VITE_SYNC_HOST=bandaid-sync.<your-account>.workers.dev
 ```
 
 - [ ] **Step 7: Verify build + type-check + run**
@@ -999,65 +1024,82 @@ git commit -m "feat: wire synced store + providers into App with local fallback"
 
 ---
 
-## Task 7: PartyKit server + deploy config
+## Task 7: PartyServer worker + deploy config
 
 **Files:**
-- Modify: `package.json` (add `partykit` devDependency)
-- Create: `party/corrections.ts`
-- Create: `partykit.json`
+- Modify: `package.json` (add `partyserver` dependency, `wrangler` devDependency)
+- Create: `party/index.ts`
+- Create: `wrangler.jsonc`
 
 **Interfaces:**
-- Consumes: nothing in-repo (runtime is `y-partykit/server`).
-- Produces: a deployed party named `corrections` that persists each room's Yjs doc.
+- Consumes: `y-partyserver` (already a dependency from Task 5).
+- Produces: a deployed Cloudflare worker whose `Corrections` Durable Object (party
+  `corrections`) syncs and persists each room's Yjs doc — the room name is the band code.
 
-- [ ] **Step 1: Add the dev dependency**
+- [ ] **Step 1: Add the dependencies**
 
-Run: `npm install -D partykit`
-Expected: `partykit` under `devDependencies`.
+Run: `npm install partyserver && npm install -D wrangler`
+Expected: `partyserver` under `dependencies`, `wrangler` under `devDependencies`.
 
-- [ ] **Step 2: Write the party server**
+- [ ] **Step 2: Write the worker**
 
 ```typescript
-// party/corrections.ts
-import { onConnect } from 'y-partykit';
-import type * as Party from 'partykit/server';
+// party/index.ts
+import { routePartykitRequest } from 'partyserver';
+import { YServer } from 'y-partyserver';
 
-export default class CorrectionsServer implements Party.Server {
-  constructor(readonly room: Party.Room) {}
-  // y-partykit handles Yjs sync + durable persistence per room (the band code).
-  onConnect(conn: Party.Connection) {
-    return onConnect(conn, this.room, { persist: { mode: 'snapshot' } });
+// One Durable Object instance per room (= band code); YServer speaks the Yjs sync
+// protocol and keeps the doc. Binding name `Corrections` → client party `corrections`.
+export class Corrections extends YServer {}
+
+export default {
+  async fetch(request: Request, env: unknown): Promise<Response> {
+    return (
+      (await routePartykitRequest(request, env as Record<string, unknown>)) ??
+      new Response('Not Found', { status: 404 })
+    );
   }
-}
+};
 ```
 
-- [ ] **Step 3: Write the PartyKit config**
+- [ ] **Step 3: Write the wrangler config**
 
-```json
+```jsonc
+// wrangler.jsonc
 {
-  "$schema": "https://www.partykit.io/schema.json",
-  "name": "bandaid",
-  "parties": { "corrections": "party/corrections.ts" },
-  "main": "party/corrections.ts"
+  "name": "bandaid-sync",
+  "main": "party/index.ts",
+  "compatibility_date": "2026-07-01",
+  "durable_objects": {
+    "bindings": [{ "name": "Corrections", "class_name": "Corrections" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Corrections"] }]
 }
 ```
 
-- [ ] **Step 4: Verify it builds locally**
+- [ ] **Step 4: Verify it runs locally**
 
-Run: `npx partykit dev`
-Expected: a local party boots on `127.0.0.1:1999` with no errors. Stop it with Ctrl-C. (No automated test — this is an external runtime; the in-app provider exercises it.)
+Run: `npx wrangler dev`
+Expected: the worker boots locally with no errors; a `YProvider` pointed at the printed
+localhost host syncs a doc. **Also verify persistence:** connect, write a correction,
+restart `wrangler dev`, reconnect — the doc should still hold it. If `YServer` does not
+persist across restarts out of the box in the installed version, wire its
+`onLoad`/`onSave` hooks to the Durable Object storage per the current `y-partyserver`
+README before proceeding. Stop with Ctrl-C. (No automated test — external runtime; the
+in-app provider exercises it.)
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add package.json package-lock.json party/corrections.ts partykit.json
-git commit -m "feat: PartyKit corrections server + config"
+git add package.json package-lock.json party/index.ts wrangler.jsonc
+git commit -m "feat: PartyServer corrections worker + wrangler config"
 ```
 
 - [ ] **Step 6: Deploy (manual, one-time — documented, not automated)**
 
-Run (the human, with their Cloudflare/PartyKit login): `npx partykit deploy`
-Then set `VITE_PARTYKIT_HOST` in the deploy environment to the printed host. This is an operator step; the plan does not automate account-bound deploys.
+Run (the human, logged into their Cloudflare account): `npx wrangler deploy`
+Then set `VITE_SYNC_HOST` in the deploy environment to the printed `*.workers.dev` host.
+This is an operator step; the plan does not automate account-bound deploys.
 
 ---
 
@@ -1070,7 +1112,7 @@ Then set `VITE_PARTYKIT_HOST` in the deploy environment to the printed host. Thi
 - Modify: `package.json` (scripts + `tsx` devDependency)
 
 **Interfaces:**
-- Consumes: `serializeInbox` (Task 1), `createBandDoc`/`importUpdate`/`listCorrections`/`setCorrectionStatus`/`exportUpdate` (Task 3), `YPartyKitProvider` (Task 5 dep).
+- Consumes: `serializeInbox` (Task 1), `createBandDoc`/`importUpdate`/`listCorrections`/`setCorrectionStatus`/`exportUpdate` (Task 3), `YProvider` from `y-partyserver/provider` (Task 5 dep).
 - Produces: `npm run corrections:pull -- <bandCode>` writes `corrections/inbox.json`; `npm run corrections:resolve -- <id...>` flips pins to `applied`. A pure `buildInbox(doc, currentSongVersion, now)` is extracted for testing.
 
 - [ ] **Step 1: Add the runner dependency + scripts**
@@ -1133,12 +1175,12 @@ export function buildInbox(doc: Y.Doc, currentSongVersion: string, now: number):
 async function main() {
   const bandCode = process.argv[2];
   if (!bandCode) throw new Error('usage: corrections:pull -- <bandCode>');
-  const host = process.env.VITE_PARTYKIT_HOST;
-  if (!host) throw new Error('set VITE_PARTYKIT_HOST to the deployed party host');
+  const host = process.env.VITE_SYNC_HOST;
+  if (!host) throw new Error('set VITE_SYNC_HOST to the deployed worker host');
 
-  const { default: YPartyKitProvider } = await import('y-partykit/provider');
+  const { default: YProvider } = await import('y-partyserver/provider');
   const doc = new Y.Doc();
-  const provider = new YPartyKitProvider(host, bandCode, doc, { party: 'corrections', connect: true });
+  const provider = new YProvider(host, bandCode, doc, { party: 'corrections', connect: true });
   await new Promise<void>((resolve) => provider.once('synced', () => resolve()));
 
   const songVersion = process.env.BUILD_ID ?? 'unknown';
@@ -1169,12 +1211,12 @@ async function main() {
   const ids = process.argv.slice(2);
   if (ids.length === 0) throw new Error('usage: corrections:resolve -- <id> [id...]');
   const bandCode = process.env.BAND_CODE;
-  const host = process.env.VITE_PARTYKIT_HOST;
-  if (!bandCode || !host) throw new Error('set BAND_CODE and VITE_PARTYKIT_HOST');
+  const host = process.env.VITE_SYNC_HOST;
+  if (!bandCode || !host) throw new Error('set BAND_CODE and VITE_SYNC_HOST');
 
-  const { default: YPartyKitProvider } = await import('y-partykit/provider');
+  const { default: YProvider } = await import('y-partyserver/provider');
   const doc = new Y.Doc();
-  const provider = new YPartyKitProvider(host, bandCode, doc, { party: 'corrections', connect: true });
+  const provider = new YProvider(host, bandCode, doc, { party: 'corrections', connect: true });
   await new Promise<void>((resolve) => provider.once('synced', () => resolve()));
 
   for (const id of ids) setCorrectionStatus(doc, id, 'applied');
@@ -1219,7 +1261,7 @@ git commit -m "feat: headless corrections pull + resolve scripts"
 - Provider interface (swappable) → Task 5. ✓
 - Corrections data shape (anchor/status/author/songVersion) → Task 1. ✓
 - Local durability (`y-indexeddb`) + offline → Task 5 + Task 6 fallback. ✓
-- Durable hosted (PartyKit) → Tasks 5, 7. ✓
+- Durable hosted (PartyServer; spec said PartyKit, superseded per the 2026-07-03 amendment + ADR-002) → Tasks 5, 7. ✓
 - P2P (`y-webrtc`) → Task 5. ✓
 - Export/import tier → `exportUpdate`/`importUpdate` (Task 3); in-app export button is sub-project B (UX). ✓ (data path covered)
 - Band code join → Task 6. ✓
@@ -1230,7 +1272,7 @@ git commit -m "feat: headless corrections pull + resolve scripts"
 - Pull/resolve loop → Task 8. ✓
 - Staleness via `songVersion` → Tasks 1 (`isStale`) + 8 (inbox `stale`). ✓
 
-**Placeholder scan:** No TBD/TODO; every code step is complete. The PartyKit *deploy* (Task 7 Step 6) is intentionally a manual operator action (account-bound), clearly labeled, not a code placeholder.
+**Placeholder scan:** No TBD/TODO; every code step is complete. The worker *deploy* (Task 7 Step 6) is intentionally a manual operator action (account-bound), clearly labeled, not a code placeholder.
 
 **Type consistency:** `Correction`/`NewCorrection`/`InboxFile` defined in Task 1 and used unchanged in Tasks 3/4/8. Doc accessors named identically across Tasks 3, 4, 8 (`listCorrections`, `putCorrection`, `setCorrectionStatus`, `exportUpdate`, `importUpdate`). `StorageLike` defined in Task 2 and reused in Tasks 3/4/6. `ProviderFactory`/`SyncProvider` defined in Task 5 and used in Task 6.
 

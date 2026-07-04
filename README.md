@@ -174,8 +174,9 @@ Full detail: [docs/project/roadmap.md](docs/project/roadmap.md).
 1. Confirm playback in a real browser (the one open item above).
 2. Finish `renderer-playhead` Task 4: tap-a-bar seek, cursor-init from `projectBar`.
 3. `/impl-feature chord-changes-view` then `local-transport`, then `library-browsing`.
-4. Capture the two pending ADRs with `/decide`: **003** (Svelte/TS/Vite stack, already
-   chosen) and **002** (sync-stack: P2P Yjs+Trystero vs a LAN relay, needed before M2).
+4. ✅ **ADR-002 captured** ([sync stack](docs/project/architecture-decisions/002-sync-stack.md):
+   Yjs + Cloudflare PartyServer + y-webrtc, 2026-07-03). Still pending via `/decide`:
+   **003** (Svelte/TS/Vite stack, already chosen — low urgency).
 
 Resume a session with `/context-restore` (the latest checkpoint summarizes everything).
 

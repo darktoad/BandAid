@@ -63,7 +63,7 @@ Browse library / set list
 **Goal:** Turn a session of one into a session of N — no host, loose follow-along — so the band can play together.
 **Features:**
 - [ ] Real multiplayer join over the chosen transport (see Decisions)
-- [ ] Shared logical state (which song, transport, key, section) — multi-writer, last-write-wins
+- [ ] Shared logical state (which song, transport, key, section) — multi-writer; conflict rule per [ADR-002](architecture-decisions/002-sync-stack.md) D2 (intent stamps sync with a dedicated `issuedAt`, newest press wins on apply; mechanical re-anchor stamps stay local)
 - [ ] Presence (who's in the session)
 - [ ] Late-joiner state transfer (pull current state from any peer)
 - [ ] Shared set list (any player can advance/select)
@@ -122,7 +122,7 @@ Live detection (M4) ──→ "one device listens & syncs" (M4)
 
 Capture these formally with `/decide`:
 
-1. **Sync stack (settle before M2; informs M1 session shape):** P2P (Yjs + Trystero / y-webrtc) vs. a ~30-line LAN WebSocket relay. The "works offline in the same room" constraint may favor the LAN relay for v1; P2P wins on convenience and flexibility. *Note: Trystero needs internet only to broker the initial peer introduction; same-room is direct after connect.*
+1. ~~**Sync stack (settle before M2; informs M1 session shape)**~~ — **Decided 2026-07-03, [ADR-002](architecture-decisions/002-sync-stack.md):** Yjs + `y-indexeddb` + Cloudflare PartyServer (`y-partyserver`) + optional `y-webrtc`, behind a provider interface. v1 posture: internet required to *join*; solo/offline practice and export/import work with zero network (ADR-002 D3).
 2. **Renderer (settle before/within M1):** Soundslice embed (path A — fastest, reuses owned arrangements, soft-seek drift correction) vs. alphaTab custom (path B — tightest lock, most build). Brief expects a hybrid end state.
 3. **Drift tolerance (gate for M4):** quantify what "tight enough to follow the fiddle" means before deciding whether NTP clock sync is needed.
 4. **Setup-friction target:** quantify "easy to join a session" (e.g. under ~30s, no typing).
@@ -150,7 +150,7 @@ These were discussed and excluded (from the vision's non-goals):
 | Renderer + local playhead | **Built (M1)** | [features/renderer-playhead.md](features/renderer-playhead.md) |
 | Chord-changes-in-time view | **Built (M1)** — melody-default + stacked overlay, mobile layout | [features/chord-changes-view.md](features/chord-changes-view.md) |
 | Local transport | **Built (M1)** — 8/8 ACs | [features/local-transport.md](features/local-transport.md) |
-| Join / shared state | Not started | - |
+| Join / shared state | **Reviewed + Phase 1 planned** — corrections substrate spec/plan approved; build sequence in the M2 review | [multi-user-review-and-plan.md](multi-user-review-and-plan.md) |
 | Presentation templates (notation/tab/diagrams/scales/card) | Not started | - |
 | Live detection + highlighting | Not started | - |
 
@@ -162,5 +162,5 @@ _Use `/design-feature [name]` to create detailed specifications._
 
 1. ✅ Renderer decided (alphaTab, ADR-001) · ✅ **all five M1 feature specs done** (unified-music-model, renderer-playhead, local-transport, chord-changes-view, library-browsing) · ✅ stack picked (Svelte/TS/Vite).
 2. **Build M1 — complete.** ✅ renderer-playhead (foundation) · ✅ chord-changes-view + local-transport over it (mobile layout: melody-default + stacked "My part" overlay, compact controls, responsive bars-per-row — D3/D6, on-device confirmed) · ✅ library-browsing (manifest-driven set-lists/Library/detail-card shell) · ✅ **library widened to 7 tunes / 2 set lists** from the already-processed tune-arranger samples (no separate processing tool — Claude + the existing skill is the pipeline). Remaining to fully close M1: a cross-device spot-check of the browse shell + in-app render check of the 6 newly-added tunes.
-3. `/decide` to capture **ADR-003 (Svelte + TS + Vite stack)** and **ADR-002 (sync-stack, P2P vs LAN relay)**.
+3. ✅ **ADR-002 (sync stack) captured 2026-07-03** — [ADR-002](architecture-decisions/002-sync-stack.md), incl. the M2 conflict/offline decisions. Still open: `/decide` for **ADR-003 (Svelte + TS + Vite stack)** (low urgency; the stack is a fait accompli).
 4. ✅ **OMR test done** — Soundslice-free acquisition confirmed (photo→Claude ABC→toolkit); needs a render+listen verify loop in the processing tool.
