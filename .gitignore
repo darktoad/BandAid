@@ -13,3 +13,5 @@ __pycache__/
 
 # Claude Code local permission settings (machine-local, never shared)
 .claude/settings.local.json
+
+corrections/

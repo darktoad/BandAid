@@ -11,6 +11,8 @@
     "check:worker": "tsc --noEmit -p tsconfig.worker.json",
     "test": "vitest run",
     "test:watch": "vitest",
+    "corrections:pull": "tsx scripts/corrections-pull.ts",
+    "corrections:resolve": "tsx scripts/corrections-resolve.ts",
     "postinstall": "patch-package"
   },
   "devDependencies": {
@@ -21,6 +23,7 @@
     "patch-package": "^8.0.1",
     "svelte": "^5.19.0",
     "svelte-check": "^4.1.4",
+    "tsx": "^4.23.0",
     "typescript": "^5.7.3",
     "vite": "^6.0.11",
     "vite-plugin-static-copy": "^2.2.0",
