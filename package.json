@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "check:worker": "tsc --noEmit -p tsconfig.worker.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "patch-package"
@@ -22,10 +23,12 @@
     "typescript": "^5.7.3",
     "vite": "^6.0.11",
     "vite-plugin-static-copy": "^2.2.0",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "wrangler": "^4.107.0"
   },
   "dependencies": {
     "@coderline/alphatab": "^1.5.0",
+    "partyserver": "^0.5.8",
     "y-indexeddb": "^9.0.12",
     "y-partyserver": "^2.2.0",
     "y-webrtc": "^10.3.0",

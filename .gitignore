@@ -5,6 +5,7 @@ dist/
 .vite/
 coverage/
 .gstack/
+.wrangler/
 
 # Python
 __pycache__/
