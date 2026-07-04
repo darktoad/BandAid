@@ -95,16 +95,35 @@ npx wrangler dev      # boots the worker locally and prints its host
 Copy `.env.example` to `.env` and set `VITE_SYNC_HOST` to that printed local host, then
 run `npm run dev` so the app's PartyServer provider connects to it.
 
-### Deploying the worker (one-time, manual — needs your Cloudflare login)
+### Deploying the worker
 
-This step is account-bound and can't be automated by an agent:
+**First deploy (one-time, manual — needs your Cloudflare login):**
 
 ```bash
 npx wrangler login    # one-time
 npx wrangler deploy
 ```
 
-`wrangler deploy` prints a `*.workers.dev` host. `VITE_SYNC_HOST` is read via
+This step is account-bound and can't be automated by an agent — a human has to log in
+once. `wrangler deploy` prints a `*.workers.dev` host.
+
+**Every deploy after that is automatic.**
+[`deploy-worker.yml`](.github/workflows/deploy-worker.yml) runs `wrangler deploy` on
+every push to `main` that touches `party/**` or `wrangler.jsonc` (unrelated app-only
+pushes don't trigger it), type-checking the worker first via `npm run check:worker`.
+It authenticates with a **Cloudflare API token stored as a GitHub Actions secret**
+(`CLOUDFLARE_API_TOKEN`) — never committed to the repo:
+
+1. Create a token at <https://dash.cloudflare.com/profile/api-tokens> — the
+   **"Edit Cloudflare Workers"** template is enough; scope it to the account you
+   deployed to.
+2. Add it as a repository secret named `CLOUDFLARE_API_TOKEN` in
+   **Settings → Secrets and variables → Actions**.
+3. If your Cloudflare login has access to more than one account, wrangler can't infer
+   which one to use from the token alone — add `"account_id": "<id>"` to
+   `wrangler.jsonc` (the account ID itself isn't sensitive, safe to commit).
+
+`VITE_SYNC_HOST` is read via
 `import.meta.env`, so it's **baked into the bundle at build time** — setting it as a
 plain runtime env var does nothing; it must be present when `npm run build` runs.
 

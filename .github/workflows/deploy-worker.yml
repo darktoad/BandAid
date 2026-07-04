@@ -1,0 +1,40 @@
+name: Deploy PartyServer Worker
+
+# Deploys the Cloudflare Worker (party/index.ts) independently of the GitHub Pages
+# app deploy (deploy.yml) — only runs when worker-relevant files actually change, so
+# unrelated app-only pushes to main don't touch the Cloudflare account at all.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'party/**'
+      - 'wrangler.jsonc'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+# One in-flight deploy at a time; let an in-progress deploy finish rather than
+# cancelling it (a half-applied Durable Object migration is worse than a short wait).
+concurrency:
+  group: cloudflare-worker-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Type-check the worker before deploying it — cheap, fast gate.
+      - run: npm run check:worker
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # If your Cloudflare account has access to multiple accounts, wrangler
+          # can't auto-detect which one — add "account_id": "<id>" to wrangler.jsonc
+          # (not sensitive, safe to commit) instead of routing it through a secret.
