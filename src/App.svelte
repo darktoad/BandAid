@@ -15,6 +15,7 @@
   // Synced store over a Yjs doc. With a band code we attach transports; without one
   // the same store works fully local (IndexedDB only, no network).
   const store = createSyncedSessionStore();
+  // Read once at init; switching ?band= in place will NOT re-attach providers to the new room — changing bands requires a full page reload.
   const bandCode = readBandCode(typeof location !== 'undefined' ? location.search : '');
   let detach: (() => void) | undefined;
   if (bandCode) {

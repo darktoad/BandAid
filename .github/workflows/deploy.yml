@@ -26,6 +26,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # Baked into the built bundle at compile time (import.meta.env) — set once
+          # in Settings → Secrets and variables → Actions after `wrangler deploy`
+          # prints the worker's *.workers.dev host. Omitted/empty: the app still
+          # builds and runs local+P2P only (no error), it just skips PartyServer sync.
+          VITE_SYNC_HOST: ${{ secrets.VITE_SYNC_HOST }}
       - uses: actions/configure-pages@v5
         with:
           # Auto-enable Pages with the "GitHub Actions" source on first run,

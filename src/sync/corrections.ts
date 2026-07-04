@@ -1,6 +1,8 @@
 import type { Correction, NewCorrection, InboxFile, InboxEntry } from './types';
 
 export function makeCorrection(
+  // Intentional escape hatch for tests/internal callers that need to construct a
+  // correction with a non-default status directly (e.g. to set up fixtures).
   input: NewCorrection & { status?: Correction['status'] },
   opts: { id?: string; now?: number } = {},
 ): Correction {
