@@ -63,7 +63,7 @@ Browse library / set list
 **Goal:** Turn a session of one into a session of N — no host, loose follow-along — so the band can play together.
 **Features:**
 - [ ] Real multiplayer join over the chosen transport (see Decisions)
-- [ ] Shared logical state (which song, transport, key, section) — multi-writer; conflict rule per [ADR-002](architecture-decisions/002-sync-stack.md) D2 (intent stamps sync with a dedicated `issuedAt`, newest press wins on apply; mechanical re-anchor stamps stay local)
+- [ ] Shared logical state (which song, transport, key, section) — multi-writer; conflict rule per [ADR-002](architecture-decisions/002-sync-stack.md) D2 (intent stamps sync with a dedicated `issuedAt`, newest press wins on apply; mechanical re-anchor stamps stay local) — **specified**: [features/playback-sync.md](features/playback-sync.md)
 - [ ] Presence (who's in the session)
 - [ ] Late-joiner state transfer (pull current state from any peer)
 - [ ] Shared set list (any player can advance/select)
@@ -90,6 +90,24 @@ Browse library / set list
       a one-time bar-alignment pass per song, most naturally added to the offline
       song-processing tool, before the app-side highlighting (straightforward reuse of
       the `ChordOverlay` pattern) is worth building.
+- [ ] **Independent playheads (tethered vs detached)** — a device's playhead can be
+      *apart* from the band's instead of always following. **Not started; backlog, no
+      urgency.** Scoping note (2026-07-05): after playback-sync
+      ([features/playback-sync.md](features/playback-sync.md)) a device always follows
+      the band. Two "apart" modes, each with its place:
+      **tethered-apart** — the local cursor diverges (drill a passage, peek ahead) while
+      the device still tracks the band's position (ghost band-position indicator on the
+      scrubber/score, one-tap snap-back); stays subscribed, the follower simply stops
+      driving the renderer while detached. **Fully desynced** — leave playback-following
+      entirely (true solo practice mid-session), resync later via the existing
+      late-joiner path (`applyRemote` cold apply — resync is free). Design hooks already
+      exist: the per-song `transportFollower` is the single place remote intents apply,
+      so "detached" is a local boolean gating `apply()`; the band's position stays
+      readable from `store.getSessionTransport()` + `projectBar` for the ghost
+      indicator; snap-back is one cold `applyRemote` of the current stamp. Resolves the
+      playback-sync spec's "practice alone while the band plays" open question; the
+      real design work is UX (where the toggle lives, how the ghost renders, whether a
+      band pause auto-resyncs).
 
 ### Milestone 4: Tighten When Needed
 **Goal:** Add precision and live intelligence only after real use proves it's needed.
@@ -150,7 +168,8 @@ These were discussed and excluded (from the vision's non-goals):
 | Renderer + local playhead | **Built (M1)** | [features/renderer-playhead.md](features/renderer-playhead.md) |
 | Chord-changes-in-time view | **Built (M1)** — melody-default + stacked overlay, mobile layout | [features/chord-changes-view.md](features/chord-changes-view.md) |
 | Local transport | **Built (M1)** — 8/8 ACs | [features/local-transport.md](features/local-transport.md) |
-| Join / shared state | **Reviewed + Phase 1 planned** — corrections substrate spec/plan approved; build sequence in the M2 review | [multi-user-review-and-plan.md](multi-user-review-and-plan.md) |
+| Join / shared state | **Corrections substrate built (Phase 1)**; build sequence in the M2 review | [multi-user-review-and-plan.md](multi-user-review-and-plan.md) |
+| Playback sync (M2 Phase 3: live transport + song follow) | **Specified** — design + implementation plan ready | [features/playback-sync.md](features/playback-sync.md) |
 | Presentation templates (notation/tab/diagrams/scales/card) | Not started | - |
 | Live detection + highlighting | Not started | - |
 
