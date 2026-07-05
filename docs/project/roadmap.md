@@ -62,12 +62,12 @@ Browse library / set list
 ### Milestone 2: Join
 **Goal:** Turn a session of one into a session of N — no host, loose follow-along — so the band can play together.
 **Features:**
-- [ ] Real multiplayer join over the chosen transport (see Decisions)
-- [ ] Shared logical state (which song, transport, key, section) — multi-writer; conflict rule per [ADR-002](architecture-decisions/002-sync-stack.md) D2 (intent stamps sync with a dedicated `issuedAt`, newest press wins on apply; mechanical re-anchor stamps stay local) — **specified**: [features/playback-sync.md](features/playback-sync.md)
+- [x] Real multiplayer join over the chosen transport (see Decisions) — providers (IndexedDB/PartyServer/WebRTC) built in Phase 1; playback-sync rides the same transport. Unit-tested + headlessly verified; **live two-device confirmation pending**
+- [x] Shared logical state (which song, transport, key, section) — multi-writer; conflict rule per [ADR-002](architecture-decisions/002-sync-stack.md) D2 (intent stamps sync with a dedicated `issuedAt`, newest press wins on apply; mechanical re-anchor stamps stay local) — **built**: [features/playback-sync.md](features/playback-sync.md)
 - [ ] Presence (who's in the session)
 - [ ] Late-joiner state transfer (pull current state from any peer)
 - [ ] Shared set list (any player can advance/select)
-- [ ] Loose follow-along playhead (each device computes locally; accept modest drift)
+- [x] Loose follow-along playhead (each device computes locally; accept modest drift) — `projectBar` + the transport follower's late-join projection; **live two-device confirmation pending**
 - [ ] **Fast-follow:** loop in/out with speed change (deferred from M1)
 
 ### Milestone 3: Presentation Templates
@@ -169,7 +169,7 @@ These were discussed and excluded (from the vision's non-goals):
 | Chord-changes-in-time view | **Built (M1)** — melody-default + stacked overlay, mobile layout | [features/chord-changes-view.md](features/chord-changes-view.md) |
 | Local transport | **Built (M1)** — 8/8 ACs | [features/local-transport.md](features/local-transport.md) |
 | Join / shared state | **Corrections substrate built (Phase 1)**; build sequence in the M2 review | [multi-user-review-and-plan.md](multi-user-review-and-plan.md) |
-| Playback sync (M2 Phase 3: live transport + song follow) | **Specified** — design + implementation plan ready | [features/playback-sync.md](features/playback-sync.md) |
+| Playback sync (M2 Phase 3: live transport + song follow) | **Built** — unit-tested + headlessly verified; live two-device rehearsal walk pending | [features/playback-sync.md](features/playback-sync.md) |
 | Presentation templates (notation/tab/diagrams/scales/card) | Not started | - |
 | Live detection + highlighting | Not started | - |
 
