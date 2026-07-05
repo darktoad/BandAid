@@ -3,7 +3,11 @@ import { readBandCode } from './bandCode';
 
 function fakeStorage(seed: Record<string, string> = {}) {
   const m = new Map(Object.entries(seed));
-  return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
+  return {
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => void m.set(k, v),
+    removeItem: (k: string) => void m.delete(k),
+  };
 }
 
 describe('readBandCode', () => {

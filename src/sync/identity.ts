@@ -2,7 +2,7 @@ export interface Identity {
   authorId: string;
   name: string;
 }
-export type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;
+export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 const KEY = 'bandaid.identity.v1';
 

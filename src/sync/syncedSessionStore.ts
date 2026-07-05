@@ -23,8 +23,9 @@ export function createSyncedSessionStore(
 ): SyncedSessionStore {
   const ydoc = opts.doc ?? doc.createBandDoc();
   const storage = opts.storage === undefined ? safeLocalStorage() : opts.storage;
-  // Runs before IndexeddbPersistence's async load lands — safe only because this is
-  // idempotent (Yjs LWW-register semantics) and never mutates the legacy source.
+  // Runs before IndexeddbPersistence's async load lands; migrateSongSettings clears the
+  // legacy key once applied, so there's nothing left to replay (and no clobber risk) on
+  // any later reload.
   doc.migrateSongSettings(ydoc, storage ?? null);
 
   let identity = loadIdentity(storage ?? null);

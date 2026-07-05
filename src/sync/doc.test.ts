@@ -59,12 +59,17 @@ describe('doc songSettings', () => {
     expect(getSongSettings(b, 's')).toEqual({ tempoPct: 0.8, transpose: 2 });
   });
 
-  it('migrates legacy localStorage once', () => {
+  it('migrates legacy localStorage once, then clears the legacy key', () => {
     const m = new Map<string, string>([['bandaid.songSettings.v1', JSON.stringify({ s: { transpose: 3 } })]]);
-    const storage = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
+    const storage = {
+      getItem: (k: string) => m.get(k) ?? null,
+      setItem: (k: string, v: string) => void m.set(k, v),
+      removeItem: (k: string) => void m.delete(k),
+    };
     const doc = createBandDoc();
     migrateSongSettings(doc, storage);
-    migrateSongSettings(doc, storage); // second call is a no-op
+    expect(m.has('bandaid.songSettings.v1')).toBe(false);
+    migrateSongSettings(doc, storage); // second call is a no-op (legacy key already gone)
     expect(getSongSettings(doc, 's')).toEqual({ transpose: 3 });
   });
 });
