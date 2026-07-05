@@ -1,4 +1,4 @@
-import type { SessionStore, Transport } from '../session/types';
+import type { SessionStore, Transport, TransportStampMeta } from '../session/types';
 
 /**
  * Local Transport — the controls that drive the playhead (M1 feature: local-transport).
@@ -101,7 +101,7 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
   /** Stamp once: write the session Transport and notify view subscribers. The only
    *  place that mutates Transport — callers pass the *target* state so we never stamp
    *  a stale value the way an after-the-fact read would. */
-  function stamp(over: Partial<Transport>): void {
+  function stamp(over: Partial<Transport>, meta: TransportStampMeta = { origin: 'anchor' }): void {
     current = {
       songId,
       playing,
@@ -110,7 +110,7 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
       tempo: defaultTempoBpm * pct,
       ...over,
     };
-    store.setTransport(current);
+    store.setTransport(current, meta);
     listeners.forEach((cb) => cb(current));
   }
 
@@ -127,7 +127,10 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
     const tappedWhilePaused = !playing && bar !== currentBar;
     const jumpedWhilePlaying = playing && bar !== currentBar + 1;
     currentBar = bar;
-    if (tappedWhilePaused || jumpedWhilePlaying) stamp({ startBar: bar });
+    // A paused tap is a user seek (intent); a playing jump is a repeat/volta re-anchor
+    // (local-only — every device's renderer hits the same jumps itself). ADR-002 D2.1.
+    if (tappedWhilePaused) stamp({ startBar: bar }, { origin: 'intent', kind: 'seek' });
+    else if (jumpedWhilePlaying) stamp({ startBar: bar });
   });
   // Reflect the renderer's actual playing state, but don't re-stamp from it: our action
   // methods already stamped the intended state immediately (NFR-1).
@@ -145,13 +148,13 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
       // (it floors elapsed at 0) instead of racing the playhead ahead of the silent cursor.
       const tempoQpm = defaultTempoBpm * pct;
       const countInMs = countIn && tempoQpm > 0 ? (quarterNotesPerBar / tempoQpm) * 60_000 : 0;
-      stamp({ playing: true, startTimestamp: now() + countInMs });
+      stamp({ playing: true, startTimestamp: now() + countInMs }, { origin: 'intent', kind: 'play' });
     },
 
     pause() {
       renderer.pause();
       playing = false;
-      stamp({ playing: false });
+      stamp({ playing: false }, { origin: 'intent', kind: 'pause' });
     },
 
     setTempoPercent(next: number) {
@@ -159,6 +162,7 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
       renderer.setSpeed(pct);
       // Restamp from the current bar + now so position stays continuous (FR-3): the
       // elapsed-time anchor resets at the bar we're on, so projectBar sees no jump.
+      // anchor: tempo *changes* sync via songSettings; this restamp is only position continuity
       stamp({});
     },
 
@@ -166,7 +170,7 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
       const target = clamp(Math.round(bar), 1, measureCount);
       renderer.seekToBar(target);
       currentBar = target;
-      stamp({ startBar: target });
+      stamp({ startBar: target }, { origin: 'intent', kind: 'seek' });
     },
 
     setCountIn(on: boolean) {

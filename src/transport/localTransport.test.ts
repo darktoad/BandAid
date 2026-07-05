@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createLocalTransport, MIN_TEMPO_PCT, MAX_TEMPO_PCT, MAX_TEMPO_BPM, maxTempoPercent, type TransportRenderer } from './localTransport';
+import { createLocalTransport, MIN_TEMPO_PCT, MAX_TEMPO_PCT, MAX_TEMPO_BPM, maxTempoPercent, type TransportRenderer, type LocalTransportDeps } from './localTransport';
 import { createLocalSessionStore } from '../session/store';
 import { projectBar, quarterNotesPerBar } from '../playhead/projectBar';
+import type { SessionStore, Transport, TransportStampMeta } from '../session/types';
 
 /** A fake renderer that records calls and lets the test drive the cursor/playing
  *  callbacks — the same shape alphaTab's createRenderer exposes, without alphaTab. */
@@ -266,5 +267,100 @@ describe('local transport (sole writer of Transport)', () => {
     // whether it came from these local controls or (in M2) a remote peer.
     expect(onState).toHaveBeenCalledTimes(1);
     expect(store.getState().transport!.songId).toBe('big-john-mcneil');
+  });
+});
+
+// --- Origin routing (ADR-002 D2.1): intents sync, anchors stay local ---
+
+function stubRenderer() {
+  const pos: Array<(bar: number) => void> = [];
+  const playChanged: Array<(p: boolean) => void> = [];
+  const calls: string[] = [];
+  let posBar = 1;
+  return {
+    renderer: {
+      play: () => calls.push('play'),
+      pause: () => calls.push('pause'),
+      setSpeed: (f: number) => calls.push(`speed:${f}`),
+      seekToBar: (b: number) => { posBar = b; calls.push(`seek:${b}`); },
+      getPositionBar: () => posBar,
+      setCountInVolume: (v: number) => calls.push(`countin:${v}`),
+      onPosition: (cb: (b: number) => void) => pos.push(cb),
+      onPlayingChanged: (cb: (p: boolean) => void) => playChanged.push(cb),
+    },
+    calls,
+    emitPosition: (b: number) => pos.forEach((cb) => cb(b)),
+    emitPlaying: (p: boolean) => playChanged.forEach((cb) => cb(p)),
+  };
+}
+
+function spyStore() {
+  const stamps: Array<{ t: Transport; meta: TransportStampMeta | undefined }> = [];
+  const store: SessionStore = {
+    subscribe: () => () => {},
+    getState: () => ({ currentSongId: null, transport: null, songSettings: {} }),
+    setCurrentSong: () => {},
+    setTransport: (t, meta) => stamps.push({ t, meta }),
+    getSongSettings: () => ({}),
+    setSongSetting: () => {},
+    resetSongSetting: () => {},
+  };
+  return { store, stamps };
+}
+
+function makeTransport(over: Partial<LocalTransportDeps> = {}) {
+  const r = stubRenderer();
+  const s = spyStore();
+  const transport = createLocalTransport({
+    songId: 'tune',
+    defaultTempoBpm: 120,
+    measureCount: 32,
+    quarterNotesPerBar: 4,
+    renderer: r.renderer,
+    store: s.store,
+    now: () => 50_000,
+    ...over,
+  });
+  return { transport, ...r, ...s };
+}
+
+describe('stamp origin routing', () => {
+  it('play, pause, and seekToBar stamp as intents with their kind', () => {
+    const { transport, stamps, emitPlaying } = makeTransport();
+    transport.play();
+    emitPlaying(true);
+    transport.pause();
+    emitPlaying(false);
+    transport.seekToBar(5);
+    expect(stamps.map((s) => s.meta)).toEqual([
+      { origin: 'intent', kind: 'play' },
+      { origin: 'intent', kind: 'pause' },
+      { origin: 'intent', kind: 'seek' },
+    ]);
+  });
+
+  it('a paused tap-a-bar is an intent seek', () => {
+    const { stamps, emitPosition } = makeTransport();
+    emitPosition(7); // position moved while paused = alphaTab click-to-seek
+    expect(stamps).toHaveLength(1);
+    expect(stamps[0].meta).toEqual({ origin: 'intent', kind: 'seek' });
+    expect(stamps[0].t.startBar).toBe(7);
+  });
+
+  it('a repeat/volta jump while playing is a local anchor', () => {
+    const { transport, stamps, emitPlaying, emitPosition } = makeTransport();
+    transport.play();
+    emitPlaying(true);
+    emitPosition(2); // sequential: no stamp
+    emitPosition(1); // repeat barline: non-sequential → anchor re-stamp
+    expect(stamps).toHaveLength(2);
+    expect(stamps[1].meta).toEqual({ origin: 'anchor' });
+  });
+
+  it('a tempo-continuity restamp is a local anchor (tempo syncs via songSettings)', () => {
+    const { transport, stamps } = makeTransport();
+    transport.setTempoPercent(0.8);
+    expect(stamps).toHaveLength(1);
+    expect(stamps[0].meta).toEqual({ origin: 'anchor' });
   });
 });

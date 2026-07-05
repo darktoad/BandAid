@@ -16,6 +16,41 @@ export interface Transport {
   tempo: number;
 }
 
+/** Which user action an intent stamp expresses — drives the follower's apply rules. */
+export type TransportIntentKind = 'play' | 'pause' | 'seek';
+
+/**
+ * Stamp routing (ADR-002 D2.1). `intent` = a user action ("the band should be here"):
+ * written to the shared doc. `anchor` = a mechanical projection re-anchor (repeat/volta
+ * jump, tempo-continuity restamp): local-only — every device hits the same jumps itself.
+ * `remote` = the local echo of applying a peer's intent: local-only. The default is
+ * `anchor` so an untagged write can never leak to the band.
+ */
+export type TransportStampMeta =
+  | { origin: 'intent'; kind: TransportIntentKind }
+  | { origin: 'anchor' }
+  | { origin: 'remote' };
+
+/**
+ * The doc value at session.transport — one whole object per stamp (fields are only
+ * coherent as a unit). `issuedAt` is the wall-clock press time and the ONLY conflict
+ * key; `startTimestamp` is a projection anchor deliberately stamped in the future
+ * through count-in and must never order conflicts (ADR-002 D2.2).
+ */
+export interface SharedTransportIntent extends Transport {
+  issuedAt: number;
+  authorId: string;
+  kind: TransportIntentKind;
+}
+
+/** The doc value at session.song. `author` is the display name, for the switch notice. */
+export interface SharedSongIntent {
+  songId: string;
+  issuedAt: number;
+  authorId: string;
+  author: string;
+}
+
 /**
  * Per-song performance overrides on top of the song's canonical defaults. Every field
  * is OPTIONAL: absent means "use the original" — so the canonical file is never edited
@@ -47,7 +82,7 @@ export interface SessionStore {
   subscribe(run: (state: SessionState) => void): () => void;
   getState(): SessionState;
   setCurrentSong(songId: string): void;
-  setTransport(transport: Transport): void;
+  setTransport(transport: Transport, meta?: TransportStampMeta): void;
   /** Overrides for a song, or an empty object if none are set. */
   getSongSettings(songId: string): SongSettings;
   /** Merge in overrides (only defined fields); persists. */
