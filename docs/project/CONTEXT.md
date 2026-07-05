@@ -55,6 +55,7 @@ BandAid (Band Sync & Jam Companion) helps a 3–5 piece old-time/bluegrass band 
 | local-transport | Specified | [features/local-transport.md](features/local-transport.md) |
 | renderer-playhead | Specified | [features/renderer-playhead.md](features/renderer-playhead.md) |
 | library-browsing | Specified | [features/library-browsing.md](features/library-browsing.md) |
+| playback-sync (M2 Phase 3) | Specified | [features/playback-sync.md](features/playback-sync.md) |
 
 _All M1 (MVP) feature areas specified except the session/state model, which is folded into renderer-playhead. M1 is fully designed and buildable._
 
@@ -71,6 +72,25 @@ _All M1 (MVP) feature areas specified except the session/state model, which is f
 **Phase:** M1 fully designed — ready to build. All five M1 feature specs done (unified-music-model, renderer-playhead, local-transport, chord-changes-view, library-browsing). Stack picked (Svelte/TS/Vite). Two ADRs still to capture with `/decide`: **ADR-003** (Svelte stack — already decided, just record it) and **ADR-002** (sync-stack, P2P vs LAN relay — needed before M2, parallel to M1 build).
 
 **Key architecture from unified-music-model:** App is a pure *consumer* of canonical song files. All music processing (OMR, reduction, voicing, section labeling, corrections) lives in a **separate offline song-processing tool** (Claude + tune-arranger toolkit) — potentially replacing Soundslice via `photo → Claude ABC → toolkit → canonical MusicXML`. MusicXML is the single source of truth; sources stay immutable; no runtime override layer. Sample analysis confirmed chords/tab/key/tempo present in toolkit files; gaps to fix upstream: explicit mode (modal keys), section/rehearsal marks, chord offsets, pickup/bar-numbering convention, file naming, cello part.
+
+## Phase Update (2026-07-05)
+
+**Playback sync (M2 Phase 3) is fully designed — ready to build.** The corrections sync
+substrate is shipped (Yjs doc + IndexedDB/PartyServer/WebRTC providers, identity, sync
+badge, live `songSettings` sync). The Phase 3 live-session-state work — multi-writer
+play/pause/seek intents, shared current song, the follower (remote-apply) layer, and
+skew measurement — is specified end to end:
+
+- **UX/feature spec:** [features/playback-sync.md](features/playback-sync.md) (10 design decisions)
+- **Technical design:** `docs/superpowers/specs/2026-07-05-playback-sync-design.md`
+- **Implementation plan:** `docs/superpowers/plans/2026-07-05-playback-sync.md` (9 TDD tasks, no server changes)
+
+Key decisions: transport intents are play/pause/seek only (tempo/key keep syncing via
+the shipped `songSettings` channel); followers get scheduled starts instead of count-ins;
+pause re-aligns everyone to the same bar; late joiners are approximate by design (linear
+projection + staleness guards); only picker taps publish song switches (boot/Back stay
+local); skew is measured, not corrected (the M4 gate evidence). Implements ADR-002 D2
+verbatim (intent/anchor routing, `issuedAt` LWW, echo guard).
 
 ## Key References
 
