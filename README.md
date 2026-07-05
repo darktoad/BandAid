@@ -67,6 +67,105 @@ and publishes `dist/` on every push to `main`, so the
 `base` is set to match in `vite.config.ts`. No manual setup is required; the workflow
 enables Pages on first run.
 
+## Multi-user sync (corrections)
+
+Bands can pin song "corrections" (a bar/beat flagging a wrong note, tie, or repeat)
+that sync durably across every device in the band. It's backed by a Yjs CRDT document
+per band code, layered over local IndexedDB, an optional Cloudflare PartyServer worker
+(durable, cross-device), and optional WebRTC (peer-to-peer). See
+[ADR-002](docs/project/architecture-decisions/002-sync-stack.md) for the stack decision
+and the [implementation plan](docs/superpowers/plans/2026-06-29-corrections-sync-substrate.md)
+for the full design. (The in-app UI for capturing/reviewing corrections is a separate,
+not-yet-built sub-project — this substrate is the data layer underneath it.)
+
+**Joining a band:** open the app with `?band=<any-code>` once; the app remembers it
+(`bandaid.band.v1` in localStorage) so future visits rejoin automatically. Without a
+band code the app still works, storing everything locally only (a `solo` IndexedDB room).
+
+### Running the sync worker locally
+
+The only server-side piece is a small Cloudflare Worker (`party/index.ts`) that relays
+and durably persists each band's Yjs doc via a Durable Object. Develop against it
+locally with no Cloudflare account needed:
+
+```bash
+npx wrangler dev      # boots the worker locally and prints its host
+```
+
+Copy `.env.example` to `.env` and set `VITE_SYNC_HOST` to that printed local host, then
+run `npm run dev` so the app's PartyServer provider connects to it.
+
+### Deploying the worker
+
+**First deploy (one-time, manual — needs your Cloudflare login):**
+
+```bash
+npx wrangler login    # one-time
+npx wrangler deploy
+```
+
+This step is account-bound and can't be automated by an agent — a human has to log in
+once. `wrangler deploy` prints a `*.workers.dev` host.
+
+**Every deploy after that is automatic.**
+[`deploy-worker.yml`](.github/workflows/deploy-worker.yml) runs `wrangler deploy` on
+every push to `main` that touches `party/**` or `wrangler.jsonc` (unrelated app-only
+pushes don't trigger it), type-checking the worker first via `npm run check:worker`.
+It authenticates with a **Cloudflare API token stored as a GitHub Actions secret**
+(`CLOUDFLARE_API_TOKEN`) — never committed to the repo:
+
+1. Create a token at <https://dash.cloudflare.com/profile/api-tokens> — the
+   **"Edit Cloudflare Workers"** template is enough; scope it to the account you
+   deployed to.
+2. Add it as a repository secret named `CLOUDFLARE_API_TOKEN` in
+   **Settings → Secrets and variables → Actions**.
+3. If your Cloudflare login has access to more than one account, wrangler can't infer
+   which one to use from the token alone — add `"account_id": "<id>"` to
+   `wrangler.jsonc` (the account ID itself isn't sensitive, safe to commit).
+
+`VITE_SYNC_HOST` is read via
+`import.meta.env`, so it's **baked into the bundle at build time** — setting it as a
+plain runtime env var does nothing; it must be present when `npm run build` runs.
+
+- **Local dev:** put it in `.env` (copy `.env.example`), picked up automatically by
+  `npm run dev`/`npm run build`.
+- **Production (GitHub Pages):** add a repository secret named `VITE_SYNC_HOST` in
+  **Settings → Secrets and variables → Actions** — [`deploy.yml`](.github/workflows/deploy.yml)
+  already wires it into the build step, so no other CI change is needed once the
+  secret is set.
+
+If `VITE_SYNC_HOST` is unset or empty, the app still builds and runs fine — it just
+silently falls back to local + WebRTC-only sync (no PartyServer transport, no error).
+That's intentional, not a bug: don't mistake a missing secret for something broken.
+
+### Headless corrections tooling
+
+A Claude session editing a song's MusicXML reads and resolves corrections via two
+scripts. Both need `VITE_SYNC_HOST` exported in the shell (not just in `.env` — these
+are plain Node scripts run via `tsx`, not a Vite build, so `import.meta.env` isn't in
+play; export the same value directly):
+
+```bash
+export VITE_SYNC_HOST=bandaid-sync.<your-account>.workers.dev
+
+npm run corrections:pull -- <bandCode>                       # writes corrections/inbox.json
+BAND_CODE=<bandCode> npm run corrections:resolve -- <id...>  # marks pins applied
+```
+
+`corrections:pull` also reads `BUILD_ID` (falls back to `'unknown'`) to stamp each
+pin's staleness against the song version it was made against.
+
+`corrections/` is a working directory — gitignored, not committed.
+
+### Type-checking the worker
+
+`party/` sits outside the app's Vite/Svelte build, so `npm run check` doesn't cover it.
+Check it separately:
+
+```bash
+npm run check:worker
+```
+
 ## Stack
 
 - **Svelte 5 + TypeScript + Vite 6** — the app shell (decision: capture as ADR-003).
@@ -76,6 +175,9 @@ enables Pages on first run.
   `vite-plugin-static-copy` so the practice loop needs no network. `useWorkers=false`
   keeps layout on the main thread and audio on a ScriptProcessor, avoiding worker
   plumbing on Vite 6.
+- **Yjs + Cloudflare PartyServer + y-webrtc** — the multi-user sync stack (decision:
+  [ADR-002](docs/project/architecture-decisions/002-sync-stack.md)). See
+  [Multi-user sync](#multi-user-sync-corrections) above.
 
 ## Project structure
 

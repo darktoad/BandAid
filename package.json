@@ -8,23 +8,34 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "check:worker": "tsc --noEmit -p tsconfig.worker.json",
     "test": "vitest run",
     "test:watch": "vitest",
+    "corrections:pull": "tsx scripts/corrections-pull.ts",
+    "corrections:resolve": "tsx scripts/corrections-resolve.ts",
     "postinstall": "patch-package"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260702.1",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@tsconfig/svelte": "^5.0.4",
     "esbuild": "^0.25.0",
     "patch-package": "^8.0.1",
     "svelte": "^5.19.0",
     "svelte-check": "^4.1.4",
+    "tsx": "^4.23.0",
     "typescript": "^5.7.3",
     "vite": "^6.0.11",
     "vite-plugin-static-copy": "^2.2.0",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "wrangler": "^4.107.0"
   },
   "dependencies": {
-    "@coderline/alphatab": "^1.5.0"
+    "@coderline/alphatab": "^1.5.0",
+    "partyserver": "^0.5.8",
+    "y-indexeddb": "^9.0.12",
+    "y-partyserver": "^2.2.0",
+    "y-webrtc": "^10.3.0",
+    "yjs": "^13.6.31"
   }
 }

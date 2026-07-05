@@ -1,0 +1,10 @@
+// wrangler.jsonc
+{
+  "name": "bandaid-sync",
+  "main": "party/index.ts",
+  "compatibility_date": "2026-07-01",
+  "durable_objects": {
+    "bindings": [{ "name": "Corrections", "class_name": "Corrections" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Corrections"] }]
+}
