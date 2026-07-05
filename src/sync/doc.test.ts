@@ -6,6 +6,10 @@ import {
   exportUpdate, importUpdate, migrateSongSettings,
 } from './doc';
 import { makeCorrection } from './corrections';
+import {
+  getSessionTransport, setSessionTransport, getSessionSong, setSessionSong,
+} from './doc';
+import type { SharedTransportIntent, SharedSongIntent } from '../session/types';
 
 const c1 = makeCorrection(
   { songId: 's', anchor: { kind: 'point', bar: 1, beat: 1 }, text: 't', author: 'A', authorId: 'd', songVersion: 'v1' },
@@ -82,5 +86,34 @@ describe('doc songSettings', () => {
     expect(m.has('bandaid.songSettings.v1')).toBe(false);
     migrateSongSettings(doc, storage); // second call is a no-op (legacy key already gone)
     expect(getSongSettings(doc, 's')).toEqual({ transpose: 3 });
+  });
+});
+
+const intent: SharedTransportIntent = {
+  songId: 'tune', playing: true, startBar: 1, startTimestamp: 60_000, tempo: 120,
+  issuedAt: 59_000, authorId: 'dev-a', kind: 'play',
+};
+
+describe('doc session map', () => {
+  it('round-trips transport and song intents; empty doc reads null', () => {
+    const doc = createBandDoc();
+    expect(getSessionTransport(doc)).toBeNull();
+    expect(getSessionSong(doc)).toBeNull();
+    setSessionTransport(doc, intent);
+    setSessionSong(doc, { songId: 'tune', issuedAt: 1, authorId: 'dev-a', author: 'Kate' });
+    expect(getSessionTransport(doc)).toEqual(intent);
+    expect(getSessionSong(doc)?.author).toBe('Kate');
+  });
+
+  it('converges: both docs agree on one stamp after exchanging updates', () => {
+    const a = createBandDoc();
+    const b = createBandDoc();
+    setSessionTransport(a, intent);
+    setSessionTransport(b, { ...intent, issuedAt: 59_500, authorId: 'dev-b', kind: 'pause', playing: false });
+    importUpdate(b, exportUpdate(a));
+    importUpdate(a, exportUpdate(b));
+    // Yjs resolves the storage conflict (causality + client id); the app-level issuedAt
+    // rule orders APPLICATION, not storage. Here we only assert convergence.
+    expect(getSessionTransport(a)).toEqual(getSessionTransport(b));
   });
 });
