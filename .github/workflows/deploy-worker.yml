@@ -26,7 +26,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # wrangler (devDependency, ^4.x) requires Node 22+. On Node 20,
+          # cloudflare/wrangler-action silently falls back to an old bundled
+          # wrangler that predates wrangler.jsonc support, which then fails with
+          # "Missing entry-point" since it can't read `main` from that file.
+          node-version: 22
           cache: npm
       - run: npm ci
       # Type-check the worker before deploying it — cheap, fast gate.
