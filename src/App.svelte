@@ -8,6 +8,7 @@
   import { webrtcProvider } from './sync/providers/webrtc';
   import { partyserverProvider } from './sync/providers/partyserver';
   import { readBandCode } from './sync/bandCode';
+  import { summarizeSyncStatus } from './sync/syncStatusLabel';
   import { createLibraryService, type LibraryService } from './library/libraryService';
   import type { SongSummary, SongKey } from './library/types';
   import { songFromSearch, searchWithSong } from './library/urlState';
@@ -26,7 +27,13 @@
     // Local-only durability even without a band: persist to IndexedDB.
     sync = attachProviders(store.doc, 'solo', [indexeddbProvider]);
   }
-  onDestroy(() => sync?.disconnect());
+  let syncStatus = $state(sync?.getStatus() ?? { providers: {} });
+  const unsubscribeSyncStatus = sync?.onStatusChange((s) => (syncStatus = s));
+  let syncSummary = $derived(summarizeSyncStatus(syncStatus));
+  onDestroy(() => {
+    unsubscribeSyncStatus?.();
+    sync?.disconnect();
+  });
 
   let service = $state<LibraryService | undefined>(undefined);
   let loadError = $state<string | null>(null);
@@ -133,6 +140,10 @@
 
 <svelte:window onkeydown={onKeydown} />
 
+<div class="sync-indicator" data-tone={syncSummary.tone} title="Band sync: {syncSummary.label}">
+  <span class="dot"></span>{syncSummary.label}
+</div>
+
 {#if current}
   <!-- Re-mount per song so the renderer reloads the new score. -->
   {#key current.id}
@@ -185,4 +196,32 @@
     from { transform: translateX(-100%); }
     to { transform: translateX(0); }
   }
+
+  /* Always-visible, non-interactive band sync status — informational only, so it
+     never intercepts taps even while sitting above the picker/scrim. */
+  .sync-indicator {
+    position: fixed;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1003;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.75rem;
+    pointer-events: none;
+  }
+  .sync-indicator .dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .sync-indicator[data-tone='synced'] { color: #8fd18a; }
+  .sync-indicator[data-tone='connecting'] { color: var(--accent); }
+  .sync-indicator[data-tone='offline'] { color: #f1b4b4; }
 </style>
