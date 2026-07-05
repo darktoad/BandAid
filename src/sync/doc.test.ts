@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import * as Y from 'yjs';
 import {
   createBandDoc, listCorrections, putCorrection, setCorrectionStatus,
-  getSongSettings, setSongSetting, resetSongSetting, exportUpdate, importUpdate, migrateSongSettings,
+  getSongSettings, setSongSetting, resetSongSetting, listSongSettings,
+  exportUpdate, importUpdate, migrateSongSettings,
 } from './doc';
 import { makeCorrection } from './corrections';
 
@@ -57,6 +58,16 @@ describe('doc songSettings', () => {
     importUpdate(a, exportUpdate(b));
     expect(getSongSettings(a, 's')).toEqual({ tempoPct: 0.8, transpose: 2 });
     expect(getSongSettings(b, 's')).toEqual({ tempoPct: 0.8, transpose: 2 });
+  });
+
+  it('lists every song\'s settings, grouped by songId', () => {
+    const doc = createBandDoc();
+    setSongSetting(doc, 'wabash', { tempoPct: 0.8 });
+    setSongSetting(doc, 'stones-rag', { transpose: 2 });
+    expect(listSongSettings(doc)).toEqual({
+      wabash: { tempoPct: 0.8 },
+      'stones-rag': { transpose: 2 },
+    });
   });
 
   it('migrates legacy localStorage once, then clears the legacy key', () => {

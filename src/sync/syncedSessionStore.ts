@@ -39,12 +39,15 @@ export function createSyncedSessionStore(
   const snapshot = (): SessionState => ({
     currentSongId,
     transport,
-    songSettings: {}, // settings are read on demand via getSongSettings
+    songSettings: doc.listSongSettings(ydoc),
   });
   const emitState = () => stateSubs.forEach((cb) => cb(snapshot()));
   const emitCorrections = () => corrSubs.forEach((cb) => cb(doc.listCorrections(ydoc)));
 
   ydoc.getMap('corrections').observeDeep(emitCorrections);
+  // Without this, a remote peer's tempo/transpose change updates the doc but nothing
+  // ever tells a subscriber to look — the tempo pill would silently go stale.
+  ydoc.getMap('songSettings').observeDeep(emitState);
 
   return {
     doc: ydoc,
@@ -63,14 +66,10 @@ export function createSyncedSessionStore(
       emitState();
     },
     getSongSettings: (songId) => doc.getSongSettings(ydoc, songId),
-    setSongSetting: (songId, patch: Partial<SongSettings>) => {
-      doc.setSongSetting(ydoc, songId, patch);
-      emitState();
-    },
-    resetSongSetting: (songId, field) => {
-      doc.resetSongSetting(ydoc, songId, field);
-      emitState();
-    },
+    // No explicit emitState() here — the songSettings observer above fires for this
+    // write the same way it would for a remote one, so local and remote stay identical.
+    setSongSetting: (songId, patch: Partial<SongSettings>) => doc.setSongSetting(ydoc, songId, patch),
+    resetSongSetting: (songId, field) => doc.resetSongSetting(ydoc, songId, field),
     listCorrections: () => doc.listCorrections(ydoc),
     addCorrection(input) {
       const c = makeCorrection(input);

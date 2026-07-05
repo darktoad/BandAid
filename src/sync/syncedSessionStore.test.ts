@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import * as Y from 'yjs';
 import { createSyncedSessionStore } from './syncedSessionStore';
+import { exportUpdate, importUpdate } from './doc';
 
 function fakeStorage() {
   const m = new Map<string, string>();
@@ -33,5 +35,22 @@ describe('createSyncedSessionStore', () => {
     const store = createSyncedSessionStore({ storage: fakeStorage() });
     store.setDisplayName('Fiddle');
     expect(store.getIdentity().name).toBe('Fiddle');
+  });
+
+  it('notifies subscribers with the new tempo when a remote peer changes it', () => {
+    const docA = new Y.Doc();
+    const docB = new Y.Doc();
+    const a = createSyncedSessionStore({ doc: docA, storage: fakeStorage() });
+    const b = createSyncedSessionStore({ doc: docB, storage: fakeStorage() });
+
+    const seen: Array<number | undefined> = [];
+    b.subscribe((s) => seen.push(s.songSettings['stones-rag']?.tempoPct));
+
+    // Peer A sets tempo, then "syncs" to B the way a real provider would.
+    a.setSongSetting('stones-rag', { tempoPct: 0.7 });
+    importUpdate(docB, exportUpdate(docA));
+
+    expect(seen.at(-1)).toBe(0.7);
+    expect(b.getSongSettings('stones-rag')).toEqual({ tempoPct: 0.7 });
   });
 });

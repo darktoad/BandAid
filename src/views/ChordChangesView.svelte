@@ -12,6 +12,8 @@
   import LyricsSheet from '../lyrics/LyricsSheet.svelte';
   import { parseChordPro, transposeSheet, type SongSheet } from '../lyrics/chordpro';
   import { prefersFlats, transposeChordLabel, transposeNote } from '../chords/transposeChord';
+  import SyncBadge from '../sync/SyncBadge.svelte';
+  import type { SyncTone } from '../sync/syncStatusLabel';
 
   /**
    * Chord-Changes-in-Time view (M1). A presentation template over the unified music
@@ -28,9 +30,10 @@
    *    is the richer M3 form.)
    * Local choices (part, tempo %, audio, zoom) live here; only Transport is synced.
    */
-  let { song, store, onsongs, onprogress }: {
+  let { song, store, syncSummary, onsongs, onprogress }: {
     song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string; fifths?: number }; composer?: string; notes?: string; lyricsUrl?: string };
     store: SessionStore;
+    syncSummary: { label: string; tone: SyncTone };
     onsongs?: () => void; // open the slide-over song picker
     onprogress?: (fraction: number) => void; // 0–1 playback position, for the picker
   } = $props();
@@ -178,6 +181,25 @@
     if (stageEl) ro.observe(stageEl);
     return () => ro.disconnect();
   });
+
+  // Tempo/key are shared session state (band-synced): a bandmate's change lands in the
+  // doc immediately, but nothing re-renders this view unless we react to it here — the
+  // initial read in onReady only covers this device's own load.
+  onMount(() =>
+    store.subscribe((state) => {
+      const saved = state.songSettings[song.id] ?? {};
+      const nextSpeedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 100) : 100;
+      if (nextSpeedPct !== speedPct) {
+        speedPct = nextSpeedPct;
+        transport?.setTempoPercent(speedPct / 100);
+      }
+      const nextTranspose = saved.transpose ?? 0;
+      if (nextTranspose !== transpose) {
+        transpose = nextTranspose;
+        controller?.setTranspose(transpose);
+      }
+    }),
+  );
 
   // Beat clock for the overlay's progress track: reuse projectBar (alphaTab is the live
   // clock, this just reconciles "now" to a fractional bar). Only runs while the overlay
@@ -424,6 +446,7 @@
   <button class="pill" class:on={tempoModified} onclick={openSettings} disabled={!transport} title="Tempo">
     ♩ = {currentBpm}{#if tempoModified}<span class="dot">●</span>{/if}
   </button>
+  <SyncBadge summary={syncSummary} />
   <button class="iconbtn" class:active={showMore} onclick={() => (showMore = !showMore)} aria-label="Settings" aria-expanded={showMore}>
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
       <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />

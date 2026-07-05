@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { LibraryService } from '../library/libraryService';
   import type { SongSummary } from '../library/types';
+  import SyncBadge from '../sync/SyncBadge.svelte';
+  import type { SyncTone } from '../sync/syncStatusLabel';
 
   /**
    * Integrated song picker (M1). A tab row at the top selects which list to show — each
@@ -9,12 +11,13 @@
    * list (persisted). Used full-screen on first load and as the slide-over while
    * drilling. The only session write is Open → onopen → setCurrentSong (D5).
    */
-  let { service, onopen, onclose, activeId, progress = 0 }: {
+  let { service, onopen, onclose, activeId, progress = 0, syncSummary }: {
     service: LibraryService;
     onopen: (song: SongSummary) => void;
     onclose?: () => void; // present when shown as the slide-over
     activeId?: string; // the currently-open song (highlighted)
     progress?: number; // 0–1 playback position of the active song
+    syncSummary: { label: string; tone: SyncTone };
   } = $props();
 
   let setLists = $derived(service.getSetLists());
@@ -64,6 +67,7 @@
   <header class="phead">
     <h1 class="brand">BandAid</h1>
     <span class="ptitle">Songs</span>
+    <SyncBadge summary={syncSummary} />
     {#if onclose}
       <button class="iconbtn" use:focusOnMount onclick={onclose} aria-label="Close">✕</button>
     {/if}

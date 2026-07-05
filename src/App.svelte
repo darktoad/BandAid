@@ -140,24 +140,20 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<div class="sync-indicator" data-tone={syncSummary.tone} title="Band sync: {syncSummary.label}">
-  <span class="dot"></span>{syncSummary.label}
-</div>
-
 {#if current}
   <!-- Re-mount per song so the renderer reloads the new score. -->
   {#key current.id}
-    <ChordChangesView song={current} {store} onsongs={openPicker} onprogress={(f) => (progress = f)} />
+    <ChordChangesView song={current} {store} {syncSummary} onsongs={openPicker} onprogress={(f) => (progress = f)} />
   {/key}
   {#if service && pickerOpen}
     <button class="scrim" onclick={closePicker} aria-label="Close song picker"></button>
     <div class="picker-panel" role="dialog" aria-modal="true" aria-label="Song picker">
-      <BrowseView {service} onopen={openSong} onclose={closePicker} activeId={current.id} {progress} />
+      <BrowseView {service} onopen={openSong} onclose={closePicker} activeId={current.id} {progress} {syncSummary} />
     </div>
   {/if}
 {:else if service}
   <!-- First load: the integrated picker, full screen. -->
-  <BrowseView {service} onopen={openSong} />
+  <BrowseView {service} onopen={openSong} {syncSummary} />
 {:else if loadError}
   <div class="boot-error">Couldn’t load the library: {loadError}</div>
 {:else}
@@ -196,32 +192,4 @@
     from { transform: translateX(-100%); }
     to { transform: translateX(0); }
   }
-
-  /* Always-visible, non-interactive band sync status — informational only, so it
-     never intercepts taps even while sitting above the picker/scrim. */
-  .sync-indicator {
-    position: fixed;
-    top: 0.5rem;
-    right: 0.5rem;
-    z-index: 1003;
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 999px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    color: var(--muted);
-    font-size: 0.75rem;
-    pointer-events: none;
-  }
-  .sync-indicator .dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    background: currentColor;
-  }
-  .sync-indicator[data-tone='synced'] { color: #8fd18a; }
-  .sync-indicator[data-tone='connecting'] { color: var(--accent); }
-  .sync-indicator[data-tone='offline'] { color: #f1b4b4; }
 </style>
