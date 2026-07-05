@@ -17,16 +17,16 @@
   const store = createSyncedSessionStore();
   // Read once at init; switching ?band= in place will NOT re-attach providers to the new room — changing bands requires a full page reload.
   const bandCode = readBandCode(typeof location !== 'undefined' ? location.search : '');
-  let detach: (() => void) | undefined;
+  let sync: ReturnType<typeof attachProviders> | undefined;
   if (bandCode) {
     const host = import.meta.env.VITE_SYNC_HOST;
     const factories = [indexeddbProvider, webrtcProvider, ...(host ? [partyserverProvider(host)] : [])];
-    detach = attachProviders(store.doc, bandCode, factories);
+    sync = attachProviders(store.doc, bandCode, factories);
   } else {
     // Local-only durability even without a band: persist to IndexedDB.
-    detach = attachProviders(store.doc, 'solo', [indexeddbProvider]);
+    sync = attachProviders(store.doc, 'solo', [indexeddbProvider]);
   }
-  onDestroy(() => detach?.());
+  onDestroy(() => sync?.disconnect());
 
   let service = $state<LibraryService | undefined>(undefined);
   let loadError = $state<string | null>(null);
