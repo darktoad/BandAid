@@ -48,6 +48,17 @@ describe('doc songSettings', () => {
     expect(getSongSettings(doc, 's')).toEqual({ transpose: 2 });
   });
 
+  it('converges concurrent edits to different fields from two docs', () => {
+    const a = createBandDoc();
+    const b = createBandDoc();
+    setSongSetting(a, 's', { tempoPct: 0.8 });
+    setSongSetting(b, 's', { transpose: 2 });
+    importUpdate(b, exportUpdate(a));
+    importUpdate(a, exportUpdate(b));
+    expect(getSongSettings(a, 's')).toEqual({ tempoPct: 0.8, transpose: 2 });
+    expect(getSongSettings(b, 's')).toEqual({ tempoPct: 0.8, transpose: 2 });
+  });
+
   it('migrates legacy localStorage once', () => {
     const m = new Map<string, string>([['bandaid.songSettings.v1', JSON.stringify({ s: { transpose: 3 } })]]);
     const storage = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
