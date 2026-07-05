@@ -1,9 +1,11 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import Renderer from '../renderer/Renderer.svelte';
   import type { RendererController, TrackInfo } from '../renderer/createRenderer';
   import { createLocalTransport, maxTempoPercent, type LocalTransport } from '../transport/localTransport';
   import type { SyncedSessionStore } from '../sync/syncedSessionStore';
+  import { createTransportFollower } from '../sync/transportFollower';
+  import { skewLog } from '../sync/skewLog';
   import Icon from '../icons/Icon.svelte';
   import ChordOverlay from '../chords/ChordOverlay.svelte';
   import type { Instrument } from '../chords/chordShapes';
@@ -226,6 +228,26 @@
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
+  });
+
+  // Follow the band's transport (playback sync). Wired once the player can actually
+  // play (onreadyforplayback) — applying a play stamp before the soundfont is loaded
+  // would be dropped by alphaTab. One follower per loaded song; subscribing delivers
+  // the current doc stamp immediately, so a device that opens mid-tune joins in.
+  let unsubFollower: (() => void) | undefined;
+  function wireFollower() {
+    if (unsubFollower || !transport) return;
+    const follower = createTransportFollower({
+      songId: song.id,
+      authorId: store.getIdentity().authorId,
+      apply: (stamp) => transport!.applyRemote(stamp),
+      skewLog,
+    });
+    unsubFollower = store.subscribeSessionTransport((stamp) => follower.receive(stamp));
+  }
+  onDestroy(() => {
+    unsubFollower?.();
+    transport?.dispose(); // cancel a pending scheduled remote start
   });
 
   function onReady(c: RendererController, t: TrackInfo[]) {
@@ -591,6 +613,7 @@
       onplayable={() => {
         canPlay = true;
         applyAudio(); // re-assert volumes now the synth is ready (not just at score load)
+        wireFollower();
       }}
       onerror={(e) => (errorMsg = e.message)}
     />
