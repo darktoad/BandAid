@@ -199,7 +199,7 @@ createTransportFollower(deps): { receive(stamp: SharedTransportIntent | null): v
 
 ## Open Questions
 
-- [ ] **"Practice alone while the band plays" escape hatch.** v1 always follows (you're in the session). If home practice during someone else's session bites in real use, add a local "solo" pause-following toggle — decide after dogfooding, not before.
+- [x] **"Practice alone while the band plays" escape hatch.** v1 always follows (you're in the session). **Backlogged 2026-07-05 as *independent playheads* ([roadmap](../roadmap.md) M3):** two modes — tethered-apart (local cursor diverges, band position still tracked via a ghost indicator, one-tap snap-back) and fully desynced (leave following entirely, resync via the late-joiner path). Each has its place; design after playback-sync dogfooding. The follower architecture already accommodates both (a local boolean gating `apply()`; snap-back = one cold `applyRemote`).
 - [ ] **Repeat-aware late-join projection.** Linear `projectBar` ignores repeats; alphaTab's tick/time timeline may allow an exact elapsed-time → position mapping. Investigate as a fast-follow only if late-join accuracy annoys in practice (spike notes in the technical design §Late joiners).
 - [ ] **Promote playing tap-a-bar to a synced intent.** Needs a renderer-level user-interaction signal to distinguish a tap from a repeat jump (ADR-002 D2.1). Revisit with alphaTab's `beatMouseDown` events if the local-only acceptance chafes.
 - [ ] Should the last band intent's author be surfaced anywhere beyond the song notice (e.g. "paused by Kate")? Deferred with presence UI (R4).

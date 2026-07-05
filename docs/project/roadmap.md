@@ -90,6 +90,24 @@ Browse library / set list
       a one-time bar-alignment pass per song, most naturally added to the offline
       song-processing tool, before the app-side highlighting (straightforward reuse of
       the `ChordOverlay` pattern) is worth building.
+- [ ] **Independent playheads (tethered vs detached)** — a device's playhead can be
+      *apart* from the band's instead of always following. **Not started; backlog, no
+      urgency.** Scoping note (2026-07-05): after playback-sync
+      ([features/playback-sync.md](features/playback-sync.md)) a device always follows
+      the band. Two "apart" modes, each with its place:
+      **tethered-apart** — the local cursor diverges (drill a passage, peek ahead) while
+      the device still tracks the band's position (ghost band-position indicator on the
+      scrubber/score, one-tap snap-back); stays subscribed, the follower simply stops
+      driving the renderer while detached. **Fully desynced** — leave playback-following
+      entirely (true solo practice mid-session), resync later via the existing
+      late-joiner path (`applyRemote` cold apply — resync is free). Design hooks already
+      exist: the per-song `transportFollower` is the single place remote intents apply,
+      so "detached" is a local boolean gating `apply()`; the band's position stays
+      readable from `store.getSessionTransport()` + `projectBar` for the ghost
+      indicator; snap-back is one cold `applyRemote` of the current stamp. Resolves the
+      playback-sync spec's "practice alone while the band plays" open question; the
+      real design work is UX (where the toggle lives, how the ghost renders, whether a
+      band pause auto-resyncs).
 
 ### Milestone 4: Tighten When Needed
 **Goal:** Add precision and live intelligence only after real use proves it's needed.
