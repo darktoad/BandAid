@@ -3,7 +3,7 @@
   import Renderer from '../renderer/Renderer.svelte';
   import type { RendererController, TrackInfo } from '../renderer/createRenderer';
   import { createLocalTransport, maxTempoPercent, type LocalTransport } from '../transport/localTransport';
-  import type { SessionStore } from '../session/types';
+  import type { SyncedSessionStore } from '../sync/syncedSessionStore';
   import Icon from '../icons/Icon.svelte';
   import ChordOverlay from '../chords/ChordOverlay.svelte';
   import type { Instrument } from '../chords/chordShapes';
@@ -32,7 +32,7 @@
    */
   let { song, store, syncSummary, onsongs, onprogress }: {
     song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string; fifths?: number }; composer?: string; notes?: string; lyricsUrl?: string };
-    store: SessionStore;
+    store: SyncedSessionStore;
     syncSummary: { label: string; tone: SyncTone };
     onsongs?: () => void; // open the slide-over song picker
     onprogress?: (fraction: number) => void; // 0–1 playback position, for the picker
@@ -184,10 +184,13 @@
 
   // Tempo/key are shared session state (band-synced): a bandmate's change lands in the
   // doc immediately, but nothing re-renders this view unless we react to it here — the
-  // initial read in onReady only covers this device's own load.
+  // initial read in onReady only covers this device's own load. This uses the dedicated
+  // songSettings channel, not the generic subscribe() — that one also fires for plain
+  // transport stamps (e.g. this same setTempoPercent's own restamp), which can fire
+  // before the songSettings write lands and would read a stale value as authoritative.
   onMount(() =>
-    store.subscribe((state) => {
-      const saved = state.songSettings[song.id] ?? {};
+    store.subscribeSongSettings((settings) => {
+      const saved = settings[song.id] ?? {};
       const nextSpeedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 100) : 100;
       if (nextSpeedPct !== speedPct) {
         speedPct = nextSpeedPct;

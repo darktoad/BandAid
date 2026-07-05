@@ -11,16 +11,20 @@
 </span>
 
 <style>
+  /* Matches the Key/Tempo pill buttons' box metrics exactly (padding, font-size,
+     border-radius, background) so it reads as part of the same control group,
+     just non-interactive. */
   .sync-badge {
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    padding: 0.3rem 0.55rem;
-    border-radius: 999px;
+    padding: 0.32rem 0.5rem;
+    border-radius: 8px;
     border: 1px solid var(--line);
+    background: var(--panel);
     color: var(--muted);
-    font-size: 0.72rem;
+    font-size: 0.82rem;
     white-space: nowrap;
   }
   .dot {
@@ -33,4 +37,8 @@
   .sync-badge[data-tone='synced'] { color: #8fd18a; }
   .sync-badge[data-tone='connecting'] { color: var(--accent); }
   .sync-badge[data-tone='offline'] { color: #f1b4b4; }
+
+  @media (pointer: coarse) {
+    .sync-badge { min-height: 2.75rem; }
+  }
 </style>

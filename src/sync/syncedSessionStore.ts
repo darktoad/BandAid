@@ -14,6 +14,14 @@ export interface SyncedSessionStore extends SessionStore {
   getIdentity(): Identity;
   setDisplayName(name: string): void;
   subscribeCorrections(run: (list: Correction[]) => void): () => void;
+  /**
+   * Fires only for songSettings changes — deliberately separate from the generic
+   * `subscribe`, which also fires for transport stamps (e.g. setTempoPercent's own
+   * restamp). A consumer reacting to "did tempo/key change?" on the generic channel
+   * would see a transport-only emit fire first and misread a not-yet-written value
+   * as the real one.
+   */
+  subscribeSongSettings(run: (settings: Record<string, SongSettings>) => void): () => void;
   /** The underlying doc, so providers (Task 5) can attach. */
   readonly doc: Y.Doc;
 }
@@ -35,6 +43,7 @@ export function createSyncedSessionStore(
 
   const stateSubs = new Set<(s: SessionState) => void>();
   const corrSubs = new Set<(list: Correction[]) => void>();
+  const songSettingsSubs = new Set<(settings: Record<string, SongSettings>) => void>();
 
   const snapshot = (): SessionState => ({
     currentSongId,
@@ -43,11 +52,14 @@ export function createSyncedSessionStore(
   });
   const emitState = () => stateSubs.forEach((cb) => cb(snapshot()));
   const emitCorrections = () => corrSubs.forEach((cb) => cb(doc.listCorrections(ydoc)));
+  const emitSongSettings = () => songSettingsSubs.forEach((cb) => cb(doc.listSongSettings(ydoc)));
 
   ydoc.getMap('corrections').observeDeep(emitCorrections);
   // Without this, a remote peer's tempo/transpose change updates the doc but nothing
-  // ever tells a subscriber to look — the tempo pill would silently go stale.
-  ydoc.getMap('songSettings').observeDeep(emitState);
+  // ever tells a subscriber to look — the tempo pill would silently go stale. This is
+  // its own channel (not emitState) so a transport stamp can never masquerade as a
+  // songSettings update — see the interface doc comment on subscribeSongSettings.
+  ydoc.getMap('songSettings').observeDeep(emitSongSettings);
 
   return {
     doc: ydoc,
@@ -86,6 +98,11 @@ export function createSyncedSessionStore(
       corrSubs.add(run);
       run(doc.listCorrections(ydoc));
       return () => corrSubs.delete(run);
+    },
+    subscribeSongSettings(run) {
+      songSettingsSubs.add(run);
+      run(doc.listSongSettings(ydoc));
+      return () => songSettingsSubs.delete(run);
     },
   };
 }

@@ -44,7 +44,7 @@ describe('createSyncedSessionStore', () => {
     const b = createSyncedSessionStore({ doc: docB, storage: fakeStorage() });
 
     const seen: Array<number | undefined> = [];
-    b.subscribe((s) => seen.push(s.songSettings['stones-rag']?.tempoPct));
+    b.subscribeSongSettings((s) => seen.push(s['stones-rag']?.tempoPct));
 
     // Peer A sets tempo, then "syncs" to B the way a real provider would.
     a.setSongSetting('stones-rag', { tempoPct: 0.7 });
@@ -52,5 +52,18 @@ describe('createSyncedSessionStore', () => {
 
     expect(seen.at(-1)).toBe(0.7);
     expect(b.getSongSettings('stones-rag')).toEqual({ tempoPct: 0.7 });
+  });
+
+  it('subscribeSongSettings does not fire on a plain transport stamp', () => {
+    const store = createSyncedSessionStore({ storage: fakeStorage() });
+    const seen: Array<Record<string, { tempoPct?: number }>> = [];
+    store.subscribeSongSettings((s) => seen.push(s));
+    seen.length = 0; // drop the initial emit
+
+    store.setTransport({ songId: 's', playing: true, startBar: 1, startTimestamp: 1, tempo: 120 });
+    expect(seen).toEqual([]); // transport-only change must not touch this channel
+
+    store.setSongSetting('s', { tempoPct: 0.8 });
+    expect(seen.at(-1)).toEqual({ s: { tempoPct: 0.8 } });
   });
 });
