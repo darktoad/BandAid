@@ -324,6 +324,105 @@ function makeTransport(over: Partial<LocalTransportDeps> = {}) {
   return { transport, ...r, ...s };
 }
 
+import type { SharedTransportIntent } from '../session/types';
+
+function manualScheduler() {
+  const pending: Array<{ fn: () => void; delayMs: number; cancelled: boolean }> = [];
+  return {
+    schedule: (fn: () => void, delayMs: number) => {
+      const entry = { fn, delayMs, cancelled: false };
+      pending.push(entry);
+      return () => { entry.cancelled = true; };
+    },
+    pending,
+    fire: () => pending.splice(0).forEach((p) => !p.cancelled && p.fn()),
+  };
+}
+
+const remote = (over: Partial<SharedTransportIntent> = {}): SharedTransportIntent => ({
+  songId: 'tune', playing: true, startBar: 1, startTimestamp: 50_000, tempo: 120,
+  issuedAt: 49_900, authorId: 'peer', kind: 'play', ...over,
+});
+
+describe('applyRemote', () => {
+  it('pause aligns to the pauser’s bar and stamps origin remote (never intent)', () => {
+    const { transport, calls, stamps, emitPlaying } = makeTransport();
+    transport.play();
+    emitPlaying(true);
+    transport.applyRemote(remote({ playing: false, startBar: 9, kind: 'pause' }));
+    expect(calls).toContain('pause');
+    expect(calls).toContain('seek:9');
+    expect(stamps.at(-1)!.meta).toEqual({ origin: 'remote' });
+    expect(transport.getTransport()).toMatchObject({ playing: false, startBar: 9 });
+  });
+
+  it('seek while both playing just seeks — playback continues, no re-play', () => {
+    const { transport, calls, emitPlaying } = makeTransport();
+    transport.play();
+    emitPlaying(true);
+    const playsBefore = calls.filter((c) => c === 'play').length;
+    transport.applyRemote(remote({ kind: 'seek', startBar: 5 }));
+    expect(calls).toContain('seek:5');
+    expect(calls.filter((c) => c === 'play')).toHaveLength(playsBefore);
+  });
+
+  it('a future start (initiator count-in) schedules play at the stamped instant, count-in off', () => {
+    const sched = manualScheduler();
+    const { transport, calls, stamps } = makeTransport({ schedule: sched.schedule });
+    transport.applyRemote(remote({ startTimestamp: 51_200 })); // now() is 50_000
+    expect(calls).toContain('seek:1');
+    expect(calls).toContain('countin:0');
+    expect(calls).not.toContain('play');
+    expect(sched.pending[0].delayMs).toBe(1_200);
+    // projection holds at startBar through the wait (future anchor mirrored locally)
+    expect(stamps.at(-1)!.t.startTimestamp).toBe(51_200);
+    sched.fire();
+    expect(calls).toContain('play');
+  });
+
+  it('a local user action cancels a pending scheduled start', () => {
+    const sched = manualScheduler();
+    const { transport, calls } = makeTransport({ schedule: sched.schedule });
+    transport.applyRemote(remote({ startTimestamp: 51_200 }));
+    transport.pause(); // the user's own intent supersedes (and publishes)
+    sched.fire();
+    expect(calls).not.toContain('play');
+  });
+
+  it('late join: seeks to the linearly projected bar and plays', () => {
+    // 30 s elapsed at 120 qpm, 4 quarters/bar → 15 bars past startBar 1 → bar 16.
+    const { transport, calls } = makeTransport();
+    transport.applyRemote(remote({ startTimestamp: 20_000, issuedAt: 20_000 }));
+    expect(calls).toContain('seek:16');
+    expect(calls).toContain('countin:0');
+    expect(calls).toContain('play');
+  });
+
+  it('a playing stamp projecting past the end lands paused at bar 1', () => {
+    const { transport, calls } = makeTransport(); // measureCount 32
+    // Synthetic: a fresh issuedAt isolates the projection guard from the age guard.
+    // 200 s elapsed at 120 qpm / 4 qpb = 100 bars past startBar 1 → far beyond bar 32.
+    transport.applyRemote(remote({ startTimestamp: 50_000 - 200_000, issuedAt: 49_999 }));
+    expect(calls).toContain('seek:1');
+    expect(calls).not.toContain('play');
+    expect(transport.getTransport().playing).toBe(false);
+  });
+
+  it('a playing stamp older than 10 minutes lands paused at bar 1 even if it projects in range', () => {
+    const { transport, calls } = makeTransport({ measureCount: 10_000 });
+    transport.applyRemote(remote({ startTimestamp: 50_000 - 11 * 60_000, issuedAt: 50_000 - 11 * 60_000 }));
+    expect(calls).toContain('seek:1');
+    expect(calls).not.toContain('play');
+    expect(transport.getTransport().playing).toBe(false);
+  });
+
+  it('ignores stamps for another song', () => {
+    const { transport, calls } = makeTransport();
+    transport.applyRemote(remote({ songId: 'other' }));
+    expect(calls).toHaveLength(0);
+  });
+});
+
 describe('stamp origin routing', () => {
   it('play, pause, and seekToBar stamp as intents with their kind', () => {
     const { transport, stamps, emitPlaying } = makeTransport();

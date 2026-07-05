@@ -1,4 +1,5 @@
-import type { SessionStore, Transport, TransportStampMeta } from '../session/types';
+import type { SessionStore, Transport, TransportStampMeta, SharedTransportIntent } from '../session/types';
+import { projectBar } from '../playhead/projectBar';
 
 /**
  * Local Transport — the controls that drive the playhead (M1 feature: local-transport).
@@ -41,6 +42,8 @@ export interface LocalTransportDeps {
   store: SessionStore;
   /** Clock for stamps. Injectable for tests; defaults to wall-clock epoch ms. */
   now?: () => number;
+  /** Timer seam for the scheduled remote start; injectable for tests. Returns a cancel. */
+  schedule?: (fn: () => void, delayMs: number) => () => void;
 }
 
 export interface LocalTransport {
@@ -55,6 +58,10 @@ export interface LocalTransport {
   setCountIn(on: boolean): void;
   getTransport(): Transport;
   onTransportChange(cb: (t: Transport) => void): void;
+  /** Apply a peer's intent: the follower mechanics. Never publishes back to the doc. */
+  applyRemote(stamp: SharedTransportIntent): void;
+  /** Cancel any pending scheduled remote start (song switch / unmount). */
+  dispose(): void;
 }
 
 export const MIN_TEMPO_PCT = 0.5;
@@ -66,6 +73,9 @@ export const MIN_TEMPO_PCT = 0.5;
 export const MAX_TEMPO_PCT = 3;
 export const MAX_TEMPO_BPM = 200;
 const COUNT_IN_VOLUME = 1;
+// A `playing` remote stamp this old means someone closed the app mid-tune — land
+// paused instead of haunting the next session.
+export const MAX_REMOTE_PLAYING_AGE_MS = 10 * 60_000;
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
@@ -80,6 +90,18 @@ export function maxTempoPercent(defaultTempoBpm: number): number {
 export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
   const { songId, defaultTempoBpm, measureCount, quarterNotesPerBar, renderer, store } = deps;
   const now = deps.now ?? (() => Date.now());
+  const schedule =
+    deps.schedule ??
+    ((fn: () => void, delayMs: number) => {
+      const id = setTimeout(fn, delayMs);
+      return () => clearTimeout(id);
+    });
+  // Pending scheduled remote start; any user action or a newer remote stamp cancels it.
+  let cancelScheduled: (() => void) | null = null;
+  function clearScheduled(): void {
+    cancelScheduled?.();
+    cancelScheduled = null;
+  }
 
   // Local presentation state (never synced).
   let pct = 1;
@@ -140,6 +162,7 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
 
   return {
     play() {
+      clearScheduled();
       renderer.setCountInVolume(countIn ? COUNT_IN_VOLUME : 0);
       renderer.play();
       playing = true;
@@ -152,12 +175,14 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
     },
 
     pause() {
+      clearScheduled();
       renderer.pause();
       playing = false;
       stamp({ playing: false }, { origin: 'intent', kind: 'pause' });
     },
 
     setTempoPercent(next: number) {
+      clearScheduled();
       pct = clamp(next, MIN_TEMPO_PCT, maxTempoPercent(defaultTempoBpm));
       renderer.setSpeed(pct);
       // Restamp from the current bar + now so position stays continuous (FR-3): the
@@ -167,6 +192,7 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
     },
 
     seekToBar(bar: number) {
+      clearScheduled();
       const target = clamp(Math.round(bar), 1, measureCount);
       renderer.seekToBar(target);
       currentBar = target;
@@ -180,6 +206,77 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
     getTransport: () => current,
     onTransportChange(cb) {
       listeners.push(cb);
+    },
+
+    // The parameter is named `intent` so the internal stamp() helper stays reachable.
+    applyRemote(intent: SharedTransportIntent) {
+      clearScheduled();
+      if (intent.songId !== songId) return; // belt & braces; the follower already filters
+      const REMOTE = { origin: 'remote' } as const;
+      const target = clamp(Math.round(intent.startBar), 1, measureCount);
+
+      if (!intent.playing) {
+        // Pause (or a paused seek) is a re-sync moment: align to the stamped bar.
+        renderer.pause();
+        playing = false;
+        renderer.seekToBar(target);
+        currentBar = target;
+        stamp({ playing: false, startBar: target }, REMOTE);
+        return;
+      }
+
+      if (playing && intent.kind === 'seek') {
+        // Explicit band seek while we're already playing: jump, keep playing.
+        renderer.seekToBar(target);
+        currentBar = target;
+        stamp({ startBar: target }, REMOTE);
+        return;
+      }
+
+      // Cold start (we're paused, the band plays) or a fresh play.
+      const nowMs = now();
+      const delay = intent.startTimestamp - nowMs;
+      if (delay > 0) {
+        // The initiator is inside their count-in window: start exactly at the stamped
+        // instant, never with a local count-in (feature D2). projectBar floors elapsed
+        // at 0, so mirroring the future anchor holds the playhead at startBar.
+        // If we were somehow still playing (an intermediate pause stamp compacted away
+        // by whole-object LWW), silence until the stamped instant.
+        renderer.pause();
+        renderer.seekToBar(target);
+        currentBar = target;
+        renderer.setCountInVolume(0);
+        playing = true;
+        cancelScheduled = schedule(() => renderer.play(), delay);
+        stamp({ playing: true, startBar: target, startTimestamp: intent.startTimestamp }, REMOTE);
+        return;
+      }
+
+      // Late join: linear projection (repeats make this approximate — feature D5).
+      const projected = projectBar(intent, nowMs, quarterNotesPerBar);
+      const stale =
+        projected > measureCount || nowMs - intent.issuedAt > MAX_REMOTE_PLAYING_AGE_MS;
+      if (stale) {
+        renderer.pause();
+        playing = false;
+        renderer.seekToBar(1);
+        currentBar = 1;
+        stamp({ playing: false, startBar: 1 }, REMOTE);
+        return;
+      }
+      const joinBar = clamp(Math.floor(projected), 1, measureCount);
+      renderer.seekToBar(joinBar);
+      currentBar = joinBar;
+      renderer.setCountInVolume(0);
+      renderer.play();
+      playing = true;
+      // Re-anchor at what THIS device actually did: on an approximate join, local
+      // consistency (overlay/scrubber match local audio) beats a shared-but-wrong anchor.
+      stamp({ playing: true, startBar: joinBar }, REMOTE);
+    },
+
+    dispose() {
+      clearScheduled();
     },
   };
 }
