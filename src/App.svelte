@@ -3,11 +3,11 @@
   import BrowseView from './views/BrowseView.svelte';
   import ChordChangesView from './views/ChordChangesView.svelte';
   import { createSyncedSessionStore } from './sync/syncedSessionStore';
-  import { attachProviders } from './sync/providers/attach';
+  import { attachProviders, type AttachedSync } from './sync/providers/attach';
   import { indexeddbProvider } from './sync/providers/indexeddb';
   import { webrtcProvider } from './sync/providers/webrtc';
   import { partyserverProvider } from './sync/providers/partyserver';
-  import { readBandCode } from './sync/bandCode';
+  import { readBandName, saveBandName, bandRoomCode } from './sync/bandCode';
   import { summarizeSyncStatus } from './sync/syncStatusLabel';
   import { createLibraryService, type LibraryService } from './library/libraryService';
   import type { SongSummary, SongKey } from './library/types';
@@ -15,27 +15,51 @@
   import type { SharedSongIntent } from './session/types';
   import { skewLog } from './sync/skewLog';
 
-  // Synced store over a Yjs doc. With a band code we attach transports; without one
-  // the same store works fully local (IndexedDB only, no network).
+  // Synced store over a Yjs doc. The app always begins local/not-synced: IndexedDB
+  // persistence alone at boot; joining the band is an intentional step (the Sync
+  // toggle in the settings sheet), which attaches the network providers at runtime.
   const store = createSyncedSessionStore();
-  // Read once at init; switching ?band= in place will NOT re-attach providers to the new room — changing bands requires a full page reload.
-  const bandCode = readBandCode(typeof location !== 'undefined' ? location.search : '');
-  let sync: ReturnType<typeof attachProviders> | undefined;
-  if (bandCode) {
-    const host = import.meta.env.VITE_SYNC_HOST;
-    const factories = [indexeddbProvider, webrtcProvider, ...(host ? [partyserverProvider(host)] : [])];
-    sync = attachProviders(store.doc, bandCode, factories);
-  } else {
-    // Local-only durability even without a band: persist to IndexedDB.
-    sync = attachProviders(store.doc, 'solo', [indexeddbProvider]);
-  }
-  let syncStatus = $state(sync?.getStatus() ?? { providers: {} });
-  const unsubscribeSyncStatus = sync?.onStatusChange((s) => (syncStatus = s));
+  const localPersistence = attachProviders(store.doc, 'solo', [indexeddbProvider]);
+  // A `?band=` link or a previous session only prefills the band NAME — never connects.
+  let bandName = $state(readBandName(typeof location !== 'undefined' ? location.search : ''));
+  let syncOn = $state(false);
+  let bandSync: AttachedSync | undefined;
+  let unsubscribeSyncStatus: (() => void) | undefined;
+  let syncStatus = $state<ReturnType<AttachedSync['getStatus']>>({ providers: {} });
   let syncSummary = $derived(summarizeSyncStatus(syncStatus));
-  onDestroy(() => {
+
+  function connectBand() {
+    const host = import.meta.env.VITE_SYNC_HOST;
+    const factories = [webrtcProvider, ...(host ? [partyserverProvider(host)] : [])];
+    bandSync = attachProviders(store.doc, bandRoomCode(bandName), factories);
+    syncStatus = bandSync.getStatus();
+    unsubscribeSyncStatus = bandSync.onStatusChange((s) => (syncStatus = s));
+  }
+  function disconnectBand() {
     unsubscribeSyncStatus?.();
+    unsubscribeSyncStatus = undefined;
+    bandSync?.disconnect();
+    bandSync = undefined;
+    syncStatus = { providers: {} }; // back to "Local only"
+  }
+  function toggleSync() {
+    syncOn = !syncOn;
+    if (syncOn) connectBand();
+    else disconnectBand();
+  }
+  function setBandName(name: string) {
+    bandName = saveBandName(name);
+    // Changing bands while synced moves to the new room right away.
+    if (syncOn) {
+      disconnectBand();
+      connectBand();
+    }
+  }
+
+  onDestroy(() => {
     unsubSessionSong?.();
-    sync?.disconnect();
+    disconnectBand();
+    localPersistence.disconnect();
   });
 
   let service = $state<LibraryService | undefined>(undefined);
@@ -190,7 +214,13 @@
 {#if current}
   <!-- Re-mount per song so the renderer reloads the new score. -->
   {#key current.id}
-    <ChordChangesView song={current} {store} {syncSummary} onsongs={openPicker} onprogress={(f) => (progress = f)} />
+    <ChordChangesView
+      song={current}
+      {store}
+      sync={{ on: syncOn, bandName, summary: syncSummary, toggle: toggleSync, setBandName }}
+      onsongs={openPicker}
+      onprogress={(f) => (progress = f)}
+    />
   {/key}
   {#if service && pickerOpen}
     <button class="scrim" onclick={closePicker} aria-label="Close song picker"></button>

@@ -23,8 +23,10 @@
    * is the playhead, and the local-transport controller drives + stamps it.
    *
    * Mobile-layout prototype:
-   *  - Compact transport bar (Play + scrubber) keeps the music tall; everything else
-   *    (tempo, size, audio, "my part") folds into a "More" sheet.
+   *  - The top header is navigation/meta only (songs, title, info, menu); everything
+   *    band-synced sits together in one strip below it (play/pause, return to start,
+   *    key, tempo). Local-only controls (size, audio, "my part", sync setup) fold
+   *    into the "More" sheet.
    *  - Notation reflows by container width (responsive bars-per-row) for legibility.
    *  - The SHARED MELODY is the default view; a player toggles "my part" to add their
    *    own instrument staff. One alphaTab player drives both, so the part's cursor stays
@@ -32,10 +34,18 @@
    *    is the richer M3 form.)
    * Local choices (part, tempo %, audio, zoom) live here; only Transport is synced.
    */
-  let { song, store, syncSummary, onsongs, onprogress }: {
+  let { song, store, sync, onsongs, onprogress }: {
     song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string; fifths?: number }; composer?: string; notes?: string; lyricsUrl?: string };
     store: SyncedSessionStore;
-    syncSummary: { label: string; tone: SyncTone };
+    // Band sync controls for the settings sheet: the app starts local; syncing is an
+    // intentional step, toggled here.
+    sync: {
+      on: boolean;
+      bandName: string;
+      summary: { label: string; tone: SyncTone };
+      toggle: () => void;
+      setBandName: (name: string) => void;
+    };
     onsongs?: () => void; // open the slide-over song picker
     onprogress?: (fraction: number) => void; // 0–1 playback position, for the picker
   } = $props();
@@ -429,10 +439,10 @@
     scalePct = Number((e.target as HTMLInputElement).value);
     controller?.setScale(scalePct / 100);
   }
-  function onScrub(e: Event) {
-    const target = Number((e.target as HTMLInputElement).value);
-    setBar(target);
-    transport?.seekToBar(target);
+  // Return to the top of the tune (a synced seek: the band jumps with you).
+  function returnToStart() {
+    setBar(1);
+    transport?.seekToBar(1);
   }
   // Track the cursor bar and surface playback progress (0–1) for the song picker.
   function setBar(b: number) {
@@ -461,6 +471,8 @@
 
 <svelte:window onkeydown={onKeydown} />
 
+<!-- Top header: navigation and meta only — songs on the far left, the title, then
+     info and the menu on the far right. Nothing here touches band state. -->
 <header class="topbar">
   <button class="iconbtn" onclick={() => onsongs?.()} aria-label="Songs">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -477,13 +489,6 @@
       </svg>
     </button>
   {/if}
-  <button class="pill" class:on={transposeModified} onclick={openSettings} disabled={!controller} title="Key">
-    <span class="lbl">Key</span> {keyName}{#if transposeModified}<span class="dot">●</span>{/if}
-  </button>
-  <button class="pill" class:on={tempoModified} onclick={openSettings} disabled={!transport} title="Tempo">
-    ♩ = {currentBpm}{#if tempoModified}<span class="dot">●</span>{/if}
-  </button>
-  <SyncBadge summary={syncSummary} />
   <button class="iconbtn" class:active={showMore} onclick={() => (showMore = !showMore)} aria-label="Settings" aria-expanded={showMore}>
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
       <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
@@ -491,10 +496,14 @@
   </button>
 </header>
 
-<!-- Compact, always-visible transport: Play + scrubber keep the music tall. -->
+<!-- The synced strip: everything band-synced lives together here — play/pause,
+     return to start, key, tempo. What a bandmate changes, changes here. -->
 <div class="transport">
   <button class="play" onclick={togglePlay} disabled={!transport || !canPlay} aria-label={!canPlay ? 'Loading' : playing ? 'Pause' : 'Play'}>
     <Icon name={!canPlay ? 'loading' : playing ? 'pause' : 'play'} size={20} />
+  </button>
+  <button class="play" onclick={returnToStart} disabled={!transport} aria-label="Return to start" title="Return to start">
+    <Icon name="start" size={20} />
   </button>
 
   {#if !canPlay}
@@ -503,18 +512,14 @@
     <span class="loading-note" role="status">Loading audio…</span>
   {/if}
 
-  <input
-    class="scrub"
-    type="range"
-    min="1"
-    max={measureCount}
-    step="1"
-    value={bar}
-    oninput={onScrub}
-    disabled={!transport}
-    aria-label="Seek to bar"
-    aria-valuetext={`Bar ${bar} of ${measureCount}`}
-  />
+  <span class="spacer"></span>
+
+  <button class="pill" class:on={transposeModified} onclick={openSettings} disabled={!controller} title="Key">
+    <span class="lbl">Key</span> {keyName}{#if transposeModified}<span class="dot">●</span>{/if}
+  </button>
+  <button class="pill" class:on={tempoModified} onclick={openSettings} disabled={!transport} title="Tempo">
+    ♩ = {currentBpm}{#if tempoModified}<span class="dot">●</span>{/if}
+  </button>
 </div>
 
 <!-- Settings sheet (opened by the ☰, or the Key / Tempo pills). Inline on wide
@@ -522,6 +527,31 @@
 {#if showMore}
   <button class="sheet-scrim" onclick={() => (showMore = false)} aria-label="Close settings"></button>
   <div class="sheet">
+    <!-- Band sync: the app starts local; turning this on is the intentional step that
+         joins the band room named below. -->
+    <div class="row">
+      <span class="label">Sync</span>
+      <div class="chips">
+        <button class:active={sync.on} aria-pressed={sync.on} onclick={sync.toggle}>{sync.on ? 'On' : 'Off'}</button>
+      </div>
+      <SyncBadge summary={sync.summary} />
+    </div>
+
+    <label class="row">
+      <span class="label">Band</span>
+      <input
+        class="band"
+        type="text"
+        value={sync.bandName}
+        onchange={(e) => sync.setBandName((e.target as HTMLInputElement).value)}
+        placeholder="soundcheck"
+        autocapitalize="off"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Band name"
+      />
+    </label>
+
     <div class="row">
       <span class="label">Title</span>
       <div class="chips">
@@ -736,7 +766,7 @@
     align-items: center;
     justify-content: center;
   }
-  .scrub { flex: 1 1 auto; min-width: 0; }
+  .spacer { flex: 1 1 auto; }
   .readout { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.85rem; flex: 0 0 auto; }
   .loading-note { color: var(--muted); font-size: 0.82rem; flex: 0 0 auto; white-space: nowrap; }
 
@@ -766,6 +796,17 @@
   .readout.key { min-width: 5rem; }
   .st { color: var(--muted); }
   .sheet .row input[type='range'] { flex: 1 1 auto; min-width: 0; }
+  .sheet .row input.band {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9rem;
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .sheet .row input.band:focus { border-color: var(--accent); outline: none; }
   .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
   .chips button {
     display: inline-flex;

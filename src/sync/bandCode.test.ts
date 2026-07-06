@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readBandCode } from './bandCode';
+import { readBandName, saveBandName, bandRoomCode, DEFAULT_BAND_NAME } from './bandCode';
 
 function fakeStorage(seed: Record<string, string> = {}) {
   const m = new Map(Object.entries(seed));
@@ -10,13 +10,38 @@ function fakeStorage(seed: Record<string, string> = {}) {
   };
 }
 
-describe('readBandCode', () => {
+describe('readBandName', () => {
   it('reads ?band= and remembers it', () => {
     const s = fakeStorage();
-    expect(readBandCode('?band=rhythm-cats', s)).toBe('rhythm-cats');
-    expect(readBandCode('', s)).toBe('rhythm-cats'); // remembered
+    expect(readBandName('?band=rhythm-cats', s)).toBe('rhythm-cats');
+    expect(readBandName('', s)).toBe('rhythm-cats'); // remembered
   });
-  it('returns null when never set', () => {
-    expect(readBandCode('', fakeStorage())).toBeNull();
+  it('defaults to soundcheck when never set', () => {
+    expect(readBandName('', fakeStorage())).toBe(DEFAULT_BAND_NAME);
+  });
+  it('ignores a blank ?band=', () => {
+    expect(readBandName('?band=', fakeStorage())).toBe(DEFAULT_BAND_NAME);
+  });
+});
+
+describe('saveBandName', () => {
+  it('persists the trimmed name', () => {
+    const s = fakeStorage();
+    expect(saveBandName('  The Regulars ', s)).toBe('The Regulars');
+    expect(readBandName('', s)).toBe('The Regulars');
+  });
+  it('falls back to the default on blank input', () => {
+    const s = fakeStorage();
+    expect(saveBandName('   ', s)).toBe(DEFAULT_BAND_NAME);
+  });
+});
+
+describe('bandRoomCode', () => {
+  it('is case- and whitespace-insensitive', () => {
+    expect(bandRoomCode('Sound Check')).toBe('sound-check');
+    expect(bandRoomCode('  sound   check ')).toBe('sound-check');
+  });
+  it('falls back to the default on blank input', () => {
+    expect(bandRoomCode('  ')).toBe(DEFAULT_BAND_NAME);
   });
 });
