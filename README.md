@@ -78,9 +78,12 @@ and the [implementation plan](docs/superpowers/plans/2026-06-29-corrections-sync
 for the full design. (The in-app UI for capturing/reviewing corrections is a separate,
 not-yet-built sub-project — this substrate is the data layer underneath it.)
 
-**Joining a band:** open the app with `?band=<any-code>` once; the app remembers it
-(`bandaid.band.v1` in localStorage) so future visits rejoin automatically. Without a
-band code the app still works, storing everything locally only (a `solo` IndexedDB room).
+**Joining a band:** open the app with `?band=<any-code>` once; the app remembers the
+name (`bandaid.band.v1` in localStorage) but never connects on its own — band sync is
+an explicit toggle in the settings sheet. Once turned on, the choice persists across
+reloads (`bandaid.syncOn.v1`), so an iOS tab reload mid-rehearsal rejoins the band
+automatically; toggling it off persists too. Without sync on, the app works fully
+locally (a `solo` IndexedDB room).
 
 ### Running the sync worker locally
 
