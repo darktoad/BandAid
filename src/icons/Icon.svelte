@@ -24,6 +24,9 @@
   {:else if name === 'pause'}
     <rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none" />
     <rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none" />
+  {:else if name === 'start'}
+    <path d="M18 6v12l-9-6z" fill="currentColor" stroke="none" />
+    <line x1="7" y1="5" x2="7" y2="19" />
   {:else if name === 'loading'}
     <path d="M12 3a9 9 0 1 0 9 9" />
   {:else if name === 'sound'}
