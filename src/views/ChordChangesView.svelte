@@ -234,9 +234,18 @@
   // play (onreadyforplayback) — applying a play stamp before the soundfont is loaded
   // would be dropped by alphaTab. One follower per loaded song; subscribing delivers
   // the current doc stamp immediately, so a device that opens mid-tune joins in.
+  //
+  // Called from both onReady (which creates `transport`) and the onplayable handler
+  // (which sets `canPlay`): alphaTab gives no ordering guarantee between "score loaded"
+  // and "player ready for playback" — on a real device, MusicXML fetch latency can let
+  // onplayable fire first. Guarding on both and calling from both call sites means
+  // whichever of the two fires second completes the wiring, instead of onplayable
+  // silently finding `transport` still undefined and never being retried (the actual
+  // real-device bug: playback sync working perfectly in every headless/local test but
+  // never firing at all on a real phone/tablet).
   let unsubFollower: (() => void) | undefined;
   function wireFollower() {
-    if (unsubFollower || !transport) return;
+    if (unsubFollower || !transport || !canPlay) return;
     const follower = createTransportFollower({
       songId: song.id,
       authorId: store.getIdentity().authorId,
@@ -274,6 +283,9 @@
       renderer: c,
       store,
     });
+    // In case onplayable already fired before the score (and thus `transport`) was
+    // ready — see the wireFollower comment for why both call sites are needed.
+    wireFollower();
     // Apply this song's saved performance overrides (tempo, key); absent = canonical default.
     const saved = store.getSongSettings(song.id);
     speedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 100) : 100;
