@@ -389,6 +389,18 @@ describe('applyRemote', () => {
     expect(calls).not.toContain('play');
   });
 
+  it('a tempo change does not cancel a pending scheduled start (a bandmate’s songSettings write lands as setTempoPercent)', () => {
+    const sched = manualScheduler();
+    const { transport, calls, stamps } = makeTransport({ schedule: sched.schedule });
+    transport.applyRemote(remote({ startTimestamp: 51_200 })); // now() is 50_000
+    const stampsBefore = stamps.length;
+    transport.setTempoPercent(0.8); // remote tempo change during the initiator's count-in
+    expect(calls).toContain('speed:0.8'); // the new speed still applies…
+    expect(stamps.length).toBe(stampsBefore); // …but the future-anchored stamp isn't clobbered
+    sched.fire();
+    expect(calls).toContain('play'); // and the band start still happens
+  });
+
   it('late join: seeks to the linearly projected bar and plays', () => {
     // 30 s elapsed at 120 qpm, 4 quarters/bar → 15 bars past startBar 1 → bar 16.
     const { transport, calls } = makeTransport();

@@ -3,11 +3,15 @@
   import BrowseView from './views/BrowseView.svelte';
   import ChordChangesView from './views/ChordChangesView.svelte';
   import { createSyncedSessionStore } from './sync/syncedSessionStore';
-  import { attachProviders, type AttachedSync } from './sync/providers/attach';
+  import { createBandDoc } from './sync/doc';
+  import { attachProviders } from './sync/providers/attach';
   import { indexeddbProvider } from './sync/providers/indexeddb';
   import { webrtcProvider } from './sync/providers/webrtc';
   import { partyserverProvider } from './sync/providers/partyserver';
+  import { createBandSession } from './sync/bandSession';
+  import { createIntentFollower } from './sync/follower';
   import { readBandName, saveBandName, bandRoomCode } from './sync/bandCode';
+  import { readItem, writeItem, safeStorage } from './sync/storage';
   import { summarizeSyncStatus } from './sync/syncStatusLabel';
   import { createLibraryService, type LibraryService } from './library/libraryService';
   import type { SongSummary, SongKey } from './library/types';
@@ -15,50 +19,44 @@
   import type { SharedSongIntent } from './session/types';
   import { skewLog } from './sync/skewLog';
 
-  // Synced store over a Yjs doc. The app always begins local/not-synced: IndexedDB
-  // persistence alone at boot; joining the band is an intentional step (the Sync
-  // toggle in the settings sheet), which attaches the network providers at runtime.
-  const store = createSyncedSessionStore();
-  const localPersistence = attachProviders(store.doc, 'solo', [indexeddbProvider]);
+  // One Yjs doc, three attachments: the synced store (app-facing API), always-on
+  // IndexedDB persistence, and the band session (opt-in network providers). Joining
+  // the band is an intentional step (the Sync toggle in the settings sheet) — but the
+  // choice persists across reloads, because iOS Safari silently reloads backgrounded
+  // tabs and a mid-rehearsal app switch must not drop the device out of the band.
+  const ydoc = createBandDoc();
   // A `?band=` link or a previous session only prefills the band NAME — never connects.
-  let bandName = $state(readBandName(typeof location !== 'undefined' ? location.search : ''));
-  let syncOn = $state(false);
-  let bandSync: AttachedSync | undefined;
-  let unsubscribeSyncStatus: (() => void) | undefined;
-  let syncStatus = $state<ReturnType<AttachedSync['getStatus']>>({ providers: {} });
-  let syncSummary = $derived(summarizeSyncStatus(syncStatus));
+  const initialBandName = readBandName(typeof location !== 'undefined' ? location.search : '');
+  let bandName = $state(initialBandName);
+  const host = import.meta.env.VITE_SYNC_HOST;
+  const band = createBandSession({
+    doc: ydoc,
+    room: bandRoomCode(initialBandName), // later edits go through setBandName → band.setRoom
+    factories: [webrtcProvider, ...(host ? [partyserverProvider(host)] : [])],
+  });
+  // Live session stamps (transport/song) publish only while the band is joined —
+  // solo practice must never accumulate stamps that yank the band on a later rejoin.
+  const store = createSyncedSessionStore({ doc: ydoc, publishSession: band.isOn });
+  const localPersistence = attachProviders(ydoc, 'solo', [indexeddbProvider]);
 
-  function connectBand() {
-    const host = import.meta.env.VITE_SYNC_HOST;
-    const factories = [webrtcProvider, ...(host ? [partyserverProvider(host)] : [])];
-    bandSync = attachProviders(store.doc, bandRoomCode(bandName), factories);
-    syncStatus = bandSync.getStatus();
-    unsubscribeSyncStatus = bandSync.onStatusChange((s) => (syncStatus = s));
-  }
-  function disconnectBand() {
-    unsubscribeSyncStatus?.();
-    unsubscribeSyncStatus = undefined;
-    bandSync?.disconnect();
-    bandSync = undefined;
-    syncStatus = { providers: {} }; // back to "Local only"
-  }
+  let bandState = $state(band.getState());
+  const unsubBand = band.subscribe((s) => (bandState = s));
+  let syncSummary = $derived(summarizeSyncStatus(bandState.status));
+
   function toggleSync() {
-    syncOn = !syncOn;
-    if (syncOn) connectBand();
-    else disconnectBand();
+    band.setOn(!band.isOn());
   }
   function setBandName(name: string) {
     bandName = saveBandName(name);
     // Changing bands while synced moves to the new room right away.
-    if (syncOn) {
-      disconnectBand();
-      connectBand();
-    }
+    band.setRoom(bandRoomCode(bandName));
   }
 
   onDestroy(() => {
     unsubSessionSong?.();
-    disconnectBand();
+    clearTimeout(noticeTimer);
+    unsubBand();
+    band.destroy();
     localPersistence.disconnect();
   });
 
@@ -73,28 +71,25 @@
   // Remote song switches: a brief, named, non-blocking notice (playback-sync D7).
   let remoteNotice = $state<string | null>(null);
   let noticeTimer: ReturnType<typeof setTimeout> | undefined;
-  let lastAppliedSongIssuedAt = 0;
-  const myAuthorId = store.getIdentity().authorId;
   let unsubSessionSong: (() => void) | undefined;
 
-  function followRemoteSong(intent: SharedSongIntent | null) {
-    if (!intent || !service) return;
-    if (intent.authorId === myAuthorId) {
-      lastAppliedSongIssuedAt = Math.max(lastAppliedSongIssuedAt, intent.issuedAt);
-      return;
-    }
-    if (intent.issuedAt <= lastAppliedSongIssuedAt) return;
-    lastAppliedSongIssuedAt = intent.issuedAt;
-    if (intent.songId === current?.id) return;
-    const s = service.getSongSummary(intent.songId);
-    if (!s) return; // unknown id (library version drift) — ignore
-    // replaceState, not pushState: Back must not walk through bandmates' switches.
-    history.replaceState(null, '', location.pathname + searchWithSong(location.search, s.id));
-    showSong(s);
-    remoteNotice = `${intent.author || 'A bandmate'} switched to ${s.title}`;
-    clearTimeout(noticeTimer);
-    noticeTimer = setTimeout(() => (remoteNotice = null), 4000);
-  }
+  // Same follower rules as transport (echo guard, issuedAt LWW, gated on band sync —
+  // a stale stamp loaded from IndexedDB must never switch songs on a local-only boot).
+  const songFollower = createIntentFollower<SharedSongIntent>({
+    authorId: store.getIdentity().authorId,
+    enabled: band.isOn,
+    apply(intent) {
+      if (!service || intent.songId === current?.id) return;
+      const s = service.getSongSummary(intent.songId);
+      if (!s) return; // unknown id (library version drift) — ignore
+      // replaceState, not pushState: Back must not walk through bandmates' switches.
+      history.replaceState(null, '', location.pathname + searchWithSong(location.search, s.id));
+      showSong(s);
+      remoteNotice = `${intent.author || 'A bandmate'} switched to ${s.title}`;
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(() => (remoteNotice = null), 4000);
+    },
+  });
 
   // Cache-buster for the runtime-fetched files GitHub Pages caches; bumps each deploy.
   const v = `?v=${__BUILD_ID__}`;
@@ -103,22 +98,8 @@
   // song in localStorage, so a shared link lands on the tune and a mid-rehearsal reload
   // picks up where you were. Back always returns to the picker, not out of the app.
   const LAST_SONG_KEY = 'bandaid.lastSong.v1';
-  function loadLastSong(): string | null {
-    try {
-      return typeof localStorage === 'undefined' ? null : localStorage.getItem(LAST_SONG_KEY);
-    } catch {
-      return null;
-    }
-  }
-  function saveLastSong(id: string | null) {
-    try {
-      if (typeof localStorage === 'undefined') return;
-      if (id === null) localStorage.removeItem(LAST_SONG_KEY);
-      else localStorage.setItem(LAST_SONG_KEY, id);
-    } catch {
-      /* ignore */
-    }
-  }
+  const loadLastSong = () => readItem(safeStorage(), LAST_SONG_KEY);
+  const saveLastSong = (id: string | null) => writeItem(safeStorage(), LAST_SONG_KEY, id);
 
   onMount(() => {
     // Rehearsal dogfood readout (G3/M4 gate): __bandaidSkew() in the console.
@@ -147,7 +128,7 @@
       }
       // Follow the band's current song. Subscribe delivers the current doc value
       // immediately, so a device opening mid-set lands on the band's song.
-      unsubSessionSong = store.subscribeSessionSong(followRemoteSong);
+      unsubSessionSong = store.subscribeSessionSong((s) => songFollower.receive(s));
     })();
 
     // Browser Back/Forward: mirror the URL's song into the view without re-pushing.
@@ -217,7 +198,7 @@
     <ChordChangesView
       song={current}
       {store}
-      sync={{ on: syncOn, bandName, summary: syncSummary, toggle: toggleSync, setBandName }}
+      sync={{ on: bandState.on, bandName, summary: syncSummary, toggle: toggleSync, setBandName }}
       onsongs={openPicker}
       onprogress={(f) => (progress = f)}
     />

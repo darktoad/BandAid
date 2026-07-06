@@ -1,5 +1,6 @@
 import type * as Y from 'yjs';
 import type { ConnectionStatus, ProviderFactory, SyncProvider } from './types';
+import { createChannel } from '../channel';
 export type { ConnectionStatus, ProviderFactory, SyncProvider } from './types';
 
 /** Per-provider connection status, keyed by SyncProvider.name. */
@@ -10,6 +11,7 @@ export interface SyncStatus {
 export interface AttachedSync {
   disconnect(): void;
   getStatus(): SyncStatus;
+  /** Fires with the current status immediately on subscribe, then on every change. */
   onStatusChange(cb: (status: SyncStatus) => void): () => void;
 }
 
@@ -21,11 +23,8 @@ export interface AttachedSync {
 export function attachProviders(doc: Y.Doc, bandCode: string, factories: ProviderFactory[]): AttachedSync {
   const built: SyncProvider[] = [];
   const current: Record<string, ConnectionStatus> = {};
-  const listeners = new Set<(status: SyncStatus) => void>();
   const unsubscribes: Array<() => void> = [];
-
-  const snapshot = (): SyncStatus => ({ providers: { ...current } });
-  const emit = () => listeners.forEach((cb) => cb(snapshot()));
+  const channel = createChannel((): SyncStatus => ({ providers: { ...current } }));
 
   for (const make of factories) {
     let p: SyncProvider;
@@ -41,7 +40,7 @@ export function attachProviders(doc: Y.Doc, bandCode: string, factories: Provide
       unsubscribes.push(
         p.onStatusChange((status) => {
           current[p.name] = status;
-          emit();
+          channel.emit();
         }),
       );
     }
@@ -52,10 +51,7 @@ export function attachProviders(doc: Y.Doc, bandCode: string, factories: Provide
       unsubscribes.forEach((unsubscribe) => unsubscribe());
       built.forEach((p) => p.disconnect());
     },
-    getStatus: snapshot,
-    onStatusChange(cb) {
-      listeners.add(cb);
-      return () => listeners.delete(cb);
-    },
+    getStatus: () => ({ providers: { ...current } }),
+    onStatusChange: channel.subscribe,
   };
 }

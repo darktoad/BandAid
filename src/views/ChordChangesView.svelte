@@ -259,6 +259,10 @@
     const follower = createTransportFollower({
       songId: song.id,
       authorId: store.getIdentity().authorId,
+      // Follow only while band sync is on: at boot the doc still holds the previous
+      // session's stamps (IndexedDB persistence), and a local-only device must not
+      // have its playhead yanked by them.
+      enabled: () => sync.on,
       apply: (stamp) => transport!.applyRemote(stamp),
       skewLog,
     });

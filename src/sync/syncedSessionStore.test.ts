@@ -121,4 +121,27 @@ describe('session sync (playback)', () => {
       songId: 'soldiers-joy', issuedAt: 42, authorId: store.getIdentity().authorId, author: 'Kate',
     });
   });
+
+  it('publishSession=false: live session stamps stay local, durable data still writes', () => {
+    let syncOn = false;
+    const store = createSyncedSessionStore({ storage: fakeStorage(), publishSession: () => syncOn });
+
+    // Solo practice: intents update local state but never reach the shared doc —
+    // an afternoon of solo stamps must not yank the band on a later rejoin.
+    store.setCurrentSong('soldiers-joy');
+    store.setTransport(t0, { origin: 'intent', kind: 'play' });
+    expect(store.getState().currentSongId).toBe('soldiers-joy');
+    expect(store.getState().transport).toEqual(t0);
+    expect(store.getSessionSong()).toBeNull();
+    expect(store.getSessionTransport()).toBeNull();
+
+    // Durable collaborative data is not gated: it merges, it doesn't yank.
+    store.setSongSetting('soldiers-joy', { tempoPct: 0.9 });
+    expect(store.getSongSettings('soldiers-joy')).toEqual({ tempoPct: 0.9 });
+
+    // Once the band is joined, intents publish again.
+    syncOn = true;
+    store.setTransport(t0, { origin: 'intent', kind: 'play' });
+    expect(store.getSessionTransport()).toMatchObject({ ...t0, kind: 'play' });
+  });
 });
