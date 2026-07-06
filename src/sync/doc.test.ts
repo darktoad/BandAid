@@ -87,6 +87,32 @@ describe('doc songSettings', () => {
     migrateSongSettings(doc, storage); // second call is a no-op (legacy key already gone)
     expect(getSongSettings(doc, 's')).toEqual({ transpose: 3 });
   });
+
+  it('migration with nothing to migrate leaves the doc untouched (no per-boot writes)', () => {
+    const doc = createBandDoc();
+    const before = exportUpdate(doc);
+    migrateSongSettings(doc, { getItem: () => null, setItem: () => {}, removeItem: () => {} });
+    expect(exportUpdate(doc)).toEqual(before);
+  });
+
+  it('a corrupt legacy value is discarded and its key cleared', () => {
+    const m = new Map<string, string>([['bandaid.songSettings.v1', '{not json']]);
+    const storage = {
+      getItem: (k: string) => m.get(k) ?? null,
+      setItem: (k: string, v: string) => void m.set(k, v),
+      removeItem: (k: string) => void m.delete(k),
+    };
+    const doc = createBandDoc();
+    expect(() => migrateSongSettings(doc, storage)).not.toThrow();
+    expect(m.has('bandaid.songSettings.v1')).toBe(false);
+  });
+
+  it('ignores non-numeric songSettings values a buggy peer might have written', () => {
+    const doc = createBandDoc();
+    setSongSetting(doc, 's', { tempoPct: 0.8 });
+    doc.getMap<unknown>('songSettings').set('s\u0000transpose', 'up a bit');
+    expect(getSongSettings(doc, 's')).toEqual({ tempoPct: 0.8 });
+  });
 });
 
 const intent: SharedTransportIntent = {
@@ -115,5 +141,16 @@ describe('doc session map', () => {
     // Yjs resolves the storage conflict (causality + client id); the app-level issuedAt
     // rule orders APPLICATION, not storage. Here we only assert convergence.
     expect(getSessionTransport(a)).toEqual(getSessionTransport(b));
+  });
+
+  it('malformed session values read as null (peer writes are untrusted input)', () => {
+    const doc = createBandDoc();
+    const session = doc.getMap<unknown>('session');
+    session.set('transport', { songId: 'tune', playing: 'yes' }); // wrong types / missing fields
+    session.set('song', 42);
+    expect(getSessionTransport(doc)).toBeNull();
+    expect(getSessionSong(doc)).toBeNull();
+    session.set('transport', { ...intent, startBar: NaN }); // NaN would poison projectBar
+    expect(getSessionTransport(doc)).toBeNull();
   });
 });

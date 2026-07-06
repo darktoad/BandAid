@@ -182,9 +182,14 @@ export function createLocalTransport(deps: LocalTransportDeps): LocalTransport {
     },
 
     setTempoPercent(next: number) {
-      clearScheduled();
       pct = clamp(next, MIN_TEMPO_PCT, maxTempoPercent(defaultTempoBpm));
       renderer.setSpeed(pct);
+      // A pending scheduled band start must survive a tempo change: this is also how a
+      // bandmate's songSettings tempo write lands (remote), and cancelling here would
+      // silently strand this device paused while the band plays. The stamped start
+      // instant is absolute (not tempo-dependent), so the pending stamp stays valid —
+      // skip the restamp too, or it would clobber the future-anchored one.
+      if (cancelScheduled) return;
       // Restamp from the current bar + now so position stays continuous (FR-3): the
       // elapsed-time anchor resets at the bar we're on, so projectBar sees no jump.
       // anchor: tempo *changes* sync via songSettings; this restamp is only position continuity

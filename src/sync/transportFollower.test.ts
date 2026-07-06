@@ -56,4 +56,20 @@ describe('transport follower', () => {
     follower.receive(stamp({ songId: 'other-tune' }));
     expect(applied).toHaveLength(0);
   });
+
+  it('never applies while disabled (band sync off): stale boot state cannot yank the playhead', () => {
+    const applied: SharedTransportIntent[] = [];
+    let syncOn = false;
+    const follower = createTransportFollower({
+      songId: 'tune',
+      authorId: 'me',
+      enabled: () => syncOn,
+      apply: (s) => applied.push(s),
+    });
+    follower.receive(stamp()); // e.g. yesterday's stamp arriving from IndexedDB at boot
+    expect(applied).toHaveLength(0);
+    syncOn = true;
+    follower.receive(stamp()); // the band's state re-arrives after joining
+    expect(applied).toHaveLength(1);
+  });
 });

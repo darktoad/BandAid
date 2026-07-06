@@ -12,7 +12,10 @@ export function partyserverProvider(host: string): ProviderFactory {
     });
     return {
       name: 'partyserver',
-      disconnect: () => p.disconnect(),
+      // destroy(), not disconnect(): disconnect leaves the doc update handler, the
+      // resync interval, and our status listener attached — toggling sync (or renaming
+      // the band) would accumulate one orphaned set per cycle.
+      disconnect: () => p.destroy(),
       getStatus: () => status,
       onStatusChange: (cb) => {
         const handler = ({ status: s }: { status: ConnectionStatus }) => cb(s);

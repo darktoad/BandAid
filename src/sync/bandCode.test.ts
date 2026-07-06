@@ -44,4 +44,15 @@ describe('bandRoomCode', () => {
   it('falls back to the default on blank input', () => {
     expect(bandRoomCode('  ')).toBe(DEFAULT_BAND_NAME);
   });
+  it('strips URL-hostile punctuation (the code travels in WebSocket URL paths)', () => {
+    expect(bandRoomCode("Kate's Band")).toBe('kates-band');
+    expect(bandRoomCode('my/band?really#yes')).toBe('mybandreallyyes');
+    expect(bandRoomCode('50% Tempo!')).toBe('50-tempo');
+  });
+  it('keeps unicode letters so non-English names still make distinct rooms', () => {
+    expect(bandRoomCode('Céilí Crew')).toBe('céilí-crew');
+  });
+  it('falls back to the default when nothing survives stripping', () => {
+    expect(bandRoomCode('!!! ***')).toBe(DEFAULT_BAND_NAME);
+  });
 });

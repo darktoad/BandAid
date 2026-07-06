@@ -4,8 +4,10 @@ import type {
   SharedTransportIntent, SharedSongIntent,
 } from '../session/types';
 import type { Correction, NewCorrection } from './types';
-import type { Identity, StorageLike } from './identity';
+import type { Identity } from './identity';
 import { loadIdentity, setDisplayName as persistName } from './identity';
+import { safeStorage, type StorageLike } from './storage';
+import { createChannel } from './channel';
 import * as doc from './doc';
 import { makeCorrection } from './corrections';
 
@@ -32,16 +34,30 @@ export interface SyncedSessionStore extends SessionStore {
    *  or corrections change must never masquerade as a transport stamp, and vice versa. */
   subscribeSessionTransport(run: (t: SharedTransportIntent | null) => void): () => void;
   subscribeSessionSong(run: (s: SharedSongIntent | null) => void): () => void;
-  /** The underlying doc, so providers (Task 5) can attach. */
+  /** The underlying doc, so providers can attach. */
   readonly doc: Y.Doc;
 }
 
 export function createSyncedSessionStore(
-  opts: { doc?: Y.Doc; storage?: StorageLike | null; now?: () => number } = {},
+  opts: {
+    doc?: Y.Doc;
+    storage?: StorageLike | null;
+    now?: () => number;
+    /**
+     * Gate for LIVE session writes (transport stamps, song switches): they reach the
+     * shared doc only while this returns true. Wired to "band sync is on" so an
+     * afternoon of solo practice never accumulates stamps that would yank the whole
+     * band the moment the device rejoins the room. Durable collaborative data
+     * (songSettings, corrections) always writes — it merges, it doesn't yank.
+     * Default: always publish.
+     */
+    publishSession?: () => boolean;
+  } = {},
 ): SyncedSessionStore {
   const ydoc = opts.doc ?? doc.createBandDoc();
-  const storage = opts.storage === undefined ? safeLocalStorage() : opts.storage;
+  const storage = opts.storage === undefined ? safeStorage() : opts.storage;
   const now = opts.now ?? (() => Date.now());
+  const publishSession = opts.publishSession ?? (() => true);
   // Runs before IndexeddbPersistence's async load lands; migrateSongSettings clears the
   // legacy key once applied, so there's nothing left to replay (and no clobber risk) on
   // any later reload.
@@ -52,73 +68,66 @@ export function createSyncedSessionStore(
   let currentSongId: string | null = null;
   let transport: Transport | null = null;
 
-  const stateSubs = new Set<(s: SessionState) => void>();
-  const corrSubs = new Set<(list: Correction[]) => void>();
-  const songSettingsSubs = new Set<(settings: Record<string, SongSettings>) => void>();
-  const sessionTransportSubs = new Set<(t: SharedTransportIntent | null) => void>();
-  const sessionSongSubs = new Set<(s: SharedSongIntent | null) => void>();
-
   const snapshot = (): SessionState => ({
     currentSongId,
     transport,
     songSettings: doc.listSongSettings(ydoc),
   });
-  const emitState = () => stateSubs.forEach((cb) => cb(snapshot()));
-  const emitCorrections = () => corrSubs.forEach((cb) => cb(doc.listCorrections(ydoc)));
-  const emitSongSettings = () => songSettingsSubs.forEach((cb) => cb(doc.listSongSettings(ydoc)));
-  const emitSessionTransport = () =>
-    sessionTransportSubs.forEach((cb) => cb(doc.getSessionTransport(ydoc)));
-  const emitSessionSong = () => sessionSongSubs.forEach((cb) => cb(doc.getSessionSong(ydoc)));
 
-  ydoc.getMap('corrections').observeDeep(emitCorrections);
+  const state = createChannel(snapshot);
+  const corrections = createChannel(() => doc.listCorrections(ydoc));
+  const songSettings = createChannel(() => doc.listSongSettings(ydoc));
+  const sessionTransport = createChannel(() => doc.getSessionTransport(ydoc));
+  const sessionSong = createChannel(() => doc.getSessionSong(ydoc));
+
+  ydoc.getMap('corrections').observeDeep(() => corrections.emit());
   // Without this, a remote peer's tempo/transpose change updates the doc but nothing
   // ever tells a subscriber to look — the tempo pill would silently go stale. This is
-  // its own channel (not emitState) so a transport stamp can never masquerade as a
-  // songSettings update — see the interface doc comment on subscribeSongSettings.
-  ydoc.getMap('songSettings').observeDeep(emitSongSettings);
+  // its own channel (not the state channel) so a transport stamp can never masquerade
+  // as a songSettings update — see the interface doc comment on subscribeSongSettings.
+  ydoc.getMap('songSettings').observeDeep(() => songSettings.emit());
 
   // One observer, routed by key: transport stamps are high-rate relative to song
   // switches, and neither may masquerade as the other (same lesson as songSettings).
   ydoc.getMap('session').observe((event) => {
-    if (event.keysChanged.has('transport')) emitSessionTransport();
+    if (event.keysChanged.has('transport')) sessionTransport.emit();
     if (event.keysChanged.has('song')) {
       // Keep the generic snapshot's currentSongId coherent with the band's song.
       currentSongId = doc.getSessionSong(ydoc)?.songId ?? currentSongId;
-      emitSessionSong();
+      state.emit();
+      sessionSong.emit();
     }
   });
 
   return {
     doc: ydoc,
-    subscribe(run) {
-      stateSubs.add(run);
-      run(snapshot());
-      return () => stateSubs.delete(run);
-    },
+    subscribe: state.subscribe,
     getState: snapshot,
     setCurrentSong(songId) {
       currentSongId = songId;
-      emitState();
+      state.emit();
       // Publish the switch: only the picker path calls this (App.svelte D6), so boot
       // resume / deep links / Back never yank the band. Observer fires for own writes
       // (the App's follower needs them to advance its issuedAt cursor).
-      doc.setSessionSong(ydoc, {
-        songId, issuedAt: now(), authorId: identity.authorId, author: identity.name,
-      });
+      if (publishSession()) {
+        doc.setSessionSong(ydoc, {
+          songId, issuedAt: now(), authorId: identity.authorId, author: identity.name,
+        });
+      }
     },
     setTransport(t, meta: TransportStampMeta = { origin: 'anchor' }) {
       transport = t;
-      emitState();
+      state.emit();
       // Only user intents sync; anchor/remote stamps are local projection state
       // (ADR-002 D2.1). The doc write is what reaches the band.
-      if (meta.origin === 'intent') {
+      if (meta.origin === 'intent' && publishSession()) {
         doc.setSessionTransport(ydoc, {
           ...t, issuedAt: now(), authorId: identity.authorId, kind: meta.kind,
         });
       }
     },
     getSongSettings: (songId) => doc.getSongSettings(ydoc, songId),
-    // No explicit emitState() here — the songSettings observer above fires for this
+    // No explicit state emit here — the songSettings observer above fires for this
     // write the same way it would for a remote one, so local and remote stay identical.
     setSongSetting: (songId, patch: Partial<SongSettings>) => doc.setSongSetting(ydoc, songId, patch),
     resetSongSetting: (songId, field) => doc.resetSongSetting(ydoc, songId, field),
@@ -134,35 +143,11 @@ export function createSyncedSessionStore(
     setDisplayName(name) {
       identity = persistName(name, storage ?? null);
     },
-    subscribeCorrections(run) {
-      corrSubs.add(run);
-      run(doc.listCorrections(ydoc));
-      return () => corrSubs.delete(run);
-    },
-    subscribeSongSettings(run) {
-      songSettingsSubs.add(run);
-      run(doc.listSongSettings(ydoc));
-      return () => songSettingsSubs.delete(run);
-    },
+    subscribeCorrections: corrections.subscribe,
+    subscribeSongSettings: songSettings.subscribe,
     getSessionTransport: () => doc.getSessionTransport(ydoc),
     getSessionSong: () => doc.getSessionSong(ydoc),
-    subscribeSessionTransport(run) {
-      sessionTransportSubs.add(run);
-      run(doc.getSessionTransport(ydoc));
-      return () => sessionTransportSubs.delete(run);
-    },
-    subscribeSessionSong(run) {
-      sessionSongSubs.add(run);
-      run(doc.getSessionSong(ydoc));
-      return () => sessionSongSubs.delete(run);
-    },
+    subscribeSessionTransport: sessionTransport.subscribe,
+    subscribeSessionSong: sessionSong.subscribe,
   };
-}
-
-function safeLocalStorage(): StorageLike | null {
-  try {
-    return typeof localStorage !== 'undefined' ? localStorage : null;
-  } catch {
-    return null;
-  }
 }

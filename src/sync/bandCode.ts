@@ -1,4 +1,4 @@
-import type { StorageLike } from './identity';
+import { readItem, writeItem, safeStorage, type StorageLike } from './storage';
 
 const KEY = 'bandaid.band.v1';
 
@@ -13,51 +13,38 @@ export const DEFAULT_BAND_NAME = 'soundcheck';
  */
 export function readBandName(
   search: string,
-  storage: StorageLike | null = safeLocal(),
+  storage: StorageLike | null = safeStorage(),
 ): string {
-  const fromUrl = new URLSearchParams(search).get('band');
-  if (fromUrl && fromUrl.trim()) {
-    const name = fromUrl.trim();
-    try {
-      storage?.setItem(KEY, name);
-    } catch {
-      /* ignore */
-    }
-    return name;
+  const fromUrl = new URLSearchParams(search).get('band')?.trim();
+  if (fromUrl) {
+    writeItem(storage, KEY, fromUrl);
+    return fromUrl;
   }
-  try {
-    return storage?.getItem(KEY)?.trim() || DEFAULT_BAND_NAME;
-  } catch {
-    return DEFAULT_BAND_NAME;
-  }
+  return readItem(storage, KEY)?.trim() || DEFAULT_BAND_NAME;
 }
 
 /** Persist an edited band name; blank falls back to the default. Returns what was saved. */
 export function saveBandName(
   name: string,
-  storage: StorageLike | null = safeLocal(),
+  storage: StorageLike | null = safeStorage(),
 ): string {
   const cleaned = name.trim() || DEFAULT_BAND_NAME;
-  try {
-    storage?.setItem(KEY, cleaned);
-  } catch {
-    /* ignore */
-  }
+  writeItem(storage, KEY, cleaned);
   return cleaned;
 }
 
 /**
  * The room code derived from a display name: case- and whitespace-insensitive so
- * "Sound Check" and "sound check" on two phones land in the same room.
+ * "Sound Check" and "sound check" on two phones land in the same room. The room code
+ * travels inside WebSocket URL paths (PartyServer) and signaling room names, so it is
+ * restricted to letters/digits/dashes — URL-hostile punctuation (`/ ? # %` …) is
+ * stripped rather than escaped, keeping "Kate's Band" and "Kates Band" together too.
  */
 export function bandRoomCode(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, '-') || DEFAULT_BAND_NAME;
-}
-
-function safeLocal(): StorageLike | null {
-  try {
-    return typeof localStorage !== 'undefined' ? localStorage : null;
-  } catch {
-    return null;
-  }
+  const code = name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\p{Letter}\p{Number}-]/gu, '');
+  return code.replace(/^-+|-+$/g, '') || DEFAULT_BAND_NAME;
 }
