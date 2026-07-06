@@ -231,8 +231,20 @@ All headless (Node, no jsdom), following the existing fake-renderer/injected-clo
 - **iOS Safari audio unlock:** a follower device that has never been tapped cannot
   start audio. Existing mitigation stands (controls wait for `onReadyForPlayback`;
   first tap unlocks). A device that joined and tapped once is fine thereafter; a truly
-  untouched device follows visually the next time the user taps anything. Watch on the
-  iPad during dogfooding.
+  untouched device follows visually the next time the user taps anything.
+  **Confirmed during dogfooding (2026-07-05):** on iPad, testing across two WebKit-based
+  browsers (Safari and Brave — Brave on iOS is WebKit under Apple's engine mandate, so
+  it's subject to the identical policy), a follower page that had never itself been
+  tapped did not visibly follow a remote play at all — not just silently, but with no
+  cursor movement either. This is stricter than the design's original assumption
+  ("follows visually" even without audio): WebKit appears to keep the whole player in a
+  non-playing state (not just muted) until a direct gesture has occurred on that page, so
+  `playerStateChanged`/`playedBeatChanged` never fire for a programmatic `play()` on an
+  untapped page. **Workaround (no code change):** tap/interact with each device's own
+  player once (e.g. press its own Play once) before relying on it to follow the band —
+  after that one-time unlock, remote-triggered plays work normally for the rest of the
+  session. A same-origin two-context Chromium test does not reproduce this (Chromium's
+  autoplay policy is more permissive), so it can't be caught headlessly.
 - **`session.transport` write rate:** one object write per user action (not per beat,
   not per repeat) — negligible for PartyServer/WebRTC. Anchor stamps staying local is
   what keeps it so.

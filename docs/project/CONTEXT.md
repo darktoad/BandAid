@@ -55,7 +55,7 @@ BandAid (Band Sync & Jam Companion) helps a 3–5 piece old-time/bluegrass band 
 | local-transport | Specified | [features/local-transport.md](features/local-transport.md) |
 | renderer-playhead | Specified | [features/renderer-playhead.md](features/renderer-playhead.md) |
 | library-browsing | Specified | [features/library-browsing.md](features/library-browsing.md) |
-| playback-sync (M2 Phase 3) | Specified | [features/playback-sync.md](features/playback-sync.md) |
+| playback-sync (M2 Phase 3) | Built (unit-tested; live two-device verification pending) | [features/playback-sync.md](features/playback-sync.md) |
 
 _All M1 (MVP) feature areas specified except the session/state model, which is folded into renderer-playhead. M1 is fully designed and buildable._
 
@@ -91,6 +91,18 @@ pause re-aligns everyone to the same bar; late joiners are approximate by design
 projection + staleness guards); only picker taps publish song switches (boot/Back stay
 local); skew is measured, not corrected (the M4 gate evidence). Implements ADR-002 D2
 verbatim (intent/anchor routing, `issuedAt` LWW, echo guard).
+
+## Phase Update (2026-07-05, implementation)
+
+**Playback sync (M2 Phase 3) is built.** All 8 code tasks of the implementation plan are
+done: origin-tagged transport stamps, `session.transport`/`session.song` doc keys, the
+transport follower (LWW/echo/staleness guards + skew log), `applyRemote`/`dispose` on
+`localTransport`, follower wiring in `ChordChangesView`, and App.svelte's picker-only
+publishing + remote song follow + notice + skew console hook (`window.__bandaidSkew`).
+Verified so far: full test suite (151 tests), `svelte-check` (0 errors), `vite build`,
+and a headless dev-server smoke pass (no console errors, picker→song→Back navigation).
+**Outstanding:** the feature spec's two-device manual e2e walk and the fiddler's iPad
+check — real multi-device rehearsal verification, not reproducible headlessly.
 
 ## Key References
 

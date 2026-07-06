@@ -12,6 +12,8 @@
   import { createLibraryService, type LibraryService } from './library/libraryService';
   import type { SongSummary, SongKey } from './library/types';
   import { songFromSearch, searchWithSong } from './library/urlState';
+  import type { SharedSongIntent } from './session/types';
+  import { skewLog } from './sync/skewLog';
 
   // Synced store over a Yjs doc. With a band code we attach transports; without one
   // the same store works fully local (IndexedDB only, no network).
@@ -32,6 +34,7 @@
   let syncSummary = $derived(summarizeSyncStatus(syncStatus));
   onDestroy(() => {
     unsubscribeSyncStatus?.();
+    unsubSessionSong?.();
     sync?.disconnect();
   });
 
@@ -42,6 +45,32 @@
   let pickerOpen = $state(false);
   // Live playback position of the current song (0–1), surfaced in the picker.
   let progress = $state(0);
+
+  // Remote song switches: a brief, named, non-blocking notice (playback-sync D7).
+  let remoteNotice = $state<string | null>(null);
+  let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastAppliedSongIssuedAt = 0;
+  const myAuthorId = store.getIdentity().authorId;
+  let unsubSessionSong: (() => void) | undefined;
+
+  function followRemoteSong(intent: SharedSongIntent | null) {
+    if (!intent || !service) return;
+    if (intent.authorId === myAuthorId) {
+      lastAppliedSongIssuedAt = Math.max(lastAppliedSongIssuedAt, intent.issuedAt);
+      return;
+    }
+    if (intent.issuedAt <= lastAppliedSongIssuedAt) return;
+    lastAppliedSongIssuedAt = intent.issuedAt;
+    if (intent.songId === current?.id) return;
+    const s = service.getSongSummary(intent.songId);
+    if (!s) return; // unknown id (library version drift) — ignore
+    // replaceState, not pushState: Back must not walk through bandmates' switches.
+    history.replaceState(null, '', location.pathname + searchWithSong(location.search, s.id));
+    showSong(s);
+    remoteNotice = `${intent.author || 'A bandmate'} switched to ${s.title}`;
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => (remoteNotice = null), 4000);
+  }
 
   // Cache-buster for the runtime-fetched files GitHub Pages caches; bumps each deploy.
   const v = `?v=${__BUILD_ID__}`;
@@ -68,6 +97,12 @@
   }
 
   onMount(() => {
+    // Rehearsal dogfood readout (G3/M4 gate): __bandaidSkew() in the console.
+    (window as unknown as Record<string, unknown>).__bandaidSkew = () => ({
+      summary: skewLog.summary(),
+      samples: skewLog.samples(),
+    });
+
     (async () => {
       try {
         service = await createLibraryService(`${import.meta.env.BASE_URL}library.json${v}`);
@@ -80,10 +115,15 @@
       const s = bootId ? service.getSongSummary(bootId) : null;
       if (s) {
         // Seed a bare picker entry underneath, then push the song, so Back from a
-        // deep link / resume goes to the picker instead of leaving the app.
+        // deep link / resume goes to the picker instead of leaving the app. Render via
+        // showSong (not openSong): boot resume / deep links never publish (D6/FR-8).
         history.replaceState(null, '', location.pathname + searchWithSong(location.search, null));
-        openSong(s);
+        history.pushState(null, '', location.pathname + searchWithSong(location.search, s.id));
+        showSong(s);
       }
+      // Follow the band's current song. Subscribe delivers the current doc value
+      // immediately, so a device opening mid-set lands on the band's song.
+      unsubSessionSong = store.subscribeSessionSong(followRemoteSong);
     })();
 
     // Browser Back/Forward: mirror the URL's song into the view without re-pushing.
@@ -100,9 +140,9 @@
     return () => window.removeEventListener('popstate', onPop);
   });
 
-  // Render a song (no history side effects — used by open, Back, and Forward alike).
+  // Render a song (no history or session side effects — used by open, Back/Forward, boot
+  // resume, and remote follows alike).
   function showSong(s: SongSummary) {
-    store.setCurrentSong(s.id); // the only write to currentSongId (D5/FR-7)
     // Convention: a song's canonical file is songs/<id>.musicxml (NFR-3).
     current = {
       id: s.id,
@@ -119,6 +159,9 @@
 
   function openSong(s: SongSummary) {
     history.pushState(null, '', location.pathname + searchWithSong(location.search, s.id));
+    // The one path that publishes the switch to the band (playback-sync D6): boot
+    // resume, deep links, and Back/Forward render via showSong() and stay local.
+    store.setCurrentSong(s.id);
     showSong(s);
   }
 
@@ -139,6 +182,10 @@
 </script>
 
 <svelte:window onkeydown={onKeydown} />
+
+{#if remoteNotice}
+  <div class="remote-notice" role="status">{remoteNotice}</div>
+{/if}
 
 {#if current}
   <!-- Re-mount per song so the renderer reloads the new score. -->
@@ -191,5 +238,26 @@
   @keyframes slidein {
     from { transform: translateX(-100%); }
     to { transform: translateX(0); }
+  }
+
+  /* Above the picker slide-over (z 1002) and alphaTab cursors (z 1000). */
+  .remote-notice {
+    position: fixed;
+    top: 0.6rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1003;
+    background: rgba(20, 22, 26, 0.92);
+    color: #fff;
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    animation: notice-in 0.15s ease-out;
+    pointer-events: none;
+  }
+  @keyframes notice-in {
+    from { opacity: 0; transform: translate(-50%, -0.4rem); }
+    to { opacity: 1; transform: translate(-50%, 0); }
   }
 </style>

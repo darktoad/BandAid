@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createLocalTransport, MIN_TEMPO_PCT, MAX_TEMPO_PCT, MAX_TEMPO_BPM, maxTempoPercent, type TransportRenderer } from './localTransport';
+import { createLocalTransport, MIN_TEMPO_PCT, MAX_TEMPO_PCT, MAX_TEMPO_BPM, maxTempoPercent, type TransportRenderer, type LocalTransportDeps } from './localTransport';
 import { createLocalSessionStore } from '../session/store';
 import { projectBar, quarterNotesPerBar } from '../playhead/projectBar';
+import type { SessionStore, Transport, TransportStampMeta } from '../session/types';
 
 /** A fake renderer that records calls and lets the test drive the cursor/playing
  *  callbacks — the same shape alphaTab's createRenderer exposes, without alphaTab. */
@@ -266,5 +267,199 @@ describe('local transport (sole writer of Transport)', () => {
     // whether it came from these local controls or (in M2) a remote peer.
     expect(onState).toHaveBeenCalledTimes(1);
     expect(store.getState().transport!.songId).toBe('big-john-mcneil');
+  });
+});
+
+// --- Origin routing (ADR-002 D2.1): intents sync, anchors stay local ---
+
+function stubRenderer() {
+  const pos: Array<(bar: number) => void> = [];
+  const playChanged: Array<(p: boolean) => void> = [];
+  const calls: string[] = [];
+  let posBar = 1;
+  return {
+    renderer: {
+      play: () => calls.push('play'),
+      pause: () => calls.push('pause'),
+      setSpeed: (f: number) => calls.push(`speed:${f}`),
+      seekToBar: (b: number) => { posBar = b; calls.push(`seek:${b}`); },
+      getPositionBar: () => posBar,
+      setCountInVolume: (v: number) => calls.push(`countin:${v}`),
+      onPosition: (cb: (b: number) => void) => pos.push(cb),
+      onPlayingChanged: (cb: (p: boolean) => void) => playChanged.push(cb),
+    },
+    calls,
+    emitPosition: (b: number) => pos.forEach((cb) => cb(b)),
+    emitPlaying: (p: boolean) => playChanged.forEach((cb) => cb(p)),
+  };
+}
+
+function spyStore() {
+  const stamps: Array<{ t: Transport; meta: TransportStampMeta | undefined }> = [];
+  const store: SessionStore = {
+    subscribe: () => () => {},
+    getState: () => ({ currentSongId: null, transport: null, songSettings: {} }),
+    setCurrentSong: () => {},
+    setTransport: (t, meta) => stamps.push({ t, meta }),
+    getSongSettings: () => ({}),
+    setSongSetting: () => {},
+    resetSongSetting: () => {},
+  };
+  return { store, stamps };
+}
+
+function makeTransport(over: Partial<LocalTransportDeps> = {}) {
+  const r = stubRenderer();
+  const s = spyStore();
+  const transport = createLocalTransport({
+    songId: 'tune',
+    defaultTempoBpm: 120,
+    measureCount: 32,
+    quarterNotesPerBar: 4,
+    renderer: r.renderer,
+    store: s.store,
+    now: () => 50_000,
+    ...over,
+  });
+  return { transport, ...r, ...s };
+}
+
+import type { SharedTransportIntent } from '../session/types';
+
+function manualScheduler() {
+  const pending: Array<{ fn: () => void; delayMs: number; cancelled: boolean }> = [];
+  return {
+    schedule: (fn: () => void, delayMs: number) => {
+      const entry = { fn, delayMs, cancelled: false };
+      pending.push(entry);
+      return () => { entry.cancelled = true; };
+    },
+    pending,
+    fire: () => pending.splice(0).forEach((p) => !p.cancelled && p.fn()),
+  };
+}
+
+const remote = (over: Partial<SharedTransportIntent> = {}): SharedTransportIntent => ({
+  songId: 'tune', playing: true, startBar: 1, startTimestamp: 50_000, tempo: 120,
+  issuedAt: 49_900, authorId: 'peer', kind: 'play', ...over,
+});
+
+describe('applyRemote', () => {
+  it('pause aligns to the pauser’s bar and stamps origin remote (never intent)', () => {
+    const { transport, calls, stamps, emitPlaying } = makeTransport();
+    transport.play();
+    emitPlaying(true);
+    transport.applyRemote(remote({ playing: false, startBar: 9, kind: 'pause' }));
+    expect(calls).toContain('pause');
+    expect(calls).toContain('seek:9');
+    expect(stamps.at(-1)!.meta).toEqual({ origin: 'remote' });
+    expect(transport.getTransport()).toMatchObject({ playing: false, startBar: 9 });
+  });
+
+  it('seek while both playing just seeks — playback continues, no re-play', () => {
+    const { transport, calls, emitPlaying } = makeTransport();
+    transport.play();
+    emitPlaying(true);
+    const playsBefore = calls.filter((c) => c === 'play').length;
+    transport.applyRemote(remote({ kind: 'seek', startBar: 5 }));
+    expect(calls).toContain('seek:5');
+    expect(calls.filter((c) => c === 'play')).toHaveLength(playsBefore);
+  });
+
+  it('a future start (initiator count-in) schedules play at the stamped instant, count-in off', () => {
+    const sched = manualScheduler();
+    const { transport, calls, stamps } = makeTransport({ schedule: sched.schedule });
+    transport.applyRemote(remote({ startTimestamp: 51_200 })); // now() is 50_000
+    expect(calls).toContain('seek:1');
+    expect(calls).toContain('countin:0');
+    expect(calls).not.toContain('play');
+    expect(sched.pending[0].delayMs).toBe(1_200);
+    // projection holds at startBar through the wait (future anchor mirrored locally)
+    expect(stamps.at(-1)!.t.startTimestamp).toBe(51_200);
+    sched.fire();
+    expect(calls).toContain('play');
+  });
+
+  it('a local user action cancels a pending scheduled start', () => {
+    const sched = manualScheduler();
+    const { transport, calls } = makeTransport({ schedule: sched.schedule });
+    transport.applyRemote(remote({ startTimestamp: 51_200 }));
+    transport.pause(); // the user's own intent supersedes (and publishes)
+    sched.fire();
+    expect(calls).not.toContain('play');
+  });
+
+  it('late join: seeks to the linearly projected bar and plays', () => {
+    // 30 s elapsed at 120 qpm, 4 quarters/bar → 15 bars past startBar 1 → bar 16.
+    const { transport, calls } = makeTransport();
+    transport.applyRemote(remote({ startTimestamp: 20_000, issuedAt: 20_000 }));
+    expect(calls).toContain('seek:16');
+    expect(calls).toContain('countin:0');
+    expect(calls).toContain('play');
+  });
+
+  it('a playing stamp projecting past the end lands paused at bar 1', () => {
+    const { transport, calls } = makeTransport(); // measureCount 32
+    // Synthetic: a fresh issuedAt isolates the projection guard from the age guard.
+    // 200 s elapsed at 120 qpm / 4 qpb = 100 bars past startBar 1 → far beyond bar 32.
+    transport.applyRemote(remote({ startTimestamp: 50_000 - 200_000, issuedAt: 49_999 }));
+    expect(calls).toContain('seek:1');
+    expect(calls).not.toContain('play');
+    expect(transport.getTransport().playing).toBe(false);
+  });
+
+  it('a playing stamp older than 10 minutes lands paused at bar 1 even if it projects in range', () => {
+    const { transport, calls } = makeTransport({ measureCount: 10_000 });
+    transport.applyRemote(remote({ startTimestamp: 50_000 - 11 * 60_000, issuedAt: 50_000 - 11 * 60_000 }));
+    expect(calls).toContain('seek:1');
+    expect(calls).not.toContain('play');
+    expect(transport.getTransport().playing).toBe(false);
+  });
+
+  it('ignores stamps for another song', () => {
+    const { transport, calls } = makeTransport();
+    transport.applyRemote(remote({ songId: 'other' }));
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('stamp origin routing', () => {
+  it('play, pause, and seekToBar stamp as intents with their kind', () => {
+    const { transport, stamps, emitPlaying } = makeTransport();
+    transport.play();
+    emitPlaying(true);
+    transport.pause();
+    emitPlaying(false);
+    transport.seekToBar(5);
+    expect(stamps.map((s) => s.meta)).toEqual([
+      { origin: 'intent', kind: 'play' },
+      { origin: 'intent', kind: 'pause' },
+      { origin: 'intent', kind: 'seek' },
+    ]);
+  });
+
+  it('a paused tap-a-bar is an intent seek', () => {
+    const { stamps, emitPosition } = makeTransport();
+    emitPosition(7); // position moved while paused = alphaTab click-to-seek
+    expect(stamps).toHaveLength(1);
+    expect(stamps[0].meta).toEqual({ origin: 'intent', kind: 'seek' });
+    expect(stamps[0].t.startBar).toBe(7);
+  });
+
+  it('a repeat/volta jump while playing is a local anchor', () => {
+    const { transport, stamps, emitPlaying, emitPosition } = makeTransport();
+    transport.play();
+    emitPlaying(true);
+    emitPosition(2); // sequential: no stamp
+    emitPosition(1); // repeat barline: non-sequential → anchor re-stamp
+    expect(stamps).toHaveLength(2);
+    expect(stamps[1].meta).toEqual({ origin: 'anchor' });
+  });
+
+  it('a tempo-continuity restamp is a local anchor (tempo syncs via songSettings)', () => {
+    const { transport, stamps } = makeTransport();
+    transport.setTempoPercent(0.8);
+    expect(stamps).toHaveLength(1);
+    expect(stamps[0].meta).toEqual({ origin: 'anchor' });
   });
 });

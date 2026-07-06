@@ -46,7 +46,7 @@
 - `interface SharedSongIntent { songId: string; issuedAt: number; authorId: string; author: string }`
 - `SessionStore.setTransport(transport: Transport, meta?: TransportStampMeta): void`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `src/transport/localTransport.test.ts` (reuse the file's existing fake-renderer helper if it exposes position/playing emitters; otherwise use this self-contained stub):
 
@@ -150,12 +150,12 @@ describe('stamp origin routing', () => {
 
 Add the imports the block needs at the top of the file if not present: `LocalTransportDeps` from `./localTransport`, `SessionStore`/`Transport` from `../session/types`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- src/transport/localTransport.test.ts`
 Expected: FAIL — `TransportStampMeta` has no export; stamps receive no meta.
 
-- [ ] **Step 3: Add the types**
+- [x] **Step 3: Add the types**
 
 In `src/session/types.ts`, after the `Transport` interface add:
 
@@ -205,7 +205,7 @@ one-arg implementation remains assignable):
 
 `src/session/store.ts` needs **no change**.
 
-- [ ] **Step 4: Route origins in `localTransport.ts`**
+- [x] **Step 4: Route origins in `localTransport.ts`**
 
 1. Import the meta type: `import type { SessionStore, Transport, TransportStampMeta } from '../session/types';`
 2. Give `stamp` a meta parameter and forward it (defaulting to anchor):
@@ -244,12 +244,12 @@ one-arg implementation remains assignable):
   });
 ```
 
-- [ ] **Step 5: Run tests + type-check**
+- [x] **Step 5: Run tests + type-check**
 
 Run: `npm test -- src/transport/localTransport.test.ts && npm run check`
 Expected: new tests PASS, **all pre-existing tests still pass unchanged**, 0 type errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/session/types.ts src/transport/localTransport.ts src/transport/localTransport.test.ts
@@ -266,7 +266,7 @@ git commit -m "feat(sync): tag transport stamps by origin (intent/anchor/remote)
 
 **Interfaces produced:** `getSessionTransport(doc)`, `setSessionTransport(doc, stamp)`, `getSessionSong(doc)`, `setSessionSong(doc, s)` — whole-object values under keys `'transport'` / `'song'` of the (already reserved) `session` map.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `src/sync/doc.test.ts`:
 
@@ -306,12 +306,12 @@ describe('doc session map', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- src/sync/doc.test.ts`
 Expected: FAIL — no such exports.
 
-- [ ] **Step 3: Implement the accessors**
+- [x] **Step 3: Implement the accessors**
 
 In `src/sync/doc.ts`: add `SharedTransportIntent, SharedSongIntent` to the type import from `'../session/types'`, add a `const SESSION = 'session';` next to the other map names, and append:
 
@@ -339,12 +339,12 @@ export function setSessionSong(doc: Y.Doc, song: SharedSongIntent): void {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- src/sync/doc.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sync/doc.ts src/sync/doc.test.ts
@@ -373,7 +373,7 @@ git commit -m "feat(sync): session map accessors (transport + song intents)"
 
 plus a `now?: () => number` option on `createSyncedSessionStore` (defaults to `Date.now`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `src/sync/syncedSessionStore.test.ts` (the file already has `fakeStorage()`; reuse it):
 
@@ -436,12 +436,12 @@ describe('session sync (playback)', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- src/sync/syncedSessionStore.test.ts`
 Expected: FAIL — missing methods/option.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/sync/syncedSessionStore.ts`:
 
@@ -512,12 +512,12 @@ In `src/sync/syncedSessionStore.ts`:
     },
 ```
 
-- [ ] **Step 4: Run tests + full suite + type-check**
+- [x] **Step 4: Run tests + full suite + type-check**
 
 Run: `npm test && npm run check`
 Expected: all green (existing suites untouched), 0 type errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sync/syncedSessionStore.ts src/sync/syncedSessionStore.test.ts
@@ -532,7 +532,7 @@ git commit -m "feat(sync): session transport/song intents on the synced store"
 - Create: `src/sync/skewLog.ts`
 - Test: `src/sync/skewLog.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // src/sync/skewLog.test.ts
@@ -553,11 +553,11 @@ describe('skew log', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test -- src/sync/skewLog.test.ts` → FAIL (module missing).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```typescript
 // src/sync/skewLog.ts
@@ -613,9 +613,9 @@ export function createSkewLog(cap = 200): SkewLog {
 export const skewLog = createSkewLog();
 ```
 
-- [ ] **Step 4: Run tests** → PASS.
+- [x] **Step 4: Run tests** → PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sync/skewLog.ts src/sync/skewLog.test.ts
@@ -630,7 +630,7 @@ git commit -m "feat(sync): skew sample log for the M4 drift gate"
 - Create: `src/sync/transportFollower.ts`
 - Test: `src/sync/transportFollower.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // src/sync/transportFollower.test.ts
@@ -694,9 +694,9 @@ describe('transport follower', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails** → FAIL (module missing).
+- [x] **Step 2: Run test to verify it fails** → FAIL (module missing).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```typescript
 // src/sync/transportFollower.ts
@@ -751,9 +751,9 @@ export function createTransportFollower(deps: TransportFollowerDeps): TransportF
 }
 ```
 
-- [ ] **Step 4: Run tests** → PASS.
+- [x] **Step 4: Run tests** → PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/sync/transportFollower.ts src/sync/transportFollower.test.ts
@@ -780,7 +780,7 @@ git commit -m "feat(sync): transport follower — issuedAt LWW, echo guard, skew
   schedule?: (fn: () => void, delayMs: number) => () => void;
 ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `src/transport/localTransport.test.ts` (uses the Task 1 helpers):
 
@@ -885,9 +885,9 @@ describe('applyRemote', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails** → FAIL (`applyRemote` missing).
+- [x] **Step 2: Run test to verify it fails** → FAIL (`applyRemote` missing).
 
-- [ ] **Step 3: Implement in `localTransport.ts`**
+- [x] **Step 3: Implement in `localTransport.ts`**
 
 1. Imports: `import { projectBar } from '../playhead/projectBar';` and add `SharedTransportIntent` to the types import.
 2. Add to `LocalTransportDeps`: `schedule?: (fn: () => void, delayMs: number) => () => void;`
@@ -988,12 +988,12 @@ describe('applyRemote', () => {
 
 Note `applyRemote` never touches `renderer.setSpeed` — playback tempo is `songSettings`' domain (the view's existing subscriber applies it); the stamp's `tempo` is used only inside `projectBar`.
 
-- [ ] **Step 4: Run tests + full suite + type-check**
+- [x] **Step 4: Run tests + full suite + type-check**
 
 Run: `npm test && npm run check`
 Expected: all green. The pre-existing localTransport tests must pass **unchanged** (the new `clearScheduled()` calls are no-ops without a pending schedule).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/transport/localTransport.ts src/transport/localTransport.test.ts
@@ -1009,7 +1009,7 @@ git commit -m "feat(sync): applyRemote — follower mechanics on the local trans
 
 No new unit test (Svelte wiring; the logic underneath is fully covered). Verified by type-check, the existing suite, and Task 9's manual e2e.
 
-- [ ] **Step 1: Wire it**
+- [x] **Step 1: Wire it**
 
 1. Imports: add `onDestroy` to the svelte import; add
    `import { createTransportFollower } from '../sync/transportFollower';` and
@@ -1040,12 +1040,12 @@ No new unit test (Svelte wiring; the logic underneath is fully covered). Verifie
 
 3. In the `onreadyforplayback` handler in the markup (the one that sets `canPlay = true`), add a call to `wireFollower();` after the existing statements.
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 Run: `npm run check && npm test && npm run build`
 Expected: 0 type errors, suite green, build succeeds.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/views/ChordChangesView.svelte
@@ -1059,7 +1059,7 @@ git commit -m "feat(sync): follow band transport in the drill view"
 **Files:**
 - Modify: `src/App.svelte`
 
-- [ ] **Step 1: Split publish from render (feature D6)**
+- [x] **Step 1: Split publish from render (feature D6)**
 
 In `src/App.svelte`:
 
@@ -1076,7 +1076,7 @@ In `src/App.svelte`:
   }
 ```
 
-- [ ] **Step 2: Follow remote song switches**
+- [x] **Step 2: Follow remote song switches**
 
 1. Imports: `import type { SharedSongIntent } from './session/types';` and `import { skewLog } from './sync/skewLog';`
 2. Script-level state (near the other `$state` declarations):
@@ -1127,7 +1127,7 @@ In `src/App.svelte`:
     });
 ```
 
-- [ ] **Step 3: The notice markup + style**
+- [x] **Step 3: The notice markup + style**
 
 After the `{#if current}` block's `{/key}` closing tag (still inside the `{#if current}` branch is fine, but placing it at the top level next to the boot branches is simpler — put it immediately before the final `{:else if service}` chain's end), add at the **top level of the markup**:
 
@@ -1162,12 +1162,12 @@ and to the `<style>` block:
   }
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `npm run check && npm test && npm run build`
 Expected: all green. Then `npm run dev` and confirm in one browser: opening a song from the picker still works, Back returns to the picker, reload resumes the song — and **nothing about solo behavior changed**.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/App.svelte
@@ -1181,7 +1181,7 @@ git commit -m "feat(sync): follow band song switches; picker-only publishing; sk
 **Files:**
 - Modify: `docs/project/CONTEXT.md`, `docs/project/roadmap.md`, `docs/project/features/playback-sync.md`
 
-- [ ] **Step 1: Full gate**
+- [x] **Step 1: Full gate**
 
 Run: `npm test && npm run check && npm run build`
 Expected: everything green.
@@ -1202,13 +1202,13 @@ Expected: everything green.
 
 Record any deviation as a bug before proceeding; do not paper over.
 
-- [ ] **Step 3: Update docs status**
+- [x] **Step 3: Update docs status**
 
 - `docs/project/features/playback-sync.md` — flip Implementation Status to Built, check off the acceptance criteria verified above (leave the on-device iPad line unchecked until the band confirms), add a changelog row.
 - `docs/project/CONTEXT.md` — add playback-sync to the Feature Specifications table and note Phase 3 status in the phase section.
 - `docs/project/roadmap.md` — check off M2 "Shared logical state", "Real multiplayer join … " and "Loose follow-along playhead" items as appropriate; update the Feature Specification Status table row.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/

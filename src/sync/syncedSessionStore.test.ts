@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as Y from 'yjs';
 import { createSyncedSessionStore } from './syncedSessionStore';
 import { exportUpdate, importUpdate } from './doc';
+import type { Transport } from '../session/types';
 
 function fakeStorage() {
   const m = new Map<string, string>();
@@ -65,5 +66,59 @@ describe('createSyncedSessionStore', () => {
 
     store.setSongSetting('s', { tempoPct: 0.8 });
     expect(seen.at(-1)).toEqual({ s: { tempoPct: 0.8 } });
+  });
+});
+
+const t0: Transport = { songId: 'tune', playing: true, startBar: 1, startTimestamp: 60_000, tempo: 120 };
+
+describe('session sync (playback)', () => {
+  it('decorates intent stamps with issuedAt/authorId/kind and writes the doc', () => {
+    const store = createSyncedSessionStore({ storage: fakeStorage(), now: () => 111 });
+    store.setTransport(t0, { origin: 'intent', kind: 'play' });
+    expect(store.getSessionTransport()).toEqual({
+      ...t0, issuedAt: 111, authorId: store.getIdentity().authorId, kind: 'play',
+    });
+  });
+
+  it('anchor and remote stamps never reach the doc', () => {
+    const store = createSyncedSessionStore({ storage: fakeStorage() });
+    store.setTransport(t0); // default = anchor
+    store.setTransport(t0, { origin: 'anchor' });
+    store.setTransport(t0, { origin: 'remote' });
+    expect(store.getSessionTransport()).toBeNull();
+    expect(store.getState().transport).toEqual(t0); // local projection state still updates
+  });
+
+  it('a remote peer’s intent arrives on the dedicated transport channel', () => {
+    const a = createSyncedSessionStore({ storage: fakeStorage(), now: () => 5 });
+    const b = createSyncedSessionStore({ storage: fakeStorage() });
+    const seen: Array<ReturnType<typeof b.getSessionTransport>> = [];
+    b.subscribeSessionTransport((s) => seen.push(s));
+    a.setTransport(t0, { origin: 'intent', kind: 'play' });
+    importUpdate(b.doc, exportUpdate(a.doc));
+    expect(seen.at(-1)).toMatchObject({ ...t0, issuedAt: 5, kind: 'play' });
+  });
+
+  it('channel isolation: session writes don’t fire songSettings, and vice versa', () => {
+    const store = createSyncedSessionStore({ storage: fakeStorage() });
+    let settingsFires = 0;
+    let transportFires = 0;
+    store.subscribeSongSettings(() => settingsFires++);
+    store.subscribeSessionTransport(() => transportFires++);
+    const s0 = settingsFires; // both channels deliver once on subscribe
+    const t0fires = transportFires;
+    store.setTransport(t0, { origin: 'intent', kind: 'play' });
+    expect(settingsFires).toBe(s0);
+    store.setSongSetting('tune', { tempoPct: 0.8 });
+    expect(transportFires).toBe(t0fires + 1); // only its own write moved it
+  });
+
+  it('setCurrentSong publishes a song intent with author info', () => {
+    const store = createSyncedSessionStore({ storage: fakeStorage(), now: () => 42 });
+    store.setDisplayName('Kate');
+    store.setCurrentSong('soldiers-joy');
+    expect(store.getSessionSong()).toEqual({
+      songId: 'soldiers-joy', issuedAt: 42, authorId: store.getIdentity().authorId, author: 'Kate',
+    });
   });
 });

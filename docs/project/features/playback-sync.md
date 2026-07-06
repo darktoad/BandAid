@@ -174,14 +174,14 @@ createTransportFollower(deps): { receive(stamp: SharedTransportIntent | null): v
 
 ## Acceptance Criteria
 
-- [ ] Two devices with the same band code: Play on one starts the other within the loose tolerance; either can pause, seek, or change tempo for both. (Phase 3 exit criterion, review §4.)
-- [ ] Pause on either device leaves both paused on the same bar.
-- [ ] A play started with count-in on the initiator starts the follower at the stamped downbeat with no count-in of its own.
-- [ ] Opening a song from the picker loads it on the other device with a named notice; Back on the follower does not traverse the remote switch.
-- [ ] A device that reloads mid-tune lands on the right song at roughly the right bar, playing; a device joining a band idle for >10 minutes lands paused at bar 1.
-- [ ] Repeat barlines and tempo-continuity restamps produce **no** writes to the shared doc (unit-asserted), and a device's own stamps are never re-applied to it (echo guard, unit-asserted).
-- [ ] With no band code, the full existing test suite and behavior are unchanged.
-- [ ] Skew samples accumulate on every received intent and a summary is readable from the console during a rehearsal.
+- [ ] Two devices with the same band code: Play on one starts the other within the loose tolerance; either can pause, seek, or change tempo for both. (Phase 3 exit criterion, review §4.) — **pending live two-device verification**
+- [ ] Pause on either device leaves both paused on the same bar. — **pending live two-device verification**
+- [ ] A play started with count-in on the initiator starts the follower at the stamped downbeat with no count-in of its own. — **pending live two-device verification**
+- [ ] Opening a song from the picker loads it on the other device with a named notice; Back on the follower does not traverse the remote switch. — **pending live two-device verification**
+- [ ] A device that reloads mid-tune lands on the right song at roughly the right bar, playing; a device joining a band idle for >10 minutes lands paused at bar 1. — **pending live two-device verification**
+- [x] Repeat barlines and tempo-continuity restamps produce **no** writes to the shared doc (unit-asserted), and a device's own stamps are never re-applied to it (echo guard, unit-asserted).
+- [x] With no band code, the full existing test suite and behavior are unchanged.
+- [ ] Skew samples accumulate on every received intent and a summary is readable from the console during a rehearsal. — mechanism unit-tested and confirmed headlessly (`window.__bandaidSkew()` returns the expected shape); **reading real numbers during a live rehearsal is still pending**.
 - [ ] All of the above on the fiddler's iPad + one other device class.
 
 ## Dependencies
@@ -206,7 +206,7 @@ createTransportFollower(deps): { receive(stamp: SharedTransportIntent | null): v
 
 ## Implementation Status
 
-**Status:** Specified — ready for implementation
+**Status:** Built — unit-tested and headlessly verified (build, dev server, no console errors); live two-device rehearsal verification (the manual e2e walk and iPad check) is still outstanding.
 **Plan:** [docs/superpowers/plans/2026-07-05-playback-sync.md](../../superpowers/plans/2026-07-05-playback-sync.md)
 
 ## Changelog
@@ -214,3 +214,4 @@ createTransportFollower(deps): { receive(stamp: SharedTransportIntent | null): v
 | Date | Change | Reason |
 |------|--------|--------|
 | 2026-07-05 | Initial specification | Phase 3 of the M2 build sequence; implements ADR-002 D2 with 10 UX/architecture decisions (tempo stays on songSettings; scheduled follower starts; pause-as-resync; kind-tagged intents; approximate late join; picker-only song publishing; named switch notice; local Back; measured skew) |
+| 2026-07-05 | Implemented (Tasks 1–8 of the plan) | Origin-tagged transport stamps, `session.transport`/`session.song` doc keys, the transport follower (LWW/echo/staleness guards + skew log), `applyRemote`/`dispose` on `localTransport`, follower wiring in `ChordChangesView`, and App.svelte's picker-only publishing + remote song follow + notice + skew console hook. Full test suite (151 tests), `svelte-check`, and `vite build` all green. Live two-device rehearsal walk and iPad check still pending (Task 9). |

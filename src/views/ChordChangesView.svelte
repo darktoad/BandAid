@@ -1,9 +1,11 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import Renderer from '../renderer/Renderer.svelte';
   import type { RendererController, TrackInfo } from '../renderer/createRenderer';
   import { createLocalTransport, maxTempoPercent, type LocalTransport } from '../transport/localTransport';
   import type { SyncedSessionStore } from '../sync/syncedSessionStore';
+  import { createTransportFollower } from '../sync/transportFollower';
+  import { skewLog } from '../sync/skewLog';
   import Icon from '../icons/Icon.svelte';
   import ChordOverlay from '../chords/ChordOverlay.svelte';
   import type { Instrument } from '../chords/chordShapes';
@@ -228,6 +230,35 @@
     return () => cancelAnimationFrame(raf);
   });
 
+  // Follow the band's transport (playback sync). Wired once the player can actually
+  // play (onreadyforplayback) — applying a play stamp before the soundfont is loaded
+  // would be dropped by alphaTab. One follower per loaded song; subscribing delivers
+  // the current doc stamp immediately, so a device that opens mid-tune joins in.
+  //
+  // Called from both onReady (which creates `transport`) and the onplayable handler
+  // (which sets `canPlay`): alphaTab gives no ordering guarantee between "score loaded"
+  // and "player ready for playback" — on a real device, MusicXML fetch latency can let
+  // onplayable fire first. Guarding on both and calling from both call sites means
+  // whichever of the two fires second completes the wiring, instead of onplayable
+  // silently finding `transport` still undefined and never being retried (the actual
+  // real-device bug: playback sync working perfectly in every headless/local test but
+  // never firing at all on a real phone/tablet).
+  let unsubFollower: (() => void) | undefined;
+  function wireFollower() {
+    if (unsubFollower || !transport || !canPlay) return;
+    const follower = createTransportFollower({
+      songId: song.id,
+      authorId: store.getIdentity().authorId,
+      apply: (stamp) => transport!.applyRemote(stamp),
+      skewLog,
+    });
+    unsubFollower = store.subscribeSessionTransport((stamp) => follower.receive(stamp));
+  }
+  onDestroy(() => {
+    unsubFollower?.();
+    transport?.dispose(); // cancel a pending scheduled remote start
+  });
+
   function onReady(c: RendererController, t: TrackInfo[]) {
     controller = c;
     tracks = t;
@@ -252,6 +283,9 @@
       renderer: c,
       store,
     });
+    // In case onplayable already fired before the score (and thus `transport`) was
+    // ready — see the wireFollower comment for why both call sites are needed.
+    wireFollower();
     // Apply this song's saved performance overrides (tempo, key); absent = canonical default.
     const saved = store.getSongSettings(song.id);
     speedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 100) : 100;
@@ -566,6 +600,13 @@
         {/if}
       </div>
     </div>
+
+    <!-- Glance-checkable build identity: confirms a device actually picked up the
+         latest deploy instead of a stale cached bundle. -->
+    <div class="row">
+      <span class="label">Version</span>
+      <span class="readout">{__COMMIT_SHA__}</span>
+    </div>
   </div>
 {/if}
 
@@ -591,6 +632,7 @@
       onplayable={() => {
         canPlay = true;
         applyAudio(); // re-assert volumes now the synth is ready (not just at score load)
+        wireFollower();
       }}
       onerror={(e) => (errorMsg = e.message)}
     />
