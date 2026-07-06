@@ -2,6 +2,18 @@ import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import { build as esbuild } from 'esbuild';
+import { execSync } from 'node:child_process';
+
+// The short commit SHA baked in at build time, so "am I on the latest deploy?" is a
+// glance at the settings sheet instead of a private-browsing/cache-clearing exercise.
+// Falls back to 'unknown' if git isn't available (e.g. a source tarball with no .git).
+function commitSha(): string {
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim();
+  } catch {
+    return 'unknown';
+  }
+}
 
 // alphaTab ships its rendering fonts (Bravura) and a soundfont in its dist folder.
 // Copy them into the served/built output so everything loads locally (no CDN) —
@@ -65,6 +77,7 @@ export default defineConfig(({ command }) => ({
   // themselves; these mutable files otherwise serve stale for ~10 min after a deploy.
   define: {
     __BUILD_ID__: JSON.stringify(command === 'build' ? String(Date.now()) : 'dev'),
+    __COMMIT_SHA__: JSON.stringify(commitSha()),
   },
   plugins: [
     svelte(),

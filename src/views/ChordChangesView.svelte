@@ -600,6 +600,13 @@
         {/if}
       </div>
     </div>
+
+    <!-- Glance-checkable build identity: confirms a device actually picked up the
+         latest deploy instead of a stale cached bundle. -->
+    <div class="row">
+      <span class="label">Version</span>
+      <span class="readout">{__COMMIT_SHA__}</span>
+    </div>
   </div>
 {/if}
 
