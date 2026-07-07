@@ -44,6 +44,9 @@ export interface RendererController {
   renderTracks(trackIndices: number[]): void;
   /** Bars per row — drive from container width for responsive, readable notation. */
   setBarsPerRow(bars: number): void;
+  /** Bars per row + scale together in ONE re-render — for fit-to-view, whose
+   *  verification pass must await exactly one render per applied change. */
+  setLayout(bars: number, scale: number): void;
   /** Transpose the whole tune by N semitones (display + playback); 0 = written key. */
   setTranspose(semitones: number): void;
   /** Current cursor bar (1-based). */
@@ -62,6 +65,11 @@ export interface RendererController {
   setCountInVolume(volume: number): void;
   /** Re-render at a new display scale (zoom) for legibility. 1 = 100%. */
   setScale(scale: number): void;
+  /** Vertical extent of the system row containing a bar (px, relative to the render
+   *  host), or null before the first layout. Drives the view's paged auto-scroll. */
+  getBarBounds(bar: number): { top: number; bottom: number } | null;
+  /** Fires after each completed (re-)render — bar bounds are fresh again. */
+  onRender(cb: () => void): void;
   onReady(cb: (tracks: TrackInfo[]) => void): void;
   onError(cb: (err: Error) => void): void;
   onPosition(cb: (bar: number) => void): void;
@@ -172,6 +180,9 @@ export async function createRenderer(
   const positionCbs: Array<(bar: number) => void> = [];
   const playingCbs: Array<(playing: boolean) => void> = [];
   const playbackReadyCbs: Array<() => void> = [];
+  const renderCbs: Array<() => void> = [];
+
+  api.postRenderFinished.on(() => renderCbs.forEach((cb) => cb()));
 
   api.playerReady.on(() => {
     playbackReady = true;
@@ -262,6 +273,12 @@ export async function createRenderer(
       api.updateSettings();
       rerenderCurrent();
     },
+    setLayout(bars: number, scale: number) {
+      api.settings.display.barsPerRow = bars;
+      api.settings.display.scale = scale;
+      api.updateSettings();
+      rerenderCurrent();
+    },
     setTranspose(semitones: number) {
       const score = api.score;
       if (!score) return;
@@ -313,6 +330,15 @@ export async function createRenderer(
       api.updateSettings();
       rerenderCurrent();
     },
+    getBarBounds(bar: number) {
+      const mb = api.renderer.boundsLookup?.findMasterBarByIndex(bar - 1) ?? null;
+      if (!mb) return null;
+      // The parent staff system is the whole rendered row — the master bar's own bounds
+      // would miss the chord symbols and effects band above the staff.
+      const r = mb.staffSystemBounds?.realBounds ?? mb.realBounds;
+      return { top: r.y, bottom: r.y + r.h };
+    },
+    onRender: (cb) => renderCbs.push(cb),
     onReady: (cb) => readyCbs.push(cb),
     onError: (cb) => errorCbs.push(cb),
     onPosition: (cb) => positionCbs.push(cb),

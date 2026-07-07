@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import Renderer from '../renderer/Renderer.svelte';
   import type { RendererController, TrackInfo } from '../renderer/createRenderer';
   import { createLocalTransport, maxTempoPercent, type LocalTransport } from '../transport/localTransport';
@@ -168,6 +168,15 @@
   });
 
   let stageEl: HTMLElement;
+  let renderScrollEl = $state<HTMLDivElement | undefined>(undefined); // the notation's scroller
+  let renderTick = $state(0); // bumped after every completed (re-)render — bounds are fresh
+  // One-shot waiters for the next completed render (fit-to-view's verification pass).
+  let renderResolvers: Array<() => void> = [];
+  const nextRender = () => new Promise<void>((resolve) => renderResolvers.push(resolve));
+  // Matches the overlay's page-turn: JS-driven scrolling can't be reached by a CSS
+  // reduced-motion rule, so honor the preference here.
+  const reducedMotion =
+    typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   let lastBarsPerRow = 0;
   let lastStageWidth = 0; // remembered so a late-arriving measureCount can re-pick
   let barsPerRow = $state(4); // notation bars-per-row; the overlay mirrors it 1:1
@@ -254,6 +263,32 @@
     return () => cancelAnimationFrame(raf);
   });
 
+  // Paged auto-turn: keep the cursor's row inside the visible page. The bottom PEEK_PX
+  // stays reserved as a preview strip — the next row shows there partially, and when the
+  // cursor reaches it the page turns with that row snapping to the top. So the row being
+  // played carries across the turn (continuity) and a full page of upcoming music lands
+  // below it (lookahead). Runs on bar changes and after re-renders (renderTick) only —
+  // never on manual scrolling, so browsing a paused score is left alone.
+  const PEEK_PX = 64;
+  $effect(() => {
+    void renderTick; // re-run after scale/bars-per-row re-renders move the rows
+    const scroller = renderScrollEl;
+    if (!scroller || !controller) return;
+    const bounds = controller.getBarBounds(bar);
+    if (!bounds) return;
+    const viewTop = scroller.scrollTop;
+    const viewH = scroller.clientHeight;
+    if (scroller.scrollHeight <= viewH) return; // whole song fits: nothing to page
+    // Row above the view (seek/return-to-start) or entering the bottom peek strip:
+    // snap its top to the top of a fresh page.
+    if (bounds.top < viewTop || bounds.bottom > viewTop + viewH - PEEK_PX) {
+      scroller.scrollTo({
+        top: Math.max(0, bounds.top - 4),
+        behavior: reducedMotion ? 'auto' : 'smooth',
+      });
+    }
+  });
+
   // Follow the band's transport (playback sync). Wired once the player can actually
   // play (onreadyforplayback) — applying a play stamp before the soundfont is loaded
   // would be dropped by alphaTab. One follower per loaded song; subscribing delivers
@@ -299,6 +334,10 @@
     // Re-pick bars-per-row now the bar count is known (orphan avoidance needs it) —
     // the ResizeObserver only re-fires on actual size changes.
     if (lastStageWidth > 0) applyResponsiveLayout(lastStageWidth);
+    c.onRender(() => {
+      renderTick++;
+      renderResolvers.splice(0).forEach((resolve) => resolve());
+    });
     // Masthead credit: the curated manifest composer wins; fall back to the score's
     // credit unless it's an export toolchain stamping its own name (e.g. Music21).
     const scoreCredit = info?.composer ?? '';
@@ -460,6 +499,47 @@
     scalePct = Number((e.target as HTMLInputElement).value);
     controller?.setScale(scalePct / 100);
   }
+  // Fit the whole tune in the viewport. Two knobs: scale, and bars-per-row up to 6 (the
+  // widest the band's paper charts use) — wider rows mean fewer rows, letting a short
+  // tune trade bar width for a single-page fit. Estimate each candidate layout's height
+  // from the current render's row height, take the one that fits at the largest scale
+  // (min 75% for legibility — below that the tune stays multi-page and the paged
+  // auto-turn covers it), then verify against the real render and trim if the estimate
+  // ran long. Closes the settings sheet first: inline (wide-screen) it eats stage
+  // height, and fitting to the reduced viewport would undersize the tune.
+  async function fitToView() {
+    showMore = false;
+    await tick(); // let the sheet leave the layout before measuring
+    const scroller = renderScrollEl;
+    if (!scroller || !controller || measureCount <= 0) return;
+    const contentH = scroller.scrollHeight;
+    const viewH = scroller.clientHeight;
+    if (contentH <= 0 || viewH <= 0) return;
+    const rowH = contentH / Math.ceil(measureCount / barsPerRow); // at the current scale
+    const base = pickBarsPerRow(lastStageWidth || stageEl?.clientWidth || 0, measureCount);
+    let bestN = barsPerRow;
+    let bestS = 75;
+    for (let n = base; n <= 6; n++) {
+      if (measureCount > n && measureCount % n === 1) continue; // no orphan rows
+      const rows = Math.ceil(measureCount / n);
+      const s = Math.min(225, Math.floor(((viewH / (rows * rowH)) * scalePct) / 5) * 5);
+      if (s > bestS) {
+        bestN = n;
+        bestS = s;
+      }
+    }
+    while (bestN !== barsPerRow || bestS !== scalePct) {
+      barsPerRow = bestN; // the overlay mirrors the notation 1:1
+      lastBarsPerRow = bestN;
+      scalePct = bestS;
+      const rendered = nextRender();
+      controller.setLayout(bestN, bestS / 100);
+      await rendered;
+      // Estimate ran long (row heights shift with density): trim a step and re-verify.
+      if (scroller.scrollHeight <= scroller.clientHeight || bestS <= 75) break;
+      bestS = Math.max(75, bestS - 5);
+    }
+  }
   // Return to the top of the tune (a synced seek: the band jumps with you).
   function returnToStart() {
     setBar(1);
@@ -597,11 +677,12 @@
       <button class="reset" onclick={resetTranspose} disabled={!controller || !transposeModified} title="Reset to original key" aria-label="Reset to original key"><Icon name="reset" size={16} /></button>
     </div>
 
-    <label class="row">
+    <div class="row">
       <span class="label">Size</span>
-      <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} aria-valuetext={`${scalePct}%`} />
+      <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} aria-label="Notation size" aria-valuetext={`${scalePct}%`} />
       <span class="readout">{scalePct}%</span>
-    </label>
+      <button class="fitbtn" onclick={fitToView} disabled={!controller} title="Size the whole tune to fill the view">Fit</button>
+    </div>
 
     <div class="row">
       <span class="label">Audio</span>
@@ -677,6 +758,7 @@
   <div class="render-wrap">
     <Renderer
       musicXmlUrl={song.url}
+      bind:scrollEl={renderScrollEl}
       onready={onReady}
       onposition={(b) => setBar(b)}
       onplaying={(p) => (playing = p)}
@@ -838,6 +920,7 @@
     min-height: 2.2rem;
   }
   .chips button.active { border-color: var(--accent); color: var(--accent); }
+  .fitbtn { flex: 0 0 auto; padding: 0.4rem 0.7rem; font-size: 0.85rem; min-height: 2.2rem; }
 
   /* Touch screens get full-size (≥44px) targets on the controls tapped mid-practice;
      pointer precision keeps the compact sizes on desktop. */
@@ -846,6 +929,7 @@
     .pill { min-height: 2.75rem; }
     .stepper button,
     .chips button,
+    .fitbtn,
     .reset { min-width: 2.75rem; min-height: 2.75rem; }
   }
 
