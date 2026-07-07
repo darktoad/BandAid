@@ -203,7 +203,7 @@
   onMount(() =>
     store.subscribeSongSettings((settings) => {
       const saved = settings[song.id] ?? {};
-      const nextSpeedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 100) : 100;
+      const nextSpeedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 1000) / 10 : 100;
       if (nextSpeedPct !== speedPct) {
         speedPct = nextSpeedPct;
         transport?.setTempoPercent(speedPct / 100);
@@ -302,7 +302,7 @@
     wireFollower();
     // Apply this song's saved performance overrides (tempo, key); absent = canonical default.
     const saved = store.getSongSettings(song.id);
-    speedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 100) : 100;
+    speedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 1000) / 10 : 100;
     transport.setTempoPercent(speedPct / 100);
     transpose = saved.transpose ?? 0;
     if (transpose !== 0) c.setTranspose(transpose);
@@ -382,12 +382,26 @@
     else transport.play();
   }
 
-  function onSpeed(e: Event) {
-    speedPct = Number((e.target as HTMLInputElement).value);
+  // Tempo is edited in BPM (the ♩ = N the charts show) but stored as a fraction of the
+  // song's written tempo. Tenth-of-a-percent precision keeps a typed BPM stable through
+  // the songSettings round-trip — whole percents can't represent every BPM.
+  function setBpm(next: number) {
+    if (!Number.isFinite(next)) return;
+    const bpm = Math.round(Math.min(maxBpm, Math.max(minBpm, next)));
+    speedPct = Math.round((bpm / tempoBpm) * 1000) / 10;
     transport?.setTempoPercent(speedPct / 100);
     // Persist as a per-song override (shared session state); 100% = default, so clear it.
     if (speedPct === 100) store.resetSongSetting(song.id, 'tempoPct');
     else store.setSongSetting(song.id, { tempoPct: speedPct / 100 });
+  }
+  function stepBpm(delta: number) {
+    setBpm(currentBpm + delta);
+  }
+  function onBpmInput(e: Event) {
+    const el = e.target as HTMLInputElement;
+    setBpm(Number(el.value));
+    // Reflect the clamped value back into the field (typing past the ceiling lands on it).
+    el.value = String(currentBpm);
   }
   // Reset tempo to the song's canonical default (clears the override).
   function resetTempo() {
@@ -397,10 +411,10 @@
   }
   // True when tempo differs from the canonical default (drives the modified dot + reset).
   let tempoModified = $derived(speedPct !== 100);
-  // The slider's ceiling: matches what the transport will actually allow for this
-  // song's written tempo (see maxTempoPercent — an absolute BPM cap, not a flat
-  // percentage), rounded down to the slider's step so every value is reachable.
-  let maxSpeedPct = $derived(Math.max(100, Math.floor((maxTempoPercent(tempoBpm) * 100) / 5) * 5));
+  // BPM bounds mirror the transport's own clamps: half the written tempo up to
+  // maxTempoPercent's ceiling (an absolute BPM cap, not a flat percentage).
+  let minBpm = $derived(Math.ceil(tempoBpm * 0.5));
+  let maxBpm = $derived(Math.max(tempoBpm, Math.round(tempoBpm * maxTempoPercent(tempoBpm))));
 
   // Key / transpose. Clamped to ±6 semitones (a tritone either way covers any key).
   function stepTranspose(delta: number) {
@@ -563,12 +577,28 @@
       </div>
     </div>
 
-    <label class="row">
+    <div class="row">
       <span class="label">Tempo{#if tempoModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
-      <input type="range" min="50" max={maxSpeedPct} step="5" value={speedPct} oninput={onSpeed} disabled={!transport} aria-valuetext={`${speedPct}% of original, ${currentBpm} beats per minute`} />
-      <span class="readout">{speedPct}% · {Math.round((tempoBpm * speedPct) / 100)} bpm</span>
+      <div class="stepper">
+        <button onclick={() => stepBpm(-2)} disabled={!transport || currentBpm <= minBpm} aria-label="Slower by 2 beats per minute">−</button>
+        <label class="readout tempo">♩ =
+          <input
+            class="bpm"
+            type="number"
+            inputmode="numeric"
+            min={minBpm}
+            max={maxBpm}
+            value={currentBpm}
+            onchange={onBpmInput}
+            disabled={!transport}
+            aria-label="Tempo in beats per minute"
+          />
+        </label>
+        <button onclick={() => stepBpm(2)} disabled={!transport || currentBpm >= maxBpm} aria-label="Faster by 2 beats per minute">+</button>
+        <span class="readout">{Math.round(speedPct)}%</span>
+      </div>
       <button class="reset" onclick={resetTempo} disabled={!transport || !tempoModified} title="Reset to original tempo" aria-label="Reset to original tempo"><Icon name="reset" size={16} /></button>
-    </label>
+    </div>
 
     <div class="row">
       <span class="label">Key{#if transposeModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
@@ -798,6 +828,23 @@
   .stepper { display: inline-flex; align-items: center; gap: 0.5rem; flex: 1 1 auto; }
   .stepper button { min-width: 2.2rem; min-height: 2.2rem; font-size: 1.1rem; line-height: 1; }
   .readout.key { min-width: 5rem; }
+  .readout.tempo { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .sheet .row input.bpm {
+    width: 3.8rem;
+    padding: 0.3rem 0.4rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  .sheet .row input.bpm::-webkit-outer-spin-button,
+  .sheet .row input.bpm::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .sheet .row input.bpm:focus { border-color: var(--accent); outline: none; }
   .st { color: var(--muted); }
   .sheet .row input[type='range'] { flex: 1 1 auto; min-width: 0; }
   .sheet .row input.band {
