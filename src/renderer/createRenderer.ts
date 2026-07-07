@@ -105,6 +105,10 @@ export async function createRenderer(
     display: {
       layoutMode: 'page',
       barsPerRow: 4, // 4 bars per row by default for readability
+      // Keep alphaTab's default (off) pinned: a short final row must render its bars at
+      // natural width. Justifying would stretch a lone leftover bar across the whole row,
+      // and the cursor — constant in musical time — would visibly sprint through it.
+      justifyLastSystem: false,
     },
   });
 
@@ -204,9 +208,15 @@ export async function createRenderer(
   const res = await fetch(musicXmlUrl);
   if (!res.ok) throw new Error(`Failed to fetch ${musicXmlUrl}: ${res.status}`);
   const buf = await res.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-  const chordTimeline = parseChordTimeline(new TextDecoder().decode(buf));
-  const ok = api.load(bytes);
+  const xmlText = new TextDecoder().decode(buf);
+  const chordTimeline = parseChordTimeline(xmlText);
+  // The source engraving's system/page breaks encode the width of the PAPER it was set
+  // for (rows of 4–6 bars). alphaTab honors them as hard breaks and then chops each
+  // engraved row by barsPerRow, stranding orphan bars mid-score that get justified to
+  // full row width — the "sprinting playhead" bar. On screen, the responsive
+  // bars-per-row is the layout authority, so drop the breaks before loading.
+  const screenXml = xmlText.replace(/ new-(system|page)="yes"/g, '');
+  const ok = api.load(new TextEncoder().encode(screenXml));
   if (!ok) throw new Error(`alphaTab could not parse ${musicXmlUrl}`);
 
   // Re-render the currently selected track set (after a zoom/bars-per-row change) so

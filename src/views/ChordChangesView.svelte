@@ -169,6 +169,7 @@
 
   let stageEl: HTMLElement;
   let lastBarsPerRow = 0;
+  let lastStageWidth = 0; // remembered so a late-arriving measureCount can re-pick
   let barsPerRow = $state(4); // notation bars-per-row; the overlay mirrors it 1:1
 
   // Responsive notation: fewer bars per row on narrow screens so notes aren't crowded.
@@ -177,8 +178,21 @@
     if (w <= 900) return 3;
     return 4;
   }
+  // Avoid orphan rows: a song whose bar count leaves a single leftover bar (count % n
+  // == 1) would end on a lone bar, so step down to a row width that doesn't — e.g. 33
+  // bars at 4/row → 3/row (11 even rows). Stepping down (never up) keeps bars at least
+  // as large as the width-based pick. If every candidate orphans, keep the base width;
+  // the lone bar then renders at natural width (justifyLastSystem stays off), so the
+  // cursor's pixel speed doesn't jump.
+  function pickBarsPerRow(w: number, measures: number): number {
+    const base = barsForWidth(w);
+    if (measures <= 0) return base;
+    for (let n = base; n >= 2; n--) if (measures % n !== 1) return n;
+    return base;
+  }
   function applyResponsiveLayout(w: number) {
-    const bpr = barsForWidth(w);
+    lastStageWidth = w;
+    const bpr = pickBarsPerRow(w, measureCount);
     barsPerRow = bpr; // keep the overlay's row count in step with the notation
     if (bpr === lastBarsPerRow || !controller) return;
     lastBarsPerRow = bpr;
@@ -282,6 +296,9 @@
     const info = c.getSongInfo();
     tempoBpm = info?.tempoBpm ?? 120;
     measureCount = info?.measureCount ?? 1;
+    // Re-pick bars-per-row now the bar count is known (orphan avoidance needs it) —
+    // the ResizeObserver only re-fires on actual size changes.
+    if (lastStageWidth > 0) applyResponsiveLayout(lastStageWidth);
     // Masthead credit: the curated manifest composer wins; fall back to the score's
     // credit unless it's an export toolchain stamping its own name (e.g. Music21).
     const scoreCredit = info?.composer ?? '';
