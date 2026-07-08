@@ -45,6 +45,15 @@ describe('parseStructure', () => {
     expect(() => parseStructure(loadDoc(twoParts))).toThrow(/multi-part/i);
   });
 
+  it('rejects a volta span that crosses a section boundary', () => {
+    // Move ending 2's stop from measure 3 to measure 4, so the volta opened in
+    // "verse" would close inside "chorus".
+    const crossed = fixture()
+      .replace('<barline location="right"><ending number="2" type="stop" /></barline>', '')
+      .replace('<measure number="4">', '<measure number="4"><barline location="left"><ending number="2" type="stop" /></barline>');
+    expect(() => parseStructure(loadDoc(crossed))).toThrow(/volta.*crosses/i);
+  });
+
   it('rejects a repeat group that crosses a section boundary', () => {
     // Move the chorus rehearsal mark to measure 5, so verse's m4 forward repeat
     // group would close inside "chorus".

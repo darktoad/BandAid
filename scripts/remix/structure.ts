@@ -97,12 +97,23 @@ export function parseStructure(doc: Document): SongStructure {
         if (type === 'start') open[key] = { numbers, start: mi };
         else if (type === 'stop' || type === 'discontinue') {
           const o = open[key];
-          if (o) {
-            endings.push({ numbers: o.numbers, start: o.start, stop: mi });
-            delete open[key];
+          if (!o) {
+            throw new Error(
+              `volta ending ${key} stops in section "${b.label}" without starting there — the volta crosses a section boundary; label sections at repeat-group boundaries`,
+            );
           }
+          endings.push({ numbers: o.numbers, start: o.start, stop: mi });
+          delete open[key];
         }
       }
+    }
+    // Volta spans must not cross section boundaries either: an ending opened
+    // in this section must close before the section ends.
+    const dangling = Object.entries(open).filter(([, v]) => v !== undefined);
+    if (dangling.length > 0) {
+      throw new Error(
+        `volta ending ${dangling.map(([k]) => k).join('; ')} starting in section "${b.label}" crosses its boundary — label sections at repeat-group boundaries`,
+      );
     }
     return { label: b.label, start, end, backwardRepeat, endings };
   });
