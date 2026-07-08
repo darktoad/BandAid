@@ -40,8 +40,19 @@
   let n = $derived(Math.max(1, barsPerRow));
   // The row of bars containing the current bar, aligned to row boundaries.
   let pageStart = $derived(Math.floor((currentBar - 1) / n) * n + 1);
+  // Lookahead at the row seam: during a row's final bar the player would otherwise see
+  // zero upcoming chords until the page turns. Slide the strip one slot left (conveyor
+  // style — the already-played first bar exits) and bring in the next row's first bar.
+  // Needs n ≥ 2 so the current bar itself never slides out of view.
+  let peekBar = $derived(
+    n >= 2 && currentBar === pageStart + n - 1 && pageStart + n <= measureCount
+      ? pageStart + n
+      : null,
+  );
   let bars = $derived(
-    Array.from({ length: n }, (_, i) => pageStart + i).filter((b) => b >= 1 && b <= measureCount),
+    Array.from({ length: n }, (_, i) => pageStart + i)
+      .concat(peekBar !== null ? [peekBar] : [])
+      .filter((b) => b >= 1 && b <= measureCount),
   );
   let beats = $derived(Array.from({ length: Math.max(1, beatsPerBar) }, (_, i) => i));
 
@@ -59,9 +70,9 @@
 
 <div class="strip" class:nocharts={!showCharts} style={`--n:${n}`}>
   {#key pageStart}
-    <div class="page" in:fly={{ x: 40, duration: reducedMotion ? 0 : 220 }}>
+    <div class="page" class:peeking={peekBar !== null} in:fly={{ x: 40, duration: reducedMotion ? 0 : 220 }}>
       {#each bars as bar (bar)}
-        <div class="bar" class:current={bar === currentBar}>
+        <div class="bar" class:current={bar === currentBar} class:peek={bar === peekBar}>
           <div class="chords">
             {#each chordsForBar(timeline, bar) as c (`${c.beat}-${c.label}`)}
               {@const shape = showCharts ? shapeFor(c.label, instrument) : null}
@@ -97,6 +108,23 @@
     display: flex;
     gap: 0.5rem;
     align-items: stretch;
+    transition: transform 220ms ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .page {
+      transition: none;
+    }
+  }
+  /* The peek shift: one slot (a bar's width plus the gap) to the left, revealing the
+     next row's first bar appended past the right edge. */
+  .page.peeking {
+    transform: translateX(calc(-1 * ((100% - (var(--n) - 1) * 0.5rem) / var(--n) + 0.5rem)));
+  }
+  /* The peeked bar reads as "coming up, next row" — present but visually secondary. */
+  .bar.peek {
+    opacity: 0.55;
+    border-color: var(--line);
+    border-style: dashed;
   }
   /* Every bar occupies a fixed 1/N of the row, so width never depends on how many
      bars remain — the last row just leaves empty slots on the right. */

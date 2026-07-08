@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import Renderer from '../renderer/Renderer.svelte';
   import type { RendererController, TrackInfo } from '../renderer/createRenderer';
   import { createLocalTransport, maxTempoPercent, type LocalTransport } from '../transport/localTransport';
@@ -70,15 +70,6 @@
   let synth = $state(true);
   let click = $state(false);
   let countIn = $state(true); // one-bar count-in before play (local pref, FR-6)
-  // Volume level is a personal, per-device preference (localStorage, like the chord
-  // overlay below) so it's dialed in once, not reset every song. 100% is alphaTab's
-  // own "1 = full" gain — no artificial boost. (An earlier version defaulted to 300%
-  // to compensate the old sonivox soundfont's thin solo violin; the warmer Florestan
-  // strings font doesn't need it, and the boost just made the default loud.) Headroom
-  // to 150% stays available for any future instrument that does need a lift.
-  const savedVolume = loadVolumePrefs();
-  let synthVolumePct = $state(savedVolume.synth ?? 100);
-  let clickVolumePct = $state(savedVolume.click ?? 100);
   let showMore = $state(false); // the settings sheet (opened by the ☰ / key / tempo)
   let composer = $state(''); // score credit, for the masthead
   let showMasthead = $state(loadMastheadPref()); // local viewing pref, persisted
@@ -146,29 +137,18 @@
     }
   });
 
-  // Volume level is a personal, per-device preference — same rationale as the chord
-  // overlay above.
-  function loadVolumePrefs(): { synth?: number; click?: number } {
-    try {
-      if (typeof localStorage === 'undefined') return {};
-      return JSON.parse(localStorage.getItem('bandaid.volume') ?? '{}');
-    } catch {
-      return {};
-    }
-  }
-  $effect(() => {
-    const prefs = { synth: synthVolumePct, click: clickVolumePct };
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('bandaid.volume', JSON.stringify(prefs));
-      }
-    } catch {
-      /* ignore */
-    }
-  });
-
   let stageEl: HTMLElement;
+  let renderScrollEl = $state<HTMLDivElement | undefined>(undefined); // the notation's scroller
+  let renderTick = $state(0); // bumped after every completed (re-)render — bounds are fresh
+  // One-shot waiters for the next completed render (fit-to-view's verification pass).
+  let renderResolvers: Array<() => void> = [];
+  const nextRender = () => new Promise<void>((resolve) => renderResolvers.push(resolve));
+  // Matches the overlay's page-turn: JS-driven scrolling can't be reached by a CSS
+  // reduced-motion rule, so honor the preference here.
+  const reducedMotion =
+    typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   let lastBarsPerRow = 0;
+  let lastStageWidth = 0; // remembered so a late-arriving measureCount can re-pick
   let barsPerRow = $state(4); // notation bars-per-row; the overlay mirrors it 1:1
 
   // Responsive notation: fewer bars per row on narrow screens so notes aren't crowded.
@@ -177,8 +157,21 @@
     if (w <= 900) return 3;
     return 4;
   }
+  // Avoid orphan rows: a song whose bar count leaves a single leftover bar (count % n
+  // == 1) would end on a lone bar, so step down to a row width that doesn't — e.g. 33
+  // bars at 4/row → 3/row (11 even rows). Stepping down (never up) keeps bars at least
+  // as large as the width-based pick. If every candidate orphans, keep the base width;
+  // the lone bar then renders at natural width (justifyLastSystem stays off), so the
+  // cursor's pixel speed doesn't jump.
+  function pickBarsPerRow(w: number, measures: number): number {
+    const base = barsForWidth(w);
+    if (measures <= 0) return base;
+    for (let n = base; n >= 2; n--) if (measures % n !== 1) return n;
+    return base;
+  }
   function applyResponsiveLayout(w: number) {
-    const bpr = barsForWidth(w);
+    lastStageWidth = w;
+    const bpr = pickBarsPerRow(w, measureCount);
     barsPerRow = bpr; // keep the overlay's row count in step with the notation
     if (bpr === lastBarsPerRow || !controller) return;
     lastBarsPerRow = bpr;
@@ -203,7 +196,7 @@
   onMount(() =>
     store.subscribeSongSettings((settings) => {
       const saved = settings[song.id] ?? {};
-      const nextSpeedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 100) : 100;
+      const nextSpeedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 1000) / 10 : 100;
       if (nextSpeedPct !== speedPct) {
         speedPct = nextSpeedPct;
         transport?.setTempoPercent(speedPct / 100);
@@ -238,6 +231,32 @@
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
+  });
+
+  // Paged auto-turn: keep the cursor's row inside the visible page. The bottom PEEK_PX
+  // stays reserved as a preview strip — the next row shows there partially, and when the
+  // cursor reaches it the page turns with that row snapping to the top. So the row being
+  // played carries across the turn (continuity) and a full page of upcoming music lands
+  // below it (lookahead). Runs on bar changes and after re-renders (renderTick) only —
+  // never on manual scrolling, so browsing a paused score is left alone.
+  const PEEK_PX = 64;
+  $effect(() => {
+    void renderTick; // re-run after scale/bars-per-row re-renders move the rows
+    const scroller = renderScrollEl;
+    if (!scroller || !controller) return;
+    const bounds = controller.getBarBounds(bar);
+    if (!bounds) return;
+    const viewTop = scroller.scrollTop;
+    const viewH = scroller.clientHeight;
+    if (scroller.scrollHeight <= viewH) return; // whole song fits: nothing to page
+    // Row above the view (seek/return-to-start) or entering the bottom peek strip:
+    // snap its top to the top of a fresh page.
+    if (bounds.top < viewTop || bounds.bottom > viewTop + viewH - PEEK_PX) {
+      scroller.scrollTo({
+        top: Math.max(0, bounds.top - 4),
+        behavior: reducedMotion ? 'auto' : 'smooth',
+      });
+    }
   });
 
   // Follow the band's transport (playback sync). Wired once the player can actually
@@ -282,6 +301,13 @@
     const info = c.getSongInfo();
     tempoBpm = info?.tempoBpm ?? 120;
     measureCount = info?.measureCount ?? 1;
+    // Re-pick bars-per-row now the bar count is known (orphan avoidance needs it) —
+    // the ResizeObserver only re-fires on actual size changes.
+    if (lastStageWidth > 0) applyResponsiveLayout(lastStageWidth);
+    c.onRender(() => {
+      renderTick++;
+      renderResolvers.splice(0).forEach((resolve) => resolve());
+    });
     // Masthead credit: the curated manifest composer wins; fall back to the score's
     // credit unless it's an export toolchain stamping its own name (e.g. Music21).
     const scoreCredit = info?.composer ?? '';
@@ -302,7 +328,7 @@
     wireFollower();
     // Apply this song's saved performance overrides (tempo, key); absent = canonical default.
     const saved = store.getSongSettings(song.id);
-    speedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 100) : 100;
+    speedPct = saved.tempoPct !== undefined ? Math.round(saved.tempoPct * 1000) / 10 : 100;
     transport.setTempoPercent(speedPct / 100);
     transpose = saved.transpose ?? 0;
     if (transpose !== 0) c.setTranspose(transpose);
@@ -324,29 +350,24 @@
     renderSelection();
   }
 
+  // The three audio sources — arrangement (Sound), metronome (Click), count-in — are
+  // fully independent toggles: Sound mutes the score's tracks only (never the master
+  // gain, which would take the click and count-in down with it).
   function applyAudio() {
-    controller?.setMasterVolume(synth ? synthVolumePct / 100 : 0);
-    controller?.setMetronomeVolume(click ? clickVolumePct / 100 : 0);
+    controller?.setMusicMuted(!synth);
+    controller?.setMetronomeVolume(click ? 1 : 0);
   }
   function toggleSynth() {
     synth = !synth;
-    controller?.setMasterVolume(synth ? synthVolumePct / 100 : 0);
+    controller?.setMusicMuted(!synth);
   }
   function toggleClick() {
     click = !click;
-    controller?.setMetronomeVolume(click ? clickVolumePct / 100 : 0);
+    controller?.setMetronomeVolume(click ? 1 : 0);
   }
   function toggleCountIn() {
     countIn = !countIn;
     transport?.setCountIn(countIn);
-  }
-  function onSynthVolume(e: Event) {
-    synthVolumePct = Number((e.target as HTMLInputElement).value);
-    if (synth) controller?.setMasterVolume(synthVolumePct / 100);
-  }
-  function onClickVolume(e: Event) {
-    clickVolumePct = Number((e.target as HTMLInputElement).value);
-    if (click) controller?.setMetronomeVolume(clickVolumePct / 100);
   }
 
   // Keyboard flow for the slide-over: focus lands on its close button when it opens
@@ -382,12 +403,26 @@
     else transport.play();
   }
 
-  function onSpeed(e: Event) {
-    speedPct = Number((e.target as HTMLInputElement).value);
+  // Tempo is edited in BPM (the ♩ = N the charts show) but stored as a fraction of the
+  // song's written tempo. Tenth-of-a-percent precision keeps a typed BPM stable through
+  // the songSettings round-trip — whole percents can't represent every BPM.
+  function setBpm(next: number) {
+    if (!Number.isFinite(next)) return;
+    const bpm = Math.round(Math.min(maxBpm, Math.max(minBpm, next)));
+    speedPct = Math.round((bpm / tempoBpm) * 1000) / 10;
     transport?.setTempoPercent(speedPct / 100);
     // Persist as a per-song override (shared session state); 100% = default, so clear it.
     if (speedPct === 100) store.resetSongSetting(song.id, 'tempoPct');
     else store.setSongSetting(song.id, { tempoPct: speedPct / 100 });
+  }
+  function stepBpm(delta: number) {
+    setBpm(currentBpm + delta);
+  }
+  function onBpmInput(e: Event) {
+    const el = e.target as HTMLInputElement;
+    setBpm(Number(el.value));
+    // Reflect the clamped value back into the field (typing past the ceiling lands on it).
+    el.value = String(currentBpm);
   }
   // Reset tempo to the song's canonical default (clears the override).
   function resetTempo() {
@@ -397,10 +432,10 @@
   }
   // True when tempo differs from the canonical default (drives the modified dot + reset).
   let tempoModified = $derived(speedPct !== 100);
-  // The slider's ceiling: matches what the transport will actually allow for this
-  // song's written tempo (see maxTempoPercent — an absolute BPM cap, not a flat
-  // percentage), rounded down to the slider's step so every value is reachable.
-  let maxSpeedPct = $derived(Math.max(100, Math.floor((maxTempoPercent(tempoBpm) * 100) / 5) * 5));
+  // BPM bounds mirror the transport's own clamps: half the written tempo up to
+  // maxTempoPercent's ceiling (an absolute BPM cap, not a flat percentage).
+  let minBpm = $derived(Math.ceil(tempoBpm * 0.5));
+  let maxBpm = $derived(Math.max(tempoBpm, Math.round(tempoBpm * maxTempoPercent(tempoBpm))));
 
   // Key / transpose. Clamped to ±6 semitones (a tritone either way covers any key).
   function stepTranspose(delta: number) {
@@ -453,6 +488,47 @@
     const p = (x: number) => String(x).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())} · ${__COMMIT_SHA__}`;
   })();
+  // Fit the whole tune in the viewport. Two knobs: scale, and bars-per-row up to 6 (the
+  // widest the band's paper charts use) — wider rows mean fewer rows, letting a short
+  // tune trade bar width for a single-page fit. Estimate each candidate layout's height
+  // from the current render's row height, take the one that fits at the largest scale
+  // (min 75% for legibility — below that the tune stays multi-page and the paged
+  // auto-turn covers it), then verify against the real render and trim if the estimate
+  // ran long. Closes the settings sheet first: inline (wide-screen) it eats stage
+  // height, and fitting to the reduced viewport would undersize the tune.
+  async function fitToView() {
+    showMore = false;
+    await tick(); // let the sheet leave the layout before measuring
+    const scroller = renderScrollEl;
+    if (!scroller || !controller || measureCount <= 0) return;
+    const contentH = scroller.scrollHeight;
+    const viewH = scroller.clientHeight;
+    if (contentH <= 0 || viewH <= 0) return;
+    const rowH = contentH / Math.ceil(measureCount / barsPerRow); // at the current scale
+    const base = pickBarsPerRow(lastStageWidth || stageEl?.clientWidth || 0, measureCount);
+    let bestN = barsPerRow;
+    let bestS = 75;
+    for (let n = base; n <= 6; n++) {
+      if (measureCount > n && measureCount % n === 1) continue; // no orphan rows
+      const rows = Math.ceil(measureCount / n);
+      const s = Math.min(225, Math.floor(((viewH / (rows * rowH)) * scalePct) / 5) * 5);
+      if (s > bestS) {
+        bestN = n;
+        bestS = s;
+      }
+    }
+    while (bestN !== barsPerRow || bestS !== scalePct) {
+      barsPerRow = bestN; // the overlay mirrors the notation 1:1
+      lastBarsPerRow = bestN;
+      scalePct = bestS;
+      const rendered = nextRender();
+      controller.setLayout(bestN, bestS / 100);
+      await rendered;
+      // Estimate ran long (row heights shift with density): trim a step and re-verify.
+      if (scroller.scrollHeight <= scroller.clientHeight || bestS <= 75) break;
+      bestS = Math.max(75, bestS - 5);
+    }
+  }
   // Return to the top of the tune (a synced seek: the band jumps with you).
   function returnToStart() {
     setBar(1);
@@ -573,12 +649,28 @@
       </div>
     </div>
 
-    <label class="row">
+    <div class="row">
       <span class="label">Tempo{#if tempoModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
-      <input type="range" min="50" max={maxSpeedPct} step="5" value={speedPct} oninput={onSpeed} disabled={!transport} aria-valuetext={`${speedPct}% of original, ${currentBpm} beats per minute`} />
-      <span class="readout">{speedPct}% · {Math.round((tempoBpm * speedPct) / 100)} bpm</span>
+      <div class="stepper">
+        <button onclick={() => stepBpm(-2)} disabled={!transport || currentBpm <= minBpm} aria-label="Slower by 2 beats per minute">−</button>
+        <label class="readout tempo">♩ =
+          <input
+            class="bpm"
+            type="number"
+            inputmode="numeric"
+            min={minBpm}
+            max={maxBpm}
+            value={currentBpm}
+            onchange={onBpmInput}
+            disabled={!transport}
+            aria-label="Tempo in beats per minute"
+          />
+        </label>
+        <button onclick={() => stepBpm(2)} disabled={!transport || currentBpm >= maxBpm} aria-label="Faster by 2 beats per minute">+</button>
+        <span class="readout">{Math.round(speedPct)}%</span>
+      </div>
       <button class="reset" onclick={resetTempo} disabled={!transport || !tempoModified} title="Reset to original tempo" aria-label="Reset to original tempo"><Icon name="reset" size={16} /></button>
-    </label>
+    </div>
 
     <div class="row">
       <span class="label">Key{#if transposeModified}<span class="dot" title="Changed from default">●</span>{/if}</span>
@@ -590,11 +682,12 @@
       <button class="reset" onclick={resetTranspose} disabled={!controller || !transposeModified} title="Reset to original key" aria-label="Reset to original key"><Icon name="reset" size={16} /></button>
     </div>
 
-    <label class="row">
+    <div class="row">
       <span class="label">Size</span>
-      <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} aria-valuetext={`${scalePct}%`} />
+      <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} aria-label="Notation size" aria-valuetext={`${scalePct}%`} />
       <span class="readout">{scalePct}%</span>
-    </label>
+      <button class="fitbtn" onclick={fitToView} disabled={!controller} title="Size the whole tune to fill the view">Fit</button>
+    </div>
 
     <div class="row">
       <span class="label">Audio</span>
@@ -604,18 +697,6 @@
         <button class:active={countIn} aria-pressed={countIn} onclick={toggleCountIn} disabled={!transport}><Icon name="countin" size={16} /> Count-in</button>
       </div>
     </div>
-
-    <label class="row">
-      <span class="label">Sound</span>
-      <input type="range" min="0" max="150" step="5" value={synthVolumePct} oninput={onSynthVolume} disabled={!controller || !synth} aria-valuetext={`${synthVolumePct}%`} />
-      <span class="readout">{synthVolumePct}%</span>
-    </label>
-
-    <label class="row">
-      <span class="label">Click</span>
-      <input type="range" min="0" max="150" step="5" value={clickVolumePct} oninput={onClickVolume} disabled={!controller || !click} aria-valuetext={`${clickVolumePct}%`} />
-      <span class="readout">{clickVolumePct}%</span>
-    </label>
 
     <!-- Only offer "My part" when the chart actually has another part to stack —
          a lone pre-selected "Melody only" chip is dead UI on single-track songs. -->
@@ -670,6 +751,7 @@
   <div class="render-wrap">
     <Renderer
       musicXmlUrl={song.url}
+      bind:scrollEl={renderScrollEl}
       onready={onReady}
       onposition={(b) => setBar(b)}
       onplaying={(p) => (playing = p)}
@@ -808,6 +890,23 @@
   .stepper { display: inline-flex; align-items: center; gap: 0.5rem; flex: 1 1 auto; }
   .stepper button { min-width: 2.2rem; min-height: 2.2rem; font-size: 1.1rem; line-height: 1; }
   .readout.key { min-width: 5rem; }
+  .readout.tempo { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .sheet .row input.bpm {
+    width: 3.8rem;
+    padding: 0.3rem 0.4rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  .sheet .row input.bpm::-webkit-outer-spin-button,
+  .sheet .row input.bpm::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .sheet .row input.bpm:focus { border-color: var(--accent); outline: none; }
   .st { color: var(--muted); }
   .sheet .row input[type='range'] { flex: 1 1 auto; min-width: 0; }
   .sheet .row input.band {
@@ -831,6 +930,7 @@
     min-height: 2.2rem;
   }
   .chips button.active { border-color: var(--accent); color: var(--accent); }
+  .fitbtn { flex: 0 0 auto; padding: 0.4rem 0.7rem; font-size: 0.85rem; min-height: 2.2rem; }
 
   /* Touch screens get full-size (≥44px) targets on the controls tapped mid-practice;
      pointer precision keeps the compact sizes on desktop. */
@@ -839,6 +939,7 @@
     .pill { min-height: 2.75rem; }
     .stepper button,
     .chips button,
+    .fitbtn,
     .reset { min-width: 2.75rem; min-height: 2.75rem; }
   }
 
