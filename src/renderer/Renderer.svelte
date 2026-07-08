@@ -9,6 +9,7 @@
     onposition,
     onplaying,
     onplayable,
+    scrollEl = $bindable(),
   }: {
     musicXmlUrl: string;
     onready?: (controller: RendererController, tracks: TrackInfo[]) => void;
@@ -16,6 +17,8 @@
     onposition?: (bar: number) => void;
     onplaying?: (playing: boolean) => void;
     onplayable?: () => void;
+    /** The scrolling wrapper, bound out so the view can drive paged auto-scroll. */
+    scrollEl?: HTMLDivElement;
   } = $props();
 
   let host: HTMLDivElement;
@@ -40,7 +43,7 @@
   onDestroy(() => controller?.destroy());
 </script>
 
-<div class="render-scroll">
+<div class="render-scroll" bind:this={scrollEl}>
   <div class="render-surface" bind:this={host}></div>
 </div>
 
