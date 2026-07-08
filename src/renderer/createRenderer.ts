@@ -47,6 +47,11 @@ export interface RendererController {
   /** Bars per row + scale together in ONE re-render — for fit-to-view, whose
    *  verification pass must await exactly one render per applied change. */
   setLayout(bars: number, scale: number): void;
+  /** True if the file carries engraved system/page breaks (<print new-system/new-page>). */
+  hasEngravedBreaks(): boolean;
+  /** Row-break authority, in ONE re-render: on = the file's engraved breaks (bars-per-row
+   *  off), off = the responsive bars-per-row given. */
+  setEngravedBreaks(on: boolean, barsPerRow: number): void;
   /** Transpose the whole tune by N semitones (display + playback); 0 = written key. */
   setTranspose(semitones: number): void;
   /** Current cursor bar (1-based). */
@@ -170,6 +175,14 @@ export async function createRenderer(
 
   let tracks: TrackInfo[] = [];
   let currentBar = 1;
+  // The file's engraved system/page breaks (bar indices), captured at load and then
+  // CLEARED from the model: the source engraving's breaks encode the width of the PAPER
+  // it was set for (rows of 4–6 bars). alphaTab honors them as hard breaks on top of
+  // barsPerRow, stranding orphan bars mid-score — so on screen the responsive
+  // bars-per-row stays the default layout authority, and "as written" mode re-applies
+  // this set on demand. Kept as the union across parts because alphaTab only honors a
+  // break when EVERY rendered track carries it (stacked melody + part must agree).
+  const engravedBreaks = new Set<number>();
   // As-written chord names, snapshotted before the first transpose so repeated
   // transposes always derive from the original spelling (never re-transpose).
   let writtenChordNames: Map<alphaTab.model.Chord, string> | null = null;
@@ -192,6 +205,12 @@ export async function createRenderer(
   });
 
   api.scoreLoaded.on((score) => {
+    // Capture the engraved breaks, then clear them before the first layout runs —
+    // dynamic bars-per-row is the default (see engravedBreaks above).
+    for (const t of score.tracks) {
+      for (const i of t.lineBreaks ?? []) engravedBreaks.add(i);
+      t.lineBreaks = undefined;
+    }
     tracks = score.tracks.map((t) => ({
       index: t.index,
       name: t.name && t.name.length > 0 ? t.name : `Track ${t.index + 1}`,
@@ -223,13 +242,9 @@ export async function createRenderer(
   const buf = await res.arrayBuffer();
   const xmlText = new TextDecoder().decode(buf);
   const chordTimeline = parseChordTimeline(xmlText);
-  // The source engraving's system/page breaks encode the width of the PAPER it was set
-  // for (rows of 4–6 bars). alphaTab honors them as hard breaks and then chops each
-  // engraved row by barsPerRow, stranding orphan bars mid-score that get justified to
-  // full row width — the "sprinting playhead" bar. On screen, the responsive
-  // bars-per-row is the layout authority, so drop the breaks before loading.
-  const screenXml = xmlText.replace(/ new-(system|page)="yes"/g, '');
-  const ok = api.load(new TextEncoder().encode(screenXml));
+  // Load the file's breaks intact: scoreLoaded captures them into engravedBreaks and
+  // clears them from the model, so the default layout is still purely bars-per-row.
+  const ok = api.load(new Uint8Array(buf));
   if (!ok) throw new Error(`alphaTab could not parse ${musicXmlUrl}`);
 
   // Re-render the currently selected track set (after a zoom/bars-per-row change) so
@@ -278,6 +293,20 @@ export async function createRenderer(
     setLayout(bars: number, scale: number) {
       api.settings.display.barsPerRow = bars;
       api.settings.display.scale = scale;
+      api.updateSettings();
+      rerenderCurrent();
+    },
+    hasEngravedBreaks: () => engravedBreaks.size > 0,
+    setEngravedBreaks(on: boolean, barsPerRow: number) {
+      const score = api.score;
+      if (!score) return;
+      // Every render serializes the main-thread score to the layout worker, so writing
+      // lineBreaks here is picked up by rerenderCurrent(). Fresh Set per track — alphaTab
+      // owns the model objects, so no sharing one Set across tracks.
+      for (const t of score.tracks) t.lineBreaks = on ? new Set(engravedBreaks) : undefined;
+      // -1 is alphaTab's "off": the engraved breaks must be the ONLY row authority, or
+      // bars-per-row chops the engraved rows and strands orphan bars mid-score.
+      api.settings.display.barsPerRow = on ? -1 : barsPerRow;
       api.updateSettings();
       rerenderCurrent();
     },

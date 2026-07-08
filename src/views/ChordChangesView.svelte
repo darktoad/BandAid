@@ -95,6 +95,40 @@
   let beatsPerBar = $state(4);
   let timeSig = $state('4/4');
 
+  // Row breaks: "as written" (default) follows the file's engraved system breaks — the
+  // screen matches the band's paper charts out of the box; "auto" is the responsive
+  // bars-per-row opt-out. A local viewing preference like the masthead — one player's
+  // layout choice shouldn't reflow everyone's screen.
+  let engravedRows = $state(loadRowBreaksPref());
+  let hasEngraved = $state(false); // this chart actually carries engraved breaks
+  // Effective mode: the pref only bites on charts that have breaks to follow —
+  // break-less charts fall back to responsive rows regardless.
+  let rowsAsWritten = $derived(engravedRows && hasEngraved);
+  function loadRowBreaksPref(): boolean {
+    try {
+      // As written unless the player explicitly chose auto.
+      return typeof localStorage === 'undefined' || localStorage.getItem('bandaid.rowBreaks') !== 'auto';
+    } catch {
+      return true;
+    }
+  }
+  function setEngravedRows(on: boolean) {
+    if (on === engravedRows) return;
+    engravedRows = on;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('bandaid.rowBreaks', on ? 'engraved' : 'auto');
+      }
+    } catch {
+      /* ignore */
+    }
+    if (!controller || !hasEngraved) return;
+    // Handing layout back to auto: the current responsive pick becomes authority again,
+    // and lastBarsPerRow must match so the next resize isn't skipped as a no-op.
+    lastBarsPerRow = barsPerRow;
+    controller.setEngravedBreaks(on, barsPerRow);
+  }
+
   // Masthead visibility is a local viewing preference (not song/session state).
   // Default hidden — the topbar already shows the title; the masthead is opt-in polish.
   function loadMastheadPref(): boolean {
@@ -173,6 +207,10 @@
     lastStageWidth = w;
     const bpr = pickBarsPerRow(w, measureCount);
     barsPerRow = bpr; // keep the overlay's row count in step with the notation
+    // "As written": the file's engraved breaks own the notation rows — keep the
+    // responsive pick fresh (the overlay strip and the toggle-off handoff use it)
+    // but leave the notation alone.
+    if (rowsAsWritten) return;
     if (bpr === lastBarsPerRow || !controller) return;
     lastBarsPerRow = bpr;
     controller.setBarsPerRow(bpr);
@@ -301,6 +339,8 @@
     const info = c.getSongInfo();
     tempoBpm = info?.tempoBpm ?? 120;
     measureCount = info?.measureCount ?? 1;
+    // Known before any layout runs below, so rowsAsWritten gates them correctly.
+    hasEngraved = c.hasEngravedBreaks();
     // Re-pick bars-per-row now the bar count is known (orphan avoidance needs it) —
     // the ResizeObserver only re-fires on actual size changes.
     if (lastStageWidth > 0) applyResponsiveLayout(lastStageWidth);
@@ -336,6 +376,8 @@
     // Apply the responsive bars-per-row for the current width on first render.
     lastBarsPerRow = 0;
     if (stageEl) applyResponsiveLayout(stageEl.clientWidth);
+    // Saved "as written" pref: re-apply the engraved breaks the renderer cleared at load.
+    if (rowsAsWritten) c.setEngravedBreaks(true, barsPerRow);
   }
 
   // Melody alone, or melody + the player's part stacked (one player → synced cursors).
@@ -490,7 +532,8 @@
   })();
   // Fit the whole tune in the viewport. Two knobs: scale, and bars-per-row up to 6 (the
   // widest the band's paper charts use) — wider rows mean fewer rows, letting a short
-  // tune trade bar width for a single-page fit. Estimate each candidate layout's height
+  // tune trade bar width for a single-page fit. In "as written" mode bars-per-row
+  // belongs to the file, so Fit drops to scale only. Estimate each candidate layout's height
   // from the current render's row height, take the one that fits at the largest scale
   // (min 75% for legibility — below that the tune stays multi-page and the paged
   // auto-turn covers it), then verify against the real render and trim if the estimate
@@ -501,9 +544,27 @@
     await tick(); // let the sheet leave the layout before measuring
     const scroller = renderScrollEl;
     if (!scroller || !controller || measureCount <= 0) return;
-    const contentH = scroller.scrollHeight;
+    // Measure the notation surface itself: the scroller's scrollHeight is floored at its
+    // own clientHeight, so a tune SHORTER than the view would read "exactly fits" and
+    // Fit could only ever shrink, never grow into the free space.
+    const contentH = scroller.firstElementChild?.getBoundingClientRect().height ?? 0;
     const viewH = scroller.clientHeight;
     if (contentH <= 0 || viewH <= 0) return;
+    // "As written": the engraved breaks own the row structure, so scale is the single
+    // lever — size THIS layout to the view. Height tracks scale near-linearly (the row
+    // count is fixed), so estimate in one step, then verify and trim like below.
+    if (rowsAsWritten) {
+      let s = Math.max(75, Math.min(225, Math.floor(((viewH / contentH) * scalePct) / 5) * 5));
+      while (s !== scalePct) {
+        scalePct = s;
+        const rendered = nextRender();
+        controller.setScale(s / 100);
+        await rendered;
+        if (scroller.scrollHeight <= scroller.clientHeight || s <= 75) break;
+        s = Math.max(75, s - 5);
+      }
+      return;
+    }
     const rowH = contentH / Math.ceil(measureCount / barsPerRow); // at the current scale
     const base = pickBarsPerRow(lastStageWidth || stageEl?.clientWidth || 0, measureCount);
     let bestN = barsPerRow;
@@ -687,6 +748,22 @@
       <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} aria-label="Notation size" aria-valuetext={`${scalePct}%`} />
       <span class="readout">{scalePct}%</span>
       <button class="fitbtn" onclick={fitToView} disabled={!controller} title="Size the whole tune to fill the view">Fit</button>
+    </div>
+
+    <!-- Row breaks: Auto reflows by screen width; As written follows the printed
+         sheet's engraved system breaks (matches the band's paper charts). -->
+    <div class="row">
+      <span class="label">Rows</span>
+      <div class="chips">
+        <button class:active={!rowsAsWritten} aria-pressed={!rowsAsWritten} onclick={() => setEngravedRows(false)} disabled={!controller}>Auto</button>
+        <button
+          class:active={rowsAsWritten}
+          aria-pressed={rowsAsWritten}
+          onclick={() => setEngravedRows(true)}
+          disabled={!controller || !hasEngraved}
+          title={hasEngraved ? 'Break rows where the printed sheet does' : 'This chart has no engraved row breaks'}
+        >As written</button>
+      </div>
     </div>
 
     <div class="row">
