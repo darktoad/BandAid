@@ -169,6 +169,25 @@ Check it separately:
 npm run check:worker
 ```
 
+## Remixes (arrangements)
+
+A **remix** is a named gig arrangement of a song — same notes, different form
+(pass order, repeats, endings, later lyric verses). It's authored as a small
+recipe JSON in `public/songs/remixes/<songId>.<variantId>.remix.json` and
+compiled offline into an ordinary chart the app loads like any song:
+
+```bash
+npm run remix:build    # recipe + canonical MusicXML → songs/<songId>.<variantId>.musicxml
+npm run remix:check    # CI drift gate: committed charts must match a fresh compile
+```
+
+Both the recipe and the compiled chart are committed; regenerate (and re-verify
+by ear) whenever the canonical changes. Arrangements appear in the library
+manifest (`variants` on a song), can be pinned in a set list (`variantId` on an
+entry), and are switched in-app from the arrangement chip in the song header —
+a session-level change that syncs to the whole band. Design:
+[docs/superpowers/specs/2026-07-08-song-remix-pipeline-design.md](docs/superpowers/specs/2026-07-08-song-remix-pipeline-design.md).
+
 ## Stack
 
 - **Svelte 5 + TypeScript + Vite 6** — the app shell (decision: capture as ADR-003).
