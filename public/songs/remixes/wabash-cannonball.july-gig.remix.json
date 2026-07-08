@@ -1,0 +1,9 @@
+{
+  "songId": "wabash-cannonball",
+  "variantId": "july-gig",
+  "name": "July gig (instrumental)",
+  "passes": [
+    { "label": "Page 1", "repeats": "off", "endWith": "part-1" },
+    { "label": "Page 2", "repeats": "off", "endWith": "part-2" }
+  ]
+}

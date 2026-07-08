@@ -50,6 +50,11 @@
           <line>2</line>
         </clef>
       </attributes>
+      <direction placement="above">
+        <direction-type>
+          <rehearsal>part-1</rehearsal>
+        </direction-type>
+      </direction>
       <barline location="left">
         <repeat direction="forward" />
       </barline>
@@ -413,6 +418,11 @@
     
     <measure implicit="no" number="6">
       <print new-system="yes" />
+      <direction placement="above">
+        <direction-type>
+          <rehearsal>part-2</rehearsal>
+        </direction-type>
+      </direction>
       <harmony>
         <root>
           <root-step>G</root-step>
@@ -1074,6 +1084,11 @@
     
     <measure implicit="no" number="11">
       <print new-system="yes" />
+      <direction placement="above">
+        <direction-type>
+          <rehearsal>part-3</rehearsal>
+        </direction-type>
+      </direction>
       <harmony>
         <root>
           <root-step>G</root-step>
