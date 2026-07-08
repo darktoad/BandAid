@@ -212,6 +212,10 @@
       sync={{ on: bandState.on, bandName, summary: syncSummary, toggle: toggleSync, setBandName }}
       onsongs={openPicker}
       onprogress={(f) => (progress = f)}
+      onvariant={(variantId) => {
+        const s = service?.getSongSummary(current!.id);
+        if (s) openSong(s, variantId ?? undefined);
+      }}
     />
   {/key}
   {#if service && pickerOpen}

@@ -34,8 +34,8 @@
    *    is the richer M3 form.)
    * Local choices (part, tempo %, audio, zoom) live here; only Transport is synced.
    */
-  let { song, store, sync, onsongs, onprogress }: {
-    song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string; fifths?: number }; composer?: string; notes?: string; lyricsUrl?: string };
+  let { song, store, sync, onsongs, onprogress, onvariant }: {
+    song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string; fifths?: number }; composer?: string; notes?: string; lyricsUrl?: string; variantId?: string; variantName?: string; variants?: import('../library/types').SongVariant[] };
     store: SyncedSessionStore;
     // Band sync controls for the settings sheet: the app starts local; syncing is an
     // intentional step, toggled here.
@@ -48,6 +48,7 @@
     };
     onsongs?: () => void; // open the slide-over song picker
     onprogress?: (fraction: number) => void; // 0–1 playback position, for the picker
+    onvariant?: (variantId: string | null) => void; // switch arrangement (session-wide, published to the band)
   } = $props();
 
   let controller = $state<RendererController | undefined>(undefined);
@@ -633,6 +634,20 @@
     </svg>
   </button>
   <h1 class="song">{song.title}</h1>
+  {#if song.variants && song.variants.length > 0}
+    <select
+      class="arrchip"
+      aria-label="Arrangement"
+      title="Arrangement — changes for the whole band"
+      value={song.variantId ?? ''}
+      onchange={(e) => onvariant?.(e.currentTarget.value || null)}
+    >
+      <option value="">Canonical</option>
+      {#each song.variants as v}
+        <option value={v.id}>{v.name}</option>
+      {/each}
+    </select>
+  {/if}
   {#if song.notes || song.lyricsUrl}
     <button class="iconbtn" onclick={openLyrics} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -895,6 +910,17 @@
     padding: 0;
   }
   .iconbtn.active { border-color: var(--accent); color: var(--accent); }
+  .arrchip {
+    flex: 0 0 auto;
+    max-width: 11rem;
+    font-size: 0.72rem;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--muted);
+  }
+  .arrchip:focus-visible { border-color: var(--accent); color: var(--accent); }
   /* Small, subtle song name — takes the slack so the pills/buttons stay put.
      Semantically the page's h1 (screen-reader structure); visually unchanged. */
   .song {
