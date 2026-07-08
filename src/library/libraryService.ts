@@ -1,4 +1,4 @@
-import type { LibraryManifest, SetList, SongSummary } from './types';
+import type { LibraryManifest, SetList, SongSummary, SongVariant } from './types';
 
 /**
  * Read-only access over the bundled library manifest (D4). Browsing reads through this;
@@ -14,6 +14,11 @@ export interface LibraryService {
   /** Views the song offers, derived from its content flags (gates the chord-changes
    *  template when `hasChords` is false). */
   availableViews(song: SongSummary): string[];
+  /** A song's declared arrangement, or null (unknown song or variant). */
+  getVariant(songId: string, variantId: string): SongVariant | null;
+  /** Set-list entries resolved to songs + arrangement info, in order. Unknown song
+   *  ids are dropped (as before); unknown variant ids fall back to canonical. */
+  getSetListItems(setListId: string): Array<{ song: SongSummary; variantId?: string; variantName?: string }>;
 }
 
 /** Build a service over an in-memory manifest. Pure (no fetch) so it's unit-testable. */
@@ -39,6 +44,19 @@ export function makeLibraryService(manifest: LibraryManifest): LibraryService {
       if (song.content.hasTab) views.push('Tab');
       return views;
     },
+    getVariant(songId: string, variantId: string) {
+      return byId.get(songId)?.variants?.find((v) => v.id === variantId) ?? null;
+    },
+    getSetListItems(setListId: string) {
+      const list = manifest.setLists.find((l) => l.id === setListId);
+      if (!list) return [];
+      return list.entries.flatMap((e) => {
+        const song = byId.get(e.songId);
+        if (!song) return [];
+        const variant = e.variantId ? song.variants?.find((v) => v.id === e.variantId) : undefined;
+        return [{ song, variantId: variant?.id, variantName: variant?.name }];
+      });
+    },
   };
 }
 
@@ -50,4 +68,4 @@ export async function createLibraryService(manifestUrl: string): Promise<Library
   return makeLibraryService(manifest);
 }
 
-export type { LibraryManifest, SetList, SongSummary } from './types';
+export type { LibraryManifest, SetList, SongSummary, SongVariant } from './types';
