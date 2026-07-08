@@ -78,6 +78,9 @@ export default defineConfig(({ command }) => ({
   define: {
     __BUILD_ID__: JSON.stringify(command === 'build' ? String(Date.now()) : 'dev'),
     __COMMIT_SHA__: JSON.stringify(commitSha()),
+    // The build instant (ISO UTC), shown in the settings sheet as a human-readable
+    // release stamp — "when was this deployed" at a glance, not just which commit.
+    __BUILD_TIME__: JSON.stringify(command === 'build' ? new Date().toISOString() : 'dev'),
   },
   plugins: [
     svelte(),

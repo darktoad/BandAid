@@ -443,6 +443,16 @@
     scalePct = Number((e.target as HTMLInputElement).value);
     controller?.setScale(scalePct / 100);
   }
+  // Human-readable release stamp: the build instant (embedded as ISO UTC) rendered in
+  // the device's local time as fixed `YYYY-MM-DD HH:mm` — deliberately not Intl/locale
+  // formatting, so bandmates comparing "are we on the same build?" see the exact same
+  // string on every device in the room. The commit SHA stays as the debugging tail.
+  const buildStamp = (() => {
+    if (__BUILD_TIME__ === 'dev') return `dev · ${__COMMIT_SHA__}`;
+    const d = new Date(__BUILD_TIME__);
+    const p = (x: number) => String(x).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())} · ${__COMMIT_SHA__}`;
+  })();
   // Return to the top of the tune (a synced seek: the band jumps with you).
   function returnToStart() {
     setBar(1);
@@ -635,11 +645,11 @@
       </div>
     </div>
 
-    <!-- Glance-checkable build identity: confirms a device actually picked up the
-         latest deploy instead of a stale cached bundle. -->
+    <!-- Glance-checkable build identity: WHEN this build was deployed (local time), so
+         "do you have the latest?" is a date comparison, plus the commit for debugging. -->
     <div class="row">
       <span class="label">Version</span>
-      <span class="readout">{__COMMIT_SHA__}</span>
+      <span class="readout" title={__BUILD_TIME__}>{buildStamp}</span>
     </div>
   </div>
 {/if}
