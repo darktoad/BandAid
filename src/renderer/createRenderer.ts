@@ -287,6 +287,18 @@ export async function createRenderer(
       // One offset per track → the whole arrangement moves together. transpositionPitches
       // (not displayTranspositionPitches) shifts notation AND playback.
       api.settings.notation.transpositionPitches = new Array(score.tracks.length).fill(semitones);
+      // The setting alone only reaches the SYNTH inside loadMidiForScore() (score load /
+      // player setup) — alphaTab keeps transposition out of the generated MIDI and pitch-
+      // shifts live per channel instead. Without re-applying that channel map here, a key
+      // change after load would transpose the notation but keep playback in the written
+      // key. Mirrors loadMidiForScore's own map; the percussion/metronome channels stay
+      // untouched. Safe pre-player: the eventual midi load rebuilds from these settings.
+      const pitchMap = new Map<number, number>();
+      for (const track of score.tracks) {
+        pitchMap.set(track.playbackInfo.primaryChannel, semitones);
+        pitchMap.set(track.playbackInfo.secondaryChannel, semitones);
+      }
+      api.player?.applyTranspositionPitches(pitchMap);
       // transpositionPitches moves pitches only — the chord symbols above the staff are
       // plain text on the score model, so rewrite them from their as-written originals.
       // Spell for the *target* key (flat keys read in flats). Every render serializes the
