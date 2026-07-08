@@ -51,6 +51,10 @@ edits or derives notation; it only consumes canonical MusicXML.
   `ChordChangesView`, and the `hasLyrics`/`lyricsUrl` manifest plumbing. The
   slide-over keeps working untouched until then. Unlocks lyric-bearing passes
   (Wabash pages 2–3).
+  **Retained:** the per-song performance/banter notes (`SongSummary.notes`,
+  rendered in the info slide-over from the manifest — not part of the ChordPro
+  path). Whatever replaces the lyrics sheet, the notes keep a home for
+  interstitial banter.
 
 The recipe schema includes verse selection from day one so sub-project 2
 requires no pipeline rework — lyric remixes start working when the canonical
@@ -206,6 +210,17 @@ they may converge later.
 - Golden-file test: the real Wabash recipe → committed expected output.
 - Library service: variant resolution + canonical fallback.
 - Determinism test: two runs, byte-identical.
+
+## Risks / watch items
+
+- **Canonical-file weight.** The canonical file is now the superset of
+  everything the band knows about a song — every optional section, part, and
+  verse stacks up there. As that grows, the raw canonical may become heavy to
+  render and unwieldy to play as-is. Not addressed yet (current songs are
+  small); revisit if canonicals stop being pleasant to rehearse from. A likely
+  future answer already fits this design: a song's *default arrangement*
+  becomes just another recipe, and "Canonical" stops being the face anyone
+  plays.
 
 ## Out of scope
 
