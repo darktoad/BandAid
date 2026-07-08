@@ -217,7 +217,7 @@
   {#if service && pickerOpen}
     <button class="scrim" onclick={closePicker} aria-label="Close song picker"></button>
     <div class="picker-panel" role="dialog" aria-modal="true" aria-label="Song picker">
-      <BrowseView {service} onopen={openSong} onclose={closePicker} activeId={current.id} {progress} {syncSummary} />
+      <BrowseView {service} onopen={openSong} onclose={closePicker} activeId={current.id} activeVariantId={current.variantId} {progress} {syncSummary} />
     </div>
   {/if}
 {:else if service}

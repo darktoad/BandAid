@@ -11,11 +11,12 @@
    * list (persisted). Used full-screen on first load and as the slide-over while
    * drilling. The only session write is Open → onopen → setCurrentSong (D5).
    */
-  let { service, onopen, onclose, activeId, progress = 0, syncSummary }: {
+  let { service, onopen, onclose, activeId, activeVariantId, progress = 0, syncSummary }: {
     service: LibraryService;
     onopen: (song: SongSummary, variantId?: string) => void;
     onclose?: () => void; // present when shown as the slide-over
     activeId?: string; // the currently-open song (highlighted)
+    activeVariantId?: string; // the open song's arrangement, if any (highlight must match)
     progress?: number; // 0–1 playback position of the active song
     syncSummary: { label: string; tone: SyncTone };
   } = $props();
@@ -57,6 +58,10 @@
   // As a slide-over, receive keyboard focus on open (the close button is first).
   const focusOnMount = (el: HTMLElement) => el.focus();
 
+  // The open row: song AND arrangement must match — a variant being open must not
+  // light up the canonical row (or any "All songs" row), and vice versa.
+  const isActive = (it: Item) => it.song.id === activeId && (it.variantId ?? null) === (activeVariantId ?? null);
+
   const keyLabel = (s: SongSummary) => `${s.defaultKey.tonalCenter} ${s.defaultKey.mode}`;
   const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
 
@@ -97,16 +102,16 @@
       <ul class="list">
         {#each shownItems as it}
           <li>
-            <button class="srow" class:active={it.song.id === activeId} aria-current={it.song.id === activeId} onclick={() => onopen(it.song, it.variantId)}>
+            <button class="srow" class:active={isActive(it)} aria-current={isActive(it)} onclick={() => onopen(it.song, it.variantId)}>
               <span class="stitle">
                 {it.song.title}
                 {#if it.variantName}<span class="arr">{it.variantName}</span>{/if}
-                {#if it.song.id === activeId}<span class="now">▶ now</span>{/if}
+                {#if isActive(it)}<span class="now">▶ now</span>{/if}
               </span>
               <span class="smeta"
                 >{keyLabel(it.song)} · ♩ = {it.song.defaultTempoBpm}{#if it.song.durationSec}{' · '}{fmt(it.song.durationSec)}{/if}</span
               >
-              {#if it.song.id === activeId}
+              {#if isActive(it)}
                 <span class="prog" style="width: {(Math.min(1, Math.max(0, progress)) * 100).toFixed(1)}%"></span>
               {/if}
             </button>
