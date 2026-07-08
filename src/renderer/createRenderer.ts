@@ -54,8 +54,10 @@ export interface RendererController {
   pause(): void;
   /** Playback speed as a fraction (0.7 = 70%). */
   setSpeed(fraction: number): void;
-  /** Synth playback volume (0 = silent, 1 = full). The arrangement audio. */
-  setMasterVolume(volume: number): void;
+  /** Mute/unmute the arrangement audio (the score's tracks) only. Deliberately NOT
+   *  alphaTab's masterVolume — that is the final output gain, which would silence the
+   *  metronome click and count-in too; the three sources must toggle independently. */
+  setMusicMuted(muted: boolean): void;
   /** Metronome click volume (0 = off). Native alphaTab click; no custom synth. */
   setMetronomeVolume(volume: number): void;
   /** Count-in click volume (0 = off). Native alphaTab one-bar pre-roll on play. */
@@ -289,8 +291,9 @@ export async function createRenderer(
     setSpeed: (fraction: number) => {
       api.playbackSpeed = fraction;
     },
-    setMasterVolume: (volume: number) => {
-      api.masterVolume = volume;
+    setMusicMuted: (muted: boolean) => {
+      const score = api.score;
+      if (score) api.changeTrackMute(score.tracks, muted);
     },
     setMetronomeVolume: (volume: number) => {
       api.metronomeVolume = volume;

@@ -70,15 +70,6 @@
   let synth = $state(true);
   let click = $state(false);
   let countIn = $state(true); // one-bar count-in before play (local pref, FR-6)
-  // Volume level is a personal, per-device preference (localStorage, like the chord
-  // overlay below) so it's dialed in once, not reset every song. 100% is alphaTab's
-  // own "1 = full" gain — no artificial boost. (An earlier version defaulted to 300%
-  // to compensate the old sonivox soundfont's thin solo violin; the warmer Florestan
-  // strings font doesn't need it, and the boost just made the default loud.) Headroom
-  // to 150% stays available for any future instrument that does need a lift.
-  const savedVolume = loadVolumePrefs();
-  let synthVolumePct = $state(savedVolume.synth ?? 100);
-  let clickVolumePct = $state(savedVolume.click ?? 100);
   let showMore = $state(false); // the settings sheet (opened by the ☰ / key / tempo)
   let composer = $state(''); // score credit, for the masthead
   let showMasthead = $state(loadMastheadPref()); // local viewing pref, persisted
@@ -140,27 +131,6 @@
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('bandaid.chordOverlay', JSON.stringify(prefs));
-      }
-    } catch {
-      /* ignore */
-    }
-  });
-
-  // Volume level is a personal, per-device preference — same rationale as the chord
-  // overlay above.
-  function loadVolumePrefs(): { synth?: number; click?: number } {
-    try {
-      if (typeof localStorage === 'undefined') return {};
-      return JSON.parse(localStorage.getItem('bandaid.volume') ?? '{}');
-    } catch {
-      return {};
-    }
-  }
-  $effect(() => {
-    const prefs = { synth: synthVolumePct, click: clickVolumePct };
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('bandaid.volume', JSON.stringify(prefs));
       }
     } catch {
       /* ignore */
@@ -324,29 +294,24 @@
     renderSelection();
   }
 
+  // The three audio sources — arrangement (Sound), metronome (Click), count-in — are
+  // fully independent toggles: Sound mutes the score's tracks only (never the master
+  // gain, which would take the click and count-in down with it).
   function applyAudio() {
-    controller?.setMasterVolume(synth ? synthVolumePct / 100 : 0);
-    controller?.setMetronomeVolume(click ? clickVolumePct / 100 : 0);
+    controller?.setMusicMuted(!synth);
+    controller?.setMetronomeVolume(click ? 1 : 0);
   }
   function toggleSynth() {
     synth = !synth;
-    controller?.setMasterVolume(synth ? synthVolumePct / 100 : 0);
+    controller?.setMusicMuted(!synth);
   }
   function toggleClick() {
     click = !click;
-    controller?.setMetronomeVolume(click ? clickVolumePct / 100 : 0);
+    controller?.setMetronomeVolume(click ? 1 : 0);
   }
   function toggleCountIn() {
     countIn = !countIn;
     transport?.setCountIn(countIn);
-  }
-  function onSynthVolume(e: Event) {
-    synthVolumePct = Number((e.target as HTMLInputElement).value);
-    if (synth) controller?.setMasterVolume(synthVolumePct / 100);
-  }
-  function onClickVolume(e: Event) {
-    clickVolumePct = Number((e.target as HTMLInputElement).value);
-    if (click) controller?.setMetronomeVolume(clickVolumePct / 100);
   }
 
   // Keyboard flow for the slide-over: focus lands on its close button when it opens
@@ -624,18 +589,6 @@
         <button class:active={countIn} aria-pressed={countIn} onclick={toggleCountIn} disabled={!transport}><Icon name="countin" size={16} /> Count-in</button>
       </div>
     </div>
-
-    <label class="row">
-      <span class="label">Sound</span>
-      <input type="range" min="0" max="150" step="5" value={synthVolumePct} oninput={onSynthVolume} disabled={!controller || !synth} aria-valuetext={`${synthVolumePct}%`} />
-      <span class="readout">{synthVolumePct}%</span>
-    </label>
-
-    <label class="row">
-      <span class="label">Click</span>
-      <input type="range" min="0" max="150" step="5" value={clickVolumePct} oninput={onClickVolume} disabled={!controller || !click} aria-valuetext={`${clickVolumePct}%`} />
-      <span class="readout">{clickVolumePct}%</span>
-    </label>
 
     <!-- Only offer "My part" when the chart actually has another part to stack —
          a lone pre-selected "Melody only" chip is dead UI on single-track songs. -->
