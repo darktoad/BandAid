@@ -46,7 +46,10 @@ edits or derives notation; it only consumes canonical MusicXML.
   example).
 - **Sub-project 2 (separate spec, later): lyrics unification.** Embed lyrics
   into canonical MusicXML, visual prototypes for presentation, retire the
-  ChordPro sheet and `LyricsSheet.svelte`. Unlocks lyric-bearing passes
+  entire ChordPro path: the `.chordpro` sidecar files, the parser
+  (`src/lyrics/chordpro.ts`), `LyricsSheet.svelte`, the lyrics slide-over in
+  `ChordChangesView`, and the `hasLyrics`/`lyricsUrl` manifest plumbing. The
+  slide-over keeps working untouched until then. Unlocks lyric-bearing passes
   (Wabash pages 2–3).
 
 The recipe schema includes verse selection from day one so sub-project 2
