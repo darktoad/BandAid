@@ -529,7 +529,8 @@
   })();
   // Fit the whole tune in the viewport. Two knobs: scale, and bars-per-row up to 6 (the
   // widest the band's paper charts use) — wider rows mean fewer rows, letting a short
-  // tune trade bar width for a single-page fit. Estimate each candidate layout's height
+  // tune trade bar width for a single-page fit. In "as written" mode bars-per-row
+  // belongs to the file, so Fit drops to scale only. Estimate each candidate layout's height
   // from the current render's row height, take the one that fits at the largest scale
   // (min 75% for legibility — below that the tune stays multi-page and the paged
   // auto-turn covers it), then verify against the real render and trim if the estimate
@@ -539,12 +540,28 @@
     showMore = false;
     await tick(); // let the sheet leave the layout before measuring
     const scroller = renderScrollEl;
-    // Fit's whole lever is bars-per-row, which "as written" hands to the file — the
-    // button is disabled in that mode; this guard covers the keyboard/race paths.
-    if (!scroller || !controller || measureCount <= 0 || rowsAsWritten) return;
-    const contentH = scroller.scrollHeight;
+    if (!scroller || !controller || measureCount <= 0) return;
+    // Measure the notation surface itself: the scroller's scrollHeight is floored at its
+    // own clientHeight, so a tune SHORTER than the view would read "exactly fits" and
+    // Fit could only ever shrink, never grow into the free space.
+    const contentH = scroller.firstElementChild?.getBoundingClientRect().height ?? 0;
     const viewH = scroller.clientHeight;
     if (contentH <= 0 || viewH <= 0) return;
+    // "As written": the engraved breaks own the row structure, so scale is the single
+    // lever — size THIS layout to the view. Height tracks scale near-linearly (the row
+    // count is fixed), so estimate in one step, then verify and trim like below.
+    if (rowsAsWritten) {
+      let s = Math.max(75, Math.min(225, Math.floor(((viewH / contentH) * scalePct) / 5) * 5));
+      while (s !== scalePct) {
+        scalePct = s;
+        const rendered = nextRender();
+        controller.setScale(s / 100);
+        await rendered;
+        if (scroller.scrollHeight <= scroller.clientHeight || s <= 75) break;
+        s = Math.max(75, s - 5);
+      }
+      return;
+    }
     const rowH = contentH / Math.ceil(measureCount / barsPerRow); // at the current scale
     const base = pickBarsPerRow(lastStageWidth || stageEl?.clientWidth || 0, measureCount);
     let bestN = barsPerRow;
@@ -727,7 +744,7 @@
       <span class="label">Size</span>
       <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} aria-label="Notation size" aria-valuetext={`${scalePct}%`} />
       <span class="readout">{scalePct}%</span>
-      <button class="fitbtn" onclick={fitToView} disabled={!controller || rowsAsWritten} title={rowsAsWritten ? 'Fit picks its own row breaks — switch Rows to Auto first' : 'Size the whole tune to fill the view'}>Fit</button>
+      <button class="fitbtn" onclick={fitToView} disabled={!controller} title="Size the whole tune to fill the view">Fit</button>
     </div>
 
     <!-- Row breaks: Auto reflows by screen width; As written follows the printed
