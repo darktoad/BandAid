@@ -28,7 +28,14 @@ for (const file of recipeFiles) {
   const id = file.replace(/\.remix\.json$/, ''); // "<songId>.<variantId>"
   if (only && id !== only) continue;
 
-  const raw = JSON.parse(readFileSync(join(RECIPES, file), 'utf8'));
+  let raw: unknown & { songId?: string; variantId?: string };
+  try {
+    raw = JSON.parse(readFileSync(join(RECIPES, file), 'utf8'));
+  } catch (e) {
+    console.error(`✗ ${file}: invalid JSON — ${e instanceof Error ? e.message : e}`);
+    failed = true;
+    continue;
+  }
   if (`${raw.songId}.${raw.variantId}` !== id) {
     console.error(`✗ ${file}: filename does not match songId/variantId in the recipe`);
     failed = true;
