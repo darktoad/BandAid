@@ -49,6 +49,45 @@ describe('validateRecipe', () => {
 
   it('rejects repeat counts less than 1', () => {
     const bad = { ...base, passes: [{ repeats: { verse: 0 } }] };
-    expect(() => validateRecipe(bad, structure)).toThrow(/at least 1/);
+    expect(() => validateRecipe(bad, structure)).toThrow(/integer >= 1/);
+  });
+
+  it('rejects non-integer repeat counts by name', () => {
+    const bad = { ...base, passes: [{ repeats: { verse: 2.5 } }] };
+    expect(() => validateRecipe(bad, structure)).toThrow(RemixError);
+    expect(() => validateRecipe(bad, structure)).toThrow(/integer >= 1/);
+  });
+
+  it('rejects malformed repeats shapes with a named error, never a raw TypeError', () => {
+    const withNull = { ...base, passes: [{ repeats: null }] };
+    expect(() => validateRecipe(withNull, structure)).toThrow(RemixError);
+    expect(() => validateRecipe(withNull, structure)).toThrow(/repeats/);
+    const withNumber = { ...base, passes: [{ repeats: 3 }] };
+    expect(() => validateRecipe(withNumber, structure)).toThrow(RemixError);
+    expect(() => validateRecipe(withNumber, structure)).toThrow(/repeats/);
+  });
+
+  it('rejects malformed lyrics shapes with a named error, never a raw TypeError', () => {
+    const withNull = { ...base, passes: [{ lyrics: null }] };
+    expect(() => validateRecipe(withNull, structure)).toThrow(RemixError);
+    expect(() => validateRecipe(withNull, structure)).toThrow(/lyrics/);
+    const withString = { ...base, passes: [{ lyrics: 'strip' }] };
+    expect(() => validateRecipe(withString, structure)).toThrow(RemixError);
+    expect(() => validateRecipe(withString, structure)).toThrow(/lyrics/);
+    const withNumber = { ...base, passes: [{ lyrics: 42 }] };
+    expect(() => validateRecipe(withNumber, structure)).toThrow(RemixError);
+    expect(() => validateRecipe(withNumber, structure)).toThrow(/lyrics/);
+  });
+
+  it('rejects malformed sections shapes with a named error, never a raw TypeError', () => {
+    const withNull = { ...base, passes: [{ sections: null }] };
+    expect(() => validateRecipe(withNull, structure)).toThrow(RemixError);
+    expect(() => validateRecipe(withNull, structure)).toThrow(/sections/);
+    const withString = { ...base, passes: [{ sections: 'verse' }] };
+    expect(() => validateRecipe(withString, structure)).toThrow(RemixError);
+    expect(() => validateRecipe(withString, structure)).toThrow(/sections/);
+    const withNumberElement = { ...base, passes: [{ sections: [7] }] };
+    expect(() => validateRecipe(withNumberElement, structure)).toThrow(RemixError);
+    expect(() => validateRecipe(withNumberElement, structure)).toThrow(/sections/);
   });
 });

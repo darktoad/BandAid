@@ -57,15 +57,28 @@ export function validateRecipe(raw: unknown, structure: SongStructure): RemixRec
   r.passes.forEach((p, i) => {
     const where = `pass ${i + 1}`;
     if (typeof p !== 'object' || p === null) fail(`${where}: must be an object`);
-    for (const s of p.sections ?? []) known(s, where);
+    if (p.sections !== undefined) {
+      if (!Array.isArray(p.sections) || p.sections.some((s) => typeof s !== 'string')) {
+        fail(`${where}: sections must be an array of section labels`);
+      }
+      for (const s of p.sections) known(s, where);
+    }
     if (p.endWith !== undefined) known(p.endWith, where);
     if (p.repeats !== undefined && p.repeats !== 'off' && p.repeats !== 'as-written') {
+      if (typeof p.repeats !== 'object' || p.repeats === null || Array.isArray(p.repeats)) {
+        fail(`${where}: repeats must be 'off', 'as-written', or an object of section counts`);
+      }
       for (const [label, count] of Object.entries(p.repeats)) {
         known(label, where);
-        if (!Number.isInteger(count) || count < 1) fail(`${where}: repeat count for "${label}" must be at least 1`);
+        if (!Number.isInteger(count) || count < 1) {
+          fail(`${where}: repeat count for "${label}" must be an integer >= 1`);
+        }
       }
     }
     if (p.lyrics !== undefined && p.lyrics !== 'off') {
+      if (typeof p.lyrics !== 'object' || p.lyrics === null || Array.isArray(p.lyrics)) {
+        fail(`${where}: lyrics must be 'off' or an object like { verse, chorus }`);
+      }
       if (structure.lyricNumbers.length === 0) {
         fail(`${where}: song has no embedded lyrics — lyric passes need lyrics in the canonical MusicXML (sub-project 2)`);
       }
