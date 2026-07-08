@@ -95,18 +95,21 @@
   let beatsPerBar = $state(4);
   let timeSig = $state('4/4');
 
-  // Row breaks: "as written" follows the file's engraved system breaks; "auto" (default)
-  // is the responsive bars-per-row. A local viewing preference like the masthead — one
-  // player's paper-matching layout shouldn't reflow everyone's screen.
+  // Row breaks: "as written" (default) follows the file's engraved system breaks — the
+  // screen matches the band's paper charts out of the box; "auto" is the responsive
+  // bars-per-row opt-out. A local viewing preference like the masthead — one player's
+  // layout choice shouldn't reflow everyone's screen.
   let engravedRows = $state(loadRowBreaksPref());
   let hasEngraved = $state(false); // this chart actually carries engraved breaks
-  // Effective mode: the pref only bites on charts that have breaks to follow.
+  // Effective mode: the pref only bites on charts that have breaks to follow —
+  // break-less charts fall back to responsive rows regardless.
   let rowsAsWritten = $derived(engravedRows && hasEngraved);
   function loadRowBreaksPref(): boolean {
     try {
-      return typeof localStorage !== 'undefined' && localStorage.getItem('bandaid.rowBreaks') === 'engraved';
+      // As written unless the player explicitly chose auto.
+      return typeof localStorage === 'undefined' || localStorage.getItem('bandaid.rowBreaks') !== 'auto';
     } catch {
-      return false;
+      return true;
     }
   }
   function setEngravedRows(on: boolean) {
