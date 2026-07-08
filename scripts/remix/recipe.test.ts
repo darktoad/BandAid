@@ -30,6 +30,23 @@ describe('validateRecipe', () => {
     expect(() => validateRecipe({ ...base, name: '' }, structure)).toThrow(/name/);
   });
 
+  it('rejects references to the unlabeled preamble section ""', () => {
+    // A score whose first rehearsal mark is not on measure 1 gets an implicit
+    // '' section — it plays in the default order but is not referencable.
+    const withPreamble = {
+      ...structure,
+      sections: [
+        { label: '', start: 1, end: 1, backwardRepeat: false, endings: [] },
+        ...structure.sections.map((s) => ({ ...s, start: s.start + 1, end: s.end + 1 })),
+      ],
+    };
+    const bad = { ...base, passes: [{ sections: [''] }] };
+    expect(() => validateRecipe(bad, withPreamble)).toThrow(RemixError);
+    expect(() => validateRecipe(bad, withPreamble)).toThrow(/unknown section ""/);
+    const badEnd = { ...base, passes: [{ endWith: '' }] };
+    expect(() => validateRecipe(badEnd, withPreamble)).toThrow(/unknown section ""/);
+  });
+
   it('rejects references to unknown sections', () => {
     const bad = { ...base, passes: [{ sections: ['bridge'] }] };
     expect(() => validateRecipe(bad, structure)).toThrow(/unknown section "bridge"/);

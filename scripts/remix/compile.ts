@@ -70,7 +70,10 @@ export function compileRemix(canonicalXml: string, rawRecipe: unknown): string {
   // Plan every emitted measure first: [sourceIndex, section, passIndex, isPassStart].
   const emitted: Array<{ src: number; sec: Section; pass: number; passStart: boolean; label?: string }> = [];
   recipe.passes.forEach((pass, pi) => {
-    const order = (pass.sections ?? structure.sections.map((s) => s.label)).map((l) => byLabel.get(l)!);
+    // Default order uses the sections themselves — never a label round-trip,
+    // which would alias same-labeled sections. Only explicit references go
+    // through byLabel (labels are unique: parseStructure rejects duplicates).
+    const order = pass.sections !== undefined ? pass.sections.map((l) => byLabel.get(l)!) : structure.sections;
     const seq: Array<{ src: number; sec: Section }> = [];
     for (const sec of order) {
       const k = sectionIterations(sec, pass.repeats);

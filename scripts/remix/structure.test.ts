@@ -54,6 +54,13 @@ describe('parseStructure', () => {
     expect(() => parseStructure(loadDoc(crossed))).toThrow(/volta.*crosses/i);
   });
 
+  it('rejects duplicate section labels', () => {
+    // Relabel the chorus mark "verse" so two sections share a label — recipes
+    // reference sections by label, so duplicates would silently alias.
+    const doubled = fixture().replace('<rehearsal>chorus</rehearsal>', '<rehearsal>verse</rehearsal>');
+    expect(() => parseStructure(loadDoc(doubled))).toThrow(/duplicate section label/i);
+  });
+
   it('rejects a repeat group that crosses a section boundary', () => {
     // Move the chorus rehearsal mark to measure 5, so verse's m4 forward repeat
     // group would close inside "chorus".

@@ -118,6 +118,19 @@ export function parseStructure(doc: Document): SongStructure {
     return { label: b.label, start, end, backwardRepeat, endings };
   });
 
+  // Recipes reference sections by label, so duplicate labels would silently
+  // alias to one section. Hard error; the unlabeled '' preamble is exempt
+  // (it is never referencable).
+  const seen = new Set<string>();
+  for (const sec of sections) {
+    if (sec.label !== '' && seen.has(sec.label)) {
+      throw new Error(
+        `duplicate section label "${sec.label}" — rehearsal marks must be unique for remixing`,
+      );
+    }
+    seen.add(sec.label);
+  }
+
   // Repeat groups must not cross section boundaries: a forward repeat inside a
   // section requires its backward repeat in the same section.
   for (const sec of sections) {

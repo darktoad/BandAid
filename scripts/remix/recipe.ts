@@ -49,7 +49,9 @@ export function validateRecipe(raw: unknown, structure: SongStructure): RemixRec
   if (typeof r.name !== 'string' || r.name.length === 0) fail('name must be a non-empty string');
   if (!Array.isArray(r.passes) || r.passes.length === 0) fail('recipe needs at least one pass');
 
-  const labels = new Set(structure.sections.map((s) => s.label));
+  // The unlabeled '' preamble section plays in the default order but is not
+  // referencable by recipes (spec: expansion semantics, bullet 1).
+  const labels = new Set(structure.sections.map((s) => s.label).filter((l) => l !== ''));
   const known = (label: string, where: string) => {
     if (!labels.has(label)) fail(`${where}: unknown section "${label}" (score has: ${[...labels].join(', ')})`);
   };
