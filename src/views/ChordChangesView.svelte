@@ -3,6 +3,7 @@
   import Renderer from '../renderer/Renderer.svelte';
   import type { RendererController, TrackInfo } from '../renderer/createRenderer';
   import { createLocalTransport, maxTempoPercent, type LocalTransport } from '../transport/localTransport';
+  import { parseBpmEntry } from '../transport/parseBpmEntry';
   import type { SyncedSessionStore } from '../sync/syncedSessionStore';
   import { createTransportFollower } from '../sync/transportFollower';
   import { skewLog } from '../sync/skewLog';
@@ -128,6 +129,32 @@
     // and lastBarsPerRow must match so the next resize isn't skipped as a no-op.
     lastBarsPerRow = barsPerRow;
     controller.setEngravedBreaks(on, barsPerRow);
+  }
+
+  // Auto-fit: size the whole tune to the view on every song load. Band feedback — players
+  // kept re-tapping Fit after each song switch. A local viewing preference (like the
+  // masthead / row breaks), on by default; a player who wants manual sizing turns it off.
+  let autoFit = $state(loadAutoFitPref());
+  let didAutoFit = false; // one-shot guard: fit only on the first render of each song load
+  function loadAutoFitPref(): boolean {
+    try {
+      // Fit unless the player explicitly turned it off.
+      return typeof localStorage === 'undefined' || localStorage.getItem('bandaid.autoFit') !== 'off';
+    } catch {
+      return true;
+    }
+  }
+  function toggleAutoFit() {
+    autoFit = !autoFit;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('bandaid.autoFit', autoFit ? 'on' : 'off');
+      }
+    } catch {
+      /* ignore */
+    }
+    // Turning it on fits the current tune now, not just on the next load.
+    if (autoFit) fitToView();
   }
 
   // Masthead visibility is a local viewing preference (not song/session state).
@@ -348,6 +375,12 @@
     c.onRender(() => {
       renderTick++;
       renderResolvers.splice(0).forEach((resolve) => resolve());
+      // Auto-fit once per song, on the first painted render (content is now measurable).
+      // fitToView re-renders as it searches, but the guard keeps this from re-entering.
+      if (autoFit && !didAutoFit && renderScrollEl?.firstElementChild) {
+        didAutoFit = true;
+        void fitToView();
+      }
     });
     // Masthead credit: the curated manifest composer wins; fall back to the score's
     // credit unless it's an export toolchain stamping its own name (e.g. Music21).
@@ -463,8 +496,13 @@
   }
   function onBpmInput(e: Event) {
     const el = e.target as HTMLInputElement;
-    setBpm(Number(el.value));
-    // Reflect the clamped value back into the field (typing past the ceiling lands on it).
+    // Only a valid, in-range entry changes the tempo. A blank, non-numeric, or
+    // out-of-range value — e.g. a stray digit appended on a touch keyboard, committed
+    // when the field blurs as the player taps another control (Count-in) — is rejected,
+    // so an accidental entry never silently jumps the band's tempo. (parseBpmEntry)
+    const bpm = parseBpmEntry(el.value, minBpm, maxBpm);
+    if (bpm !== null) setBpm(bpm);
+    // Reflect the committed tempo back into the field (revert a rejected entry).
     el.value = String(currentBpm);
   }
   // Reset tempo to the song's canonical default (clears the override).
@@ -738,6 +776,7 @@
             max={maxBpm}
             value={currentBpm}
             onchange={onBpmInput}
+            onfocus={(e) => e.currentTarget.select()}
             disabled={!transport}
             aria-label="Tempo in beats per minute"
           />
@@ -763,6 +802,14 @@
       <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} aria-label="Notation size" aria-valuetext={`${scalePct}%`} />
       <span class="readout">{scalePct}%</span>
       <button class="fitbtn" onclick={fitToView} disabled={!controller} title="Size the whole tune to fill the view">Fit</button>
+      <button
+        class="fitbtn"
+        class:active={autoFit}
+        aria-pressed={autoFit}
+        onclick={toggleAutoFit}
+        disabled={!controller}
+        title="Automatically fit each song to the view when it opens"
+      >Auto-fit</button>
     </div>
 
     <!-- Row breaks: Auto reflows by screen width; As written follows the printed
@@ -1034,6 +1081,7 @@
   }
   .chips button.active { border-color: var(--accent); color: var(--accent); }
   .fitbtn { flex: 0 0 auto; padding: 0.4rem 0.7rem; font-size: 0.85rem; min-height: 2.2rem; }
+  .fitbtn.active { border-color: var(--accent); color: var(--accent); }
 
   /* Touch screens get full-size (≥44px) targets on the controls tapped mid-practice;
      pointer precision keeps the compact sizes on desktop. */
