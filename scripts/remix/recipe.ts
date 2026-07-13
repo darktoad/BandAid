@@ -16,6 +16,12 @@ export interface RemixPass {
    *  {chorus:true} keeps line 1 in sections labeled "chorus". Inert until
    *  canonicals embed lyrics (sub-project 2). */
   lyrics?: 'off' | { verse?: number; chorus?: boolean };
+  /** Authored lyric landmarks: one text fragment per measure of the pass, dropped
+   *  on that measure's first sounding note. Count must equal the pass's measure
+   *  count (checked at compile time). Absent on instrumental passes. Unlike
+   *  `lyrics` (which selects lyrics already embedded in the canonical), `sing`
+   *  writes new words in from the recipe — the canonical stays instrument-only. */
+  sing?: string[];
   /** Append this section once at the end of the pass (volta-collapsed). */
   endWith?: string;
 }
@@ -89,6 +95,11 @@ export function validateRecipe(raw: unknown, structure: SongStructure): RemixRec
       }
       if (p.lyrics.verse !== undefined && !structure.lyricNumbers.includes(p.lyrics.verse)) {
         fail(`${where}: verse ${p.lyrics.verse} not in the score (has lyric lines: ${structure.lyricNumbers.join(', ')})`);
+      }
+    }
+    if (p.sing !== undefined) {
+      if (!Array.isArray(p.sing) || p.sing.some((s) => typeof s !== 'string' || s.length === 0)) {
+        fail(`${where}: sing must be an array of non-empty strings`);
       }
     }
   });

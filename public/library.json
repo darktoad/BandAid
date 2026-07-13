@@ -80,6 +80,11 @@
           "id": "july-gig",
           "name": "July gig (instrumental)",
           "notes": "Two-page instrumental arrangement: full form closing on part 1, then full form closing on part 2."
+        },
+        {
+          "id": "sing-along",
+          "name": "Sing-along (full arrangement)",
+          "notes": "Full performed form — instrumental intro, sung verses/choruses with lyrics under the fiddle line, one fiddle break; laid out linearly, one section per page."
         }
       ]
     },
@@ -126,6 +131,10 @@
         {
           "songId": "wabash-cannonball",
           "variantId": "july-gig"
+        },
+        {
+          "songId": "wabash-cannonball",
+          "variantId": "sing-along"
         },
         {
           "songId": "old-blue"
