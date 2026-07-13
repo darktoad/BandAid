@@ -43,7 +43,10 @@ export interface SharedTransportIntent extends Transport {
   kind: TransportIntentKind;
 }
 
-/** The doc value at session.song. `author` is the display name, for the switch notice. */
+/** The doc value at session.song. `author` is the display name, for the switch notice.
+ *  `songId` carries a song REF (`<songId>` or `<songId>@<variantId>`, see
+ *  src/library/songRef.ts) so arrangement switches sync like song switches; clients
+ *  that can't resolve a ref ignore it, same as an unknown song id. */
 export interface SharedSongIntent {
   songId: string;
   issuedAt: number;

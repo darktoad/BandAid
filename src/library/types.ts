@@ -23,6 +23,14 @@ export interface SongKey {
   tonalCenter: string;
 }
 
+/** A named arrangement of a song, compiled offline from a remix recipe
+ *  (scripts/remix). The chart file is songs/<songId>.<variantId>.musicxml. */
+export interface SongVariant {
+  id: string; // /^[a-z0-9-]+$/, unique within the song
+  name: string; // shown in the arrangement chip, e.g. "July gig 4-pager"
+  notes?: string;
+}
+
 export interface SongSummary {
   id: string;
   title: string;
@@ -40,12 +48,16 @@ export interface SongSummary {
   notes?: string;
   content: SongContent;
   parts: SongPart[];
+  /** Named arrangements (remixes). Absent/empty = canonical only. */
+  variants?: SongVariant[];
 }
 
 /** Ordered reference into the library. Optional per-gig overrides exist in the data
  *  shape (unified-music-model) but have no MVP UI. */
 export interface SetListEntry {
   songId: string;
+  /** Open this arrangement when picked from the set list. Absent = canonical. */
+  variantId?: string;
   keyOverride?: SongKey;
   tempoOverride?: number;
 }

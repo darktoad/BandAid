@@ -59,3 +59,48 @@ describe('library service', () => {
     expect(svc.availableViews(noChords)).toEqual(['Melody']);
   });
 });
+
+describe('variants', () => {
+  const manifest: LibraryManifest = {
+    songs: [
+      song('wabash', { variants: [{ id: 'july-gig', name: 'July gig' }] }),
+      song('old-blue'),
+    ],
+    setLists: [
+      {
+        id: 'gig',
+        name: 'Gig',
+        entries: [
+          { songId: 'wabash' },
+          { songId: 'wabash', variantId: 'july-gig' },
+          { songId: 'wabash', variantId: 'nope' },
+          { songId: 'missing-song' },
+          { songId: 'old-blue' },
+        ],
+      },
+    ],
+  };
+  const svc = makeLibraryService(manifest);
+
+  it('getVariant resolves declared variants and returns null otherwise', () => {
+    expect(svc.getVariant('wabash', 'july-gig')).toEqual({ id: 'july-gig', name: 'July gig' });
+    expect(svc.getVariant('wabash', 'nope')).toBeNull();
+    expect(svc.getVariant('old-blue', 'july-gig')).toBeNull();
+    expect(svc.getVariant('missing-song', 'july-gig')).toBeNull();
+  });
+
+  it('getSetListItems resolves entries with variant info, dropping unknown songs and unknown variants', () => {
+    const items = svc.getSetListItems('gig');
+    expect(items.map((i) => [i.song.id, i.variantId ?? null])).toEqual([
+      ['wabash', null],
+      ['wabash', 'july-gig'],
+      ['wabash', null], // unknown variantId falls back to canonical
+      ['old-blue', null],
+    ]);
+    expect(items[1].variantName).toBe('July gig');
+  });
+
+  it('getSetListItems returns [] for an unknown set list', () => {
+    expect(svc.getSetListItems('nope')).toEqual([]);
+  });
+});

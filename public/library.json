@@ -74,6 +74,13 @@
           "instrument": "Fiddle",
           "notationType": "notation"
         }
+      ],
+      "variants": [
+        {
+          "id": "july-gig",
+          "name": "July gig (instrumental)",
+          "notes": "Two-page instrumental arrangement: full form closing on part 1, then full form closing on part 2."
+        }
       ]
     },
     {
@@ -115,6 +122,10 @@
         },
         {
           "songId": "wabash-cannonball"
+        },
+        {
+          "songId": "wabash-cannonball",
+          "variantId": "july-gig"
         },
         {
           "songId": "old-blue"
