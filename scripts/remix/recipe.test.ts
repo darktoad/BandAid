@@ -96,6 +96,17 @@ describe('validateRecipe', () => {
     expect(() => validateRecipe(withNumber, structure)).toThrow(/lyrics/);
   });
 
+  it('rejects malformed label shapes with a named error, never a silent coercion', () => {
+    // A non-string label would otherwise coerce to literal text ("null") baked
+    // over the committed chart with no error — the compiler must never guess.
+    const withNull = { ...base, passes: [{ label: null, repeats: 'off' as const }] };
+    expect(() => validateRecipe(withNull, structure)).toThrow(RemixError);
+    expect(() => validateRecipe(withNull, structure)).toThrow(/label/);
+    const withNumber = { ...base, passes: [{ label: 7, repeats: 'off' as const }] };
+    expect(() => validateRecipe(withNumber, structure)).toThrow(RemixError);
+    expect(() => validateRecipe(withNumber, structure)).toThrow(/label/);
+  });
+
   it('rejects malformed sections shapes with a named error, never a raw TypeError', () => {
     const withNull = { ...base, passes: [{ sections: null }] };
     expect(() => validateRecipe(withNull, structure)).toThrow(RemixError);

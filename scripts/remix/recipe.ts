@@ -59,6 +59,9 @@ export function validateRecipe(raw: unknown, structure: SongStructure): RemixRec
   r.passes.forEach((p, i) => {
     const where = `pass ${i + 1}`;
     if (typeof p !== 'object' || p === null) fail(`${where}: must be an object`);
+    if (p.label !== undefined && typeof p.label !== 'string') {
+      fail(`${where}: label must be a string`);
+    }
     if (p.sections !== undefined) {
       if (!Array.isArray(p.sections) || p.sections.some((s) => typeof s !== 'string')) {
         fail(`${where}: sections must be an array of section labels`);
