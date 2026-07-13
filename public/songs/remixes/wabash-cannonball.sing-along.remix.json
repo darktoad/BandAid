@@ -1,0 +1,100 @@
+{
+  "songId": "wabash-cannonball",
+  "variantId": "sing-along",
+  "name": "Sing-along (full arrangement)",
+  "passes": [
+    { "label": "Intro", "sections": ["part-2"], "repeats": "as-written" },
+    {
+      "label": "Verse 1",
+      "sections": ["part-1"],
+      "repeats": "as-written",
+      "sing": [
+        "From the great Atlantic Ocean",
+        "to the wide Pacific shore,",
+        "To the green old flow'ring mountains,",
+        "to the ice-bound Labrador,",
+        "She's long and tall and handsome",
+        "and known quite well to all,",
+        "She's the modern combination called the",
+        "Wabash Cannonball."
+      ]
+    },
+    {
+      "label": "Chorus",
+      "sections": ["part-1"],
+      "repeats": "as-written",
+      "sing": [
+        "So listen to the jingle,",
+        "the jumble and the roar,",
+        "As she glides along the woodlands,",
+        "through the hills and by the shore,",
+        "Hear the mighty rush of the engine,",
+        "and the lonesome hoboes squall,",
+        "While riding through the jungle on the",
+        "Wabash Cannonball."
+      ]
+    },
+    { "label": "Fiddle break", "sections": ["part-2"], "repeats": "as-written" },
+    {
+      "label": "Verse 2",
+      "sections": ["part-1"],
+      "repeats": "as-written",
+      "sing": [
+        "She came in from Birmingham",
+        "on a cold and frosty day,",
+        "As she rolled into the station,",
+        "you could hear the people say,",
+        "\"There's a gal out there from Tennessee,",
+        "she's long, boy, and tall,",
+        "She's the modern combination called the",
+        "Wabash Cannonball.\""
+      ]
+    },
+    {
+      "label": "Chorus",
+      "sections": ["part-1"],
+      "repeats": "as-written",
+      "sing": [
+        "So listen to the jingle,",
+        "the jumble and the roar,",
+        "As she glides along the woodlands,",
+        "through the hills and by the shore,",
+        "Hear the mighty rush of the engine,",
+        "and the lonesome hoboes squall,",
+        "While riding through the jungle on the",
+        "Wabash Cannonball."
+      ]
+    },
+    {
+      "label": "Verse 3",
+      "sections": ["part-1"],
+      "repeats": "as-written",
+      "sing": [
+        "Now the Eastern states are dandy,",
+        "so all the people say,",
+        "From New York to Saint Louis",
+        "and Chicago by the way,",
+        "From the lakes of Minnehaha",
+        "where the laughing waters fall,",
+        "No change in standard gauging on the",
+        "Wabash Cannonball."
+      ]
+    },
+    {
+      "label": "Chorus",
+      "sections": ["part-1"],
+      "repeats": "as-written",
+      "sing": [
+        "So listen to the jingle,",
+        "the jumble and the roar,",
+        "As she glides along the woodlands,",
+        "through the hills and by the shore,",
+        "Hear the mighty rush of the engine,",
+        "and the lonesome hoboes squall,",
+        "While riding through the jungle on the",
+        "Wabash Cannonball."
+      ]
+    },
+    { "label": "Tag", "sections": ["part-3"], "repeats": "off" }
+  ]
+}

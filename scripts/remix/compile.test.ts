@@ -82,6 +82,32 @@ describe('compileRemix', () => {
     expect(off).not.toContain('<lyric');
   });
 
+  it('sing: one authored fragment lands on each measure\'s first note, in order', () => {
+    // chorus repeats-off is 3 measures (F G A) — one fragment each, as lyric line 1.
+    const out = compileRemix(xml, recipe([{ sections: ['chorus'], repeats: 'off', sing: ['aa', 'bb', 'cc'] }]));
+    const rows = partMeasures(loadDoc(out)).map((m) => {
+      const step = m.getElementsByTagName('step')[0]?.textContent;
+      const lyric = m.getElementsByTagName('lyric')[0];
+      return [step, lyric?.getAttribute('number'), lyric?.getElementsByTagName('text')[0]?.textContent];
+    });
+    expect(rows).toEqual([
+      ['F', '1', 'aa'],
+      ['G', '1', 'bb'],
+      ['A', '1', 'cc'],
+    ]);
+  });
+
+  it('sing: an instrumental pass (no sing) carries no lyrics — embedded ones are stripped', () => {
+    const out = compileRemix(xml, recipe([{ sections: ['chorus'], repeats: 'off' }]));
+    expect(out).not.toContain('<lyric');
+  });
+
+  it('sing: fragment count must equal the pass measure count, error names the pass', () => {
+    expect(() =>
+      compileRemix(xml, recipe([{ label: 'Chorus', sections: ['chorus'], repeats: 'off', sing: ['aa', 'bb'] }])),
+    ).toThrow(/pass 1 \(Chorus\)[\s\S]*3 measures[\s\S]*match 1:1/);
+  });
+
   it('is deterministic: identical output across runs', () => {
     const r = recipe([{ repeats: 'off', endWith: 'verse' }]);
     expect(compileRemix(xml, r)).toBe(compileRemix(xml, r));

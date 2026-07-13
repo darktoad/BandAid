@@ -49,6 +49,23 @@ function filterLyrics(measure: Element, sec: Section, lyrics: RemixPass['lyrics'
   }
 }
 
+/** Drop an authored lyric fragment on a measure's first sounding note (its
+ *  downbeat landmark). Rests can't carry lyrics, so skip to the first real note. */
+function attachLyric(measure: Element, text: string, doc: Document): void {
+  const note = els(measure, 'note').find((n) => els(n, 'rest').length === 0);
+  if (!note) return; // all-rest measure — nothing to hang a word on
+  for (const l of els(note, 'lyric')) note.removeChild(l);
+  const lyric = doc.createElement('lyric');
+  lyric.setAttribute('number', '1');
+  const syllabic = doc.createElement('syllabic');
+  syllabic.appendChild(doc.createTextNode('single'));
+  const t = doc.createElement('text');
+  t.appendChild(doc.createTextNode(text));
+  lyric.appendChild(syllabic);
+  lyric.appendChild(t);
+  note.appendChild(lyric);
+}
+
 function stripRepeatMarks(measure: Element): void {
   for (const tag of ['repeat', 'ending']) {
     for (const e of els(measure, tag)) e.parentNode?.removeChild(e);
@@ -119,6 +136,23 @@ export function compileRemix(canonicalXml: string, rawRecipe: unknown): string {
     }
     m.setAttribute('number', String(i + 1));
     return m;
+  });
+
+  // Authored lyrics ("sing"): drop one fragment per measure of the pass onto its
+  // downbeat, as a landmark under the notation. Fragment count must equal the
+  // pass's measure count — a recipe authoring contract, checked here (post-expansion,
+  // where measure counts are known) rather than in validateRecipe.
+  recipe.passes.forEach((pass, pi) => {
+    if (pass.sing === undefined) return;
+    const passMeasures = clones.filter((_, i) => emitted[i].pass === pi);
+    if (pass.sing.length !== passMeasures.length) {
+      throw new Error(
+        `[${recipe.songId}.${recipe.variantId}] pass ${pi + 1}` +
+          `${pass.label !== undefined ? ` (${pass.label})` : ''}: ${pass.sing.length} sing ` +
+          `fragments but the pass has ${passMeasures.length} measures — they must match 1:1`,
+      );
+    }
+    passMeasures.forEach((m, j) => attachLyric(m, pass.sing![j], doc));
   });
 
   // Final barline on the last measure.
