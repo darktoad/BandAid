@@ -129,32 +129,48 @@
     // and lastBarsPerRow must match so the next resize isn't skipped as a no-op.
     lastBarsPerRow = barsPerRow;
     controller.setEngravedBreaks(on, barsPerRow);
+    // A layout-mode switch isn't manual sizing — Fit stays on and re-establishes
+    // itself in the new mode once the switch's own render has landed.
+    if (fitOn) void nextRender().then(() => fitToView());
   }
 
-  // Auto-fit: size the whole tune to the view on every song load. Band feedback — players
-  // kept re-tapping Fit after each song switch. A local viewing preference (like the
-  // masthead / row breaks), on by default; a player who wants manual sizing turns it off.
-  let autoFit = $state(loadAutoFitPref());
-  let didAutoFit = false; // one-shot guard: fit only on the first render of each song load
-  function loadAutoFitPref(): boolean {
+  // Fit mode: keep the whole tune sized to the view. Band feedback, twice over — players
+  // kept re-tapping Fit after each song switch, and the Auto-fit toggle that fixed it read
+  // as a second competing concept next to the Fit button. One toggle now owns both jobs:
+  // while on, the tune is fitted on song load and re-fitted when the viewport changes;
+  // dragging the Size slider takes manual control and switches it off. A local viewing
+  // preference (like the masthead / row breaks), on by default.
+  let fitOn = $state(loadFitPref());
+  let didInitialFit = false; // one-shot guard: the load-time fit runs once per song load
+  function loadFitPref(): boolean {
     try {
-      // Fit unless the player explicitly turned it off.
+      // Fit unless the player explicitly turned it off. (Key predates the merged
+      // toggle — kept so an existing opt-out survives the rename.)
       return typeof localStorage === 'undefined' || localStorage.getItem('bandaid.autoFit') !== 'off';
     } catch {
       return true;
     }
   }
-  function toggleAutoFit() {
-    autoFit = !autoFit;
+  function saveFitPref() {
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('bandaid.autoFit', autoFit ? 'on' : 'off');
+        localStorage.setItem('bandaid.autoFit', fitOn ? 'on' : 'off');
       }
     } catch {
       /* ignore */
     }
-    // Turning it on fits the current tune now, not just on the next load.
-    if (autoFit) fitToView();
+  }
+  function toggleFit() {
+    fitOn = !fitOn;
+    saveFitPref();
+    // Turning it on fits the current tune now, not just on the next load/resize.
+    if (fitOn) void fitToView();
+  }
+  // Manual sizing takes control back from Fit (the current layout is left alone).
+  function releaseFit() {
+    if (!fitOn) return;
+    fitOn = false;
+    saveFitPref();
   }
 
   // Masthead visibility is a local viewing preference (not song/session state).
@@ -244,13 +260,34 @@
     controller.setBarsPerRow(bpr);
   }
 
+  // Debounced viewport re-fit (rotation, window resize, split-screen) while Fit is on.
+  // Never while the settings sheet is open: inline (wide-screen) the sheet shrinks the
+  // stage, and fitToView closes the sheet — auto-refitting would slam it shut as it
+  // opens. Gated on didInitialFit so the load sequence's own fit (onRender) runs first.
+  let fitDebounce: ReturnType<typeof setTimeout> | undefined;
+  let lastStageSize = '';
   onMount(() => {
     const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width ?? stageEl.clientWidth;
+      const rect = entries[0]?.contentRect;
+      const w = rect?.width ?? stageEl.clientWidth;
       applyResponsiveLayout(w);
+      const size = rect ? `${Math.round(rect.width)}x${Math.round(rect.height)}` : '';
+      if (size === lastStageSize) return;
+      const initialObserve = lastStageSize === '';
+      lastStageSize = size;
+      if (initialObserve || !fitOn || !didInitialFit || showMore) return;
+      clearTimeout(fitDebounce);
+      // Re-check at fire time: a slider drag inside the debounce window releases Fit,
+      // and the pending re-fit must not snatch control back.
+      fitDebounce = setTimeout(() => {
+        if (fitOn && !showMore) void fitToView();
+      }, 200);
     });
     if (stageEl) ro.observe(stageEl);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      clearTimeout(fitDebounce);
+    };
   });
 
   // Tempo/key are shared session state (band-synced): a bandmate's change lands in the
@@ -375,10 +412,10 @@
     c.onRender(() => {
       renderTick++;
       renderResolvers.splice(0).forEach((resolve) => resolve());
-      // Auto-fit once per song, on the first painted render (content is now measurable).
+      // Fit once per song load, on the first painted render (content is now measurable).
       // fitToView re-renders as it searches, but the guard keeps this from re-entering.
-      if (autoFit && !didAutoFit && renderScrollEl?.firstElementChild) {
-        didAutoFit = true;
+      if (fitOn && !didInitialFit && renderScrollEl?.firstElementChild) {
+        didInitialFit = true;
         void fitToView();
       }
     });
@@ -556,6 +593,7 @@
   // Current sounding tempo (BPM = the ♩ = N your charts show).
   let currentBpm = $derived(Math.round((tempoBpm * speedPct) / 100));
   function onScale(e: Event) {
+    releaseFit(); // dragging the slider is taking manual control
     scalePct = Number((e.target as HTMLInputElement).value);
     controller?.setScale(scalePct / 100);
   }
@@ -801,15 +839,14 @@
       <span class="label">Size</span>
       <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} aria-label="Notation size" aria-valuetext={`${scalePct}%`} />
       <span class="readout">{scalePct}%</span>
-      <button class="fitbtn" onclick={fitToView} disabled={!controller} title="Size the whole tune to fill the view">Fit</button>
       <button
         class="fitbtn"
-        class:active={autoFit}
-        aria-pressed={autoFit}
-        onclick={toggleAutoFit}
+        class:active={fitOn}
+        aria-pressed={fitOn}
+        onclick={toggleFit}
         disabled={!controller}
-        title="Automatically fit each song to the view when it opens"
-      >Auto-fit</button>
+        title="Keep the whole tune sized to the view — adjusting Size takes back manual control"
+      >Fit</button>
     </div>
 
     <!-- Row breaks: Auto reflows by screen width; As written follows the printed
