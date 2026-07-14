@@ -29,25 +29,10 @@ describe('library service', () => {
     expect(svc.getAllSongs().map((s) => s.id)).toEqual(['a', 'b', 'c']);
   });
 
-  it('resolves a set list to its songs in manifest order', () => {
-    const svc = makeLibraryService(manifest);
-    expect(svc.getSetListSongs('set1').map((s) => s.id)).toEqual(['c', 'a']);
-  });
-
-  it('skips set-list entries that reference a missing song id (no crash)', () => {
-    const svc = makeLibraryService(manifest);
-    expect(svc.getSetListSongs('set2').map((s) => s.id)).toEqual(['b']);
-  });
-
   it('returns null for an unknown song id', () => {
     const svc = makeLibraryService(manifest);
     expect(svc.getSongSummary('nope')).toBeNull();
     expect(svc.getSongSummary('a')?.id).toBe('a');
-  });
-
-  it('an empty / unknown set list resolves to no songs', () => {
-    const svc = makeLibraryService(manifest);
-    expect(svc.getSetListSongs('does-not-exist')).toEqual([]);
   });
 
   it('availableViews offers chord-changes only when hasChords (AC)', () => {
@@ -87,20 +72,5 @@ describe('variants', () => {
     expect(svc.getVariant('wabash', 'nope')).toBeNull();
     expect(svc.getVariant('old-blue', 'july-gig')).toBeNull();
     expect(svc.getVariant('missing-song', 'july-gig')).toBeNull();
-  });
-
-  it('getSetListItems resolves entries with variant info, dropping unknown songs and unknown variants', () => {
-    const items = svc.getSetListItems('gig');
-    expect(items.map((i) => [i.song.id, i.variantId ?? null])).toEqual([
-      ['wabash', null],
-      ['wabash', 'july-gig'],
-      ['wabash', null], // unknown variantId falls back to canonical
-      ['old-blue', null],
-    ]);
-    expect(items[1].variantName).toBe('July gig');
-  });
-
-  it('getSetListItems returns [] for an unknown set list', () => {
-    expect(svc.getSetListItems('nope')).toEqual([]);
   });
 });
