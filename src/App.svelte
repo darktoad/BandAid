@@ -14,6 +14,7 @@
   import { readItem, writeItem, safeStorage } from './sync/storage';
   import { summarizeSyncStatus } from './sync/syncStatusLabel';
   import { createLibraryService, type LibraryService } from './library/libraryService';
+  import { createSetListStore, type SetListStore } from './library/setListStore';
   import type { SongSummary, SongKey, SongVariant } from './library/types';
   import { parseSongRef, formatSongRef, songFilePath } from './library/songRef';
   import { songFromSearch, searchWithSong } from './library/urlState';
@@ -59,9 +60,13 @@
     unsubBand();
     band.destroy();
     localPersistence.disconnect();
+    setListStore?.destroy();
   });
 
   let service = $state<LibraryService | undefined>(undefined);
+  // Set lists = bundled manifest defaults + the band's shared edits, in the same doc
+  // as everything else (built once the manifest loads).
+  let setListStore = $state<SetListStore | undefined>(undefined);
   let loadError = $state<string | null>(null);
   let current = $state<{ id: string; url: string; title: string; key?: SongKey; composer?: string; notes?: string; lyricsUrl?: string; variantId?: string; variantName?: string; variants?: SongVariant[] } | undefined>(undefined);
   // The song picker is a slide-over while drilling; full-screen before the first pick.
@@ -113,6 +118,7 @@
     (async () => {
       try {
         service = await createLibraryService(`${import.meta.env.BASE_URL}library.json${v}`);
+        setListStore = createSetListStore(ydoc, service.getSetLists());
       } catch (e) {
         loadError = e instanceof Error ? e.message : String(e);
         return;
@@ -218,15 +224,15 @@
       }}
     />
   {/key}
-  {#if service && pickerOpen}
+  {#if service && setListStore && pickerOpen}
     <button class="scrim" onclick={closePicker} aria-label="Close song picker"></button>
     <div class="picker-panel" role="dialog" aria-modal="true" aria-label="Song picker">
-      <BrowseView {service} onopen={openSong} onclose={closePicker} activeId={current.id} activeVariantId={current.variantId} {progress} {syncSummary} />
+      <BrowseView {service} {setListStore} onopen={openSong} onclose={closePicker} activeId={current.id} activeVariantId={current.variantId} {progress} {syncSummary} />
     </div>
   {/if}
-{:else if service}
+{:else if service && setListStore}
   <!-- First load: the integrated picker, full screen. -->
-  <BrowseView {service} onopen={openSong} {syncSummary} />
+  <BrowseView {service} {setListStore} onopen={openSong} {syncSummary} />
 {:else if loadError}
   <div class="boot-error">Couldn’t load the library: {loadError}</div>
 {:else}
