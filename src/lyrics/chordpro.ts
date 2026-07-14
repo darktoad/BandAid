@@ -24,7 +24,8 @@ export interface LyricChunk {
 }
 export interface LyricSection {
   label?: string;
-  kind: 'verse' | 'chorus' | 'other';
+  /** 'comment' = a standalone arrangement cue ({comment}/{c}): label only, no lines. */
+  kind: 'verse' | 'chorus' | 'other' | 'comment';
   lines: LyricLine[];
 }
 export interface SongSheet {
@@ -33,6 +34,7 @@ export interface SongSheet {
 
 const SECTION_START = /^\{(?:start_of_(verse|chorus)|sov|soc)(?::\s*(.*?))?\}$/i;
 const SECTION_END = /^\{(?:end_of_(?:verse|chorus)|eov|eoc)\}$/i;
+const COMMENT = /^\{(?:comment|c):\s*(.*?)\}$/i;
 const DIRECTIVE = /^\{.*\}$/;
 
 /** Parse one raw line into its text (chords stripped) + chord onsets. */
@@ -73,6 +75,13 @@ export function parseChordPro(input: string): SongSheet {
     }
     if (SECTION_END.test(line)) {
       current = null;
+      continue;
+    }
+    const comment = COMMENT.exec(line);
+    if (comment) {
+      // A standalone cue. `current` is left alone: a mid-section comment must not
+      // split the section it interrupts (its remaining lines still belong there).
+      sections.push({ kind: 'comment', label: comment[1].trim(), lines: [] });
       continue;
     }
     if (DIRECTIVE.test(line)) continue; // ignore unknown directives

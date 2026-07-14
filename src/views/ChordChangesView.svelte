@@ -918,7 +918,6 @@
 {/if}
 
 {#if lyricsOpen}
-  <button class="scrim" onclick={closeLyrics} aria-label="Close lyrics"></button>
   <div class="lyrics-panel" role="dialog" aria-modal="true" aria-label="Notes and lyrics">
     <header class="lyrics-head">
       <h2 class="lyrics-title">{song.title}</h2>
@@ -927,13 +926,15 @@
       </button>
     </header>
     <div class="lyrics-body">
-      {#if lyricsError}
-        <p class="lyrics-msg">{lyricsError}</p>
-      {:else if lyricsLoading && !lyricsSheet}
-        <p class="lyrics-msg">Loading…</p>
-      {:else}
-        <LyricsSheet note={song.notes} sheet={displaySheet ?? undefined} />
-      {/if}
+      <div class="lyrics-col">
+        {#if lyricsError}
+          <p class="lyrics-msg">{lyricsError}</p>
+        {:else if lyricsLoading && !lyricsSheet}
+          <p class="lyrics-msg">Loading…</p>
+        {:else}
+          <LyricsSheet note={song.notes} sheet={displaySheet ?? undefined} />
+        {/if}
+      </div>
     </div>
   </div>
 {/if}
@@ -1150,30 +1151,21 @@
   }
   .mh-sub { color: #6b6258; font-size: 0.78rem; margin-top: 0.15rem; }
 
-  .scrim {
-    position: fixed;
-    inset: 0;
-    border: none;
-    padding: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1001;
-  }
+  /* Full-screen modal (band feedback: the slide-over was too cramped on stage —
+     lyrics/notes want the whole screen). No scrim: there's no outside to click;
+     the close button and Escape dismiss it. */
   .lyrics-panel {
     position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: min(92%, 30rem);
+    inset: 0;
     z-index: 1002;
     display: flex;
     flex-direction: column;
     background: var(--panel);
-    box-shadow: -2px 0 16px rgba(0, 0, 0, 0.4);
     animation: lyrics-in 0.16s ease-out;
   }
   @keyframes lyrics-in {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
   .lyrics-head {
     display: flex;
@@ -1189,6 +1181,11 @@
     flex: 1 1 auto;
     overflow-y: auto;
     padding: 1rem 1rem 2rem;
+  }
+  /* Full-screen leaves very long line lengths on tablets — cap the text column. */
+  .lyrics-col {
+    max-width: 46rem;
+    margin: 0 auto;
   }
   .lyrics-msg {
     color: var(--muted);

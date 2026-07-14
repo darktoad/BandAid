@@ -16,6 +16,9 @@
 
 {#if sheet}
   {#each sheet.sections as section}
+    {#if section.kind === 'comment'}
+      <p class="cue">{section.label}</p>
+    {:else}
     <section class="sec">
       {#if section.label}<h3 class="label">{section.label}</h3>{/if}
       {#each section.lines as line}
@@ -29,6 +32,7 @@
         </div>
       {/each}
     </section>
+    {/if}
   {/each}
 {/if}
 
@@ -44,6 +48,14 @@
   }
   .sec {
     margin-bottom: 1.1rem;
+  }
+  /* Arrangement cue ({comment}): an aside between sections, not part of any one section. */
+  .cue {
+    margin: 0 0 1.1rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+    font-style: italic;
+    line-height: 1.45;
   }
   .label {
     margin: 0 0 0.4rem;
