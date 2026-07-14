@@ -83,6 +83,31 @@ describe('parseChordPro', () => {
   it('returns no sections for empty input', () => {
     expect(parseChordPro('')).toEqual({ sections: [] });
   });
+
+  it('turns {comment} into a standalone cue section between sections', () => {
+    const sheet = parseChordPro(
+      '{comment: Instrumental playthrough first}\n{start_of_verse: Verse 1}\n[G]line\n{end_of_verse}\n{c: Close on section 2}',
+    );
+    expect(sheet.sections.map((s) => ({ kind: s.kind, label: s.label }))).toEqual([
+      { kind: 'comment', label: 'Instrumental playthrough first' },
+      { kind: 'verse', label: 'Verse 1' },
+      { kind: 'comment', label: 'Close on section 2' },
+    ]);
+    expect(sheet.sections[0].lines).toEqual([]);
+  });
+
+  it('a comment does not interrupt the current section', () => {
+    // Lines after a mid-section comment still belong to that section.
+    const sheet = parseChordPro('{sov}\n[G]one\n{c: aside}\n[C]two\n{eov}');
+    expect(sheet.sections.map((s) => s.kind)).toEqual(['verse', 'comment']);
+    expect(sheet.sections[0].lines.map((l) => l.text)).toEqual(['one', 'two']);
+  });
+
+  it('transposeSheet leaves comment cues untouched', () => {
+    const sheet = parseChordPro('{comment: watch the ending}\n{sov}\n[G]line\n{eov}');
+    const up = transposeSheet(sheet, 2, false);
+    expect(up.sections[0]).toEqual({ kind: 'comment', label: 'watch the ending', lines: [] });
+  });
 });
 
 describe('lineChunks', () => {

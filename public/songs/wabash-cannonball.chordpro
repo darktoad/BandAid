@@ -1,34 +1,39 @@
+{comment: The whole song is one loop — every section plays the progression below; the words ride it.}
+
+{start_of_verse: Progression — every section}
+[G]      [C]      [D7]      [D7]      [G]
+{end_of_verse}
+
+{comment: 1 · Instrumental playthrough — repeats off: section 2, section 2, close on section 1.}
+
+{comment: 2 · From the top, same progression, now sung:}
+
 {start_of_verse: Verse 1}
 [G]From the great Atlantic Ocean to the [C]wide Pacific shore,
-[D]To the green old flow'ring mountains, to the [G]ice-bound Labrador,
+[D7]To the green old flow'ring mountains, to the [G]ice-bound Labrador,
 [G]She's long and tall and handsome and [C]known quite well to all,
-[D]She's the modern combination called the [G]Wabash Cannonball.
+[D7]She's the modern combination called the [G]Wabash Cannonball.
 {end_of_verse}
 
 {start_of_chorus}
 [G]So listen to the jingle, the [C]jumble and the roar,
-As she [D]glides along the woodlands, through the hills and by the [G]shore,
+As she [D7]glides along the woodlands, through the hills and by the [G]shore,
 [G]Hear the mighty rush of the engine, and the [C]lonesome hoboes squall,
-While [D]riding through the jungle on the [G]Wabash Cannonball.
+While [D7]riding through the jungle on the [G]Wabash Cannonball.
 {end_of_chorus}
 
 {start_of_verse: Verse 2}
 [G]She came in from Birmingham on a [C]cold and frosty day,
-As she [D]rolled into the station, you could hear the [G]people say,
+As she [D7]rolled into the station, you could hear the [G]people say,
 "There's a [G]gal out there from Tennessee, she's [C]long, boy, and tall,
-[D]She's the modern combination called the [G]Wabash Cannonball."
-{end_of_verse}
-
-{start_of_verse: Verse 3}
-Now the [G]Eastern states are dandy, so [C]all the people say,
-From [D]New York to Saint Louis and [G]Chicago by the way,
-From the [G]lakes of Minnehaha where the [C]laughing waters fall,
-No [D]change in standard gauging on the [G]Wabash Cannonball.
+[D7]She's the modern combination called the [G]Wabash Cannonball."
 {end_of_verse}
 
 {start_of_chorus}
 [G]So listen to the jingle, the [C]jumble and the roar,
-As she [D]glides along the woodlands, through the hills and by the [G]shore,
+As she [D7]glides along the woodlands, through the hills and by the [G]shore,
 [G]Hear the mighty rush of the engine, and the [C]lonesome hoboes squall,
-While [D]riding through the jungle on the [G]Wabash Cannonball.
+While [D7]riding through the jungle on the [G]Wabash Cannonball.
 {end_of_chorus}
+
+{comment: 3 · Instrumental close — section 3 as written, then end the whole song on section 2.}
