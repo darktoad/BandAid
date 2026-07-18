@@ -260,10 +260,9 @@
     controller.setBarsPerRow(bpr);
   }
 
-  // Debounced viewport re-fit (rotation, window resize, split-screen) while Fit is on.
-  // Never while the settings sheet is open: inline (wide-screen) the sheet shrinks the
-  // stage, and fitToView closes the sheet — auto-refitting would slam it shut as it
-  // opens. Gated on didInitialFit so the load sequence's own fit (onRender) runs first.
+  // Debounced viewport re-fit (rotation, window resize, split-screen, the inline
+  // settings sheet opening/closing) while Fit is on. Gated on didInitialFit so the
+  // load sequence's own fit (onRender) runs first.
   let fitDebounce: ReturnType<typeof setTimeout> | undefined;
   let lastStageSize = '';
   onMount(() => {
@@ -275,12 +274,12 @@
       if (size === lastStageSize) return;
       const initialObserve = lastStageSize === '';
       lastStageSize = size;
-      if (initialObserve || !fitOn || !didInitialFit || showMore) return;
+      if (initialObserve || !fitOn || !didInitialFit) return;
       clearTimeout(fitDebounce);
       // Re-check at fire time: a slider drag inside the debounce window releases Fit,
       // and the pending re-fit must not snatch control back.
       fitDebounce = setTimeout(() => {
-        if (fitOn && !showMore) void fitToView();
+        if (fitOn) void fitToView();
       }, 200);
     });
     if (stageEl) ro.observe(stageEl);
@@ -614,11 +613,11 @@
   // from the current render's row height, take the one that fits at the largest scale
   // (min 75% for legibility — below that the tune stays multi-page and the paged
   // auto-turn covers it), then verify against the real render and trim if the estimate
-  // ran long. Closes the settings sheet first: inline (wide-screen) it eats stage
-  // height, and fitting to the reduced viewport would undersize the tune.
+  // ran long. Fits to the stage as it currently is: with the inline (wide-screen)
+  // sheet open that means the reduced viewport, and the ResizeObserver re-fits when
+  // the sheet closes — keeping the Fit button in place instead of vanishing with the
+  // sheet it lives in.
   async function fitToView() {
-    showMore = false;
-    await tick(); // let the sheet leave the layout before measuring
     const scroller = renderScrollEl;
     if (!scroller || !controller || measureCount <= 0) return;
     // Measure the notation surface itself: the scroller's scrollHeight is floored at its
