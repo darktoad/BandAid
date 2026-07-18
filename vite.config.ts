@@ -71,7 +71,10 @@ export default defineConfig(({ command }) => ({
   // GitHub Pages serves this project repo under /BandAid/ — the path is
   // case-sensitive and must match the repo name exactly. The production build
   // carries that prefix (and import.meta.env.BASE_URL with it); dev stays at /.
-  base: command === 'build' ? '/BandAid/' : '/',
+  // BASE_PATH (must end in '/') overrides it for channel builds — the deploy
+  // workflow builds the `beta` branch with BASE_PATH=/BandAid/beta/ so both
+  // channels share one origin (and thus IndexedDB/localStorage).
+  base: command === 'build' ? (process.env.BASE_PATH ?? '/BandAid/') : '/',
   // A per-build id, appended as ?v=... to the runtime-fetched assets that GitHub
   // Pages caches (library.json + the song MusicXML). Content-hashed JS/CSS bust
   // themselves; these mutable files otherwise serve stale for ~10 min after a deploy.
