@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, beta]
   workflow_dispatch:
 
 permissions:
@@ -20,6 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Stable always builds from main — even when a beta push triggered this run.
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -32,6 +35,33 @@ jobs:
           # prints the worker's *.workers.dev host. Omitted/empty: the app still
           # builds and runs local+P2P only (no error), it just skips PartyServer sync.
           VITE_SYNC_HOST: ${{ secrets.VITE_SYNC_HOST }}
+      # Beta channel: when a `beta` branch exists it deploys under /BandAid/beta/ on
+      # the same origin — same IndexedDB/localStorage/Yjs data as stable, so schema
+      # changes on beta must stay additive. No beta branch → stable-only, as before.
+      - name: Check for beta branch
+        id: beta
+        run: |
+          if git ls-remote --exit-code --heads origin beta > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.beta.outputs.exists == 'true'
+        with:
+          ref: beta
+          path: beta-src
+      - name: Build beta channel
+        if: steps.beta.outputs.exists == 'true'
+        working-directory: beta-src
+        env:
+          BASE_PATH: /BandAid/beta/
+          VITE_SYNC_HOST: ${{ secrets.VITE_SYNC_HOST }}
+        run: |
+          npm ci
+          npm run build
+          mkdir -p "$GITHUB_WORKSPACE/dist/beta"
+          cp -r dist/. "$GITHUB_WORKSPACE/dist/beta/"
       - uses: actions/configure-pages@v5
         with:
           # Auto-enable Pages with the "GitHub Actions" source on first run,
