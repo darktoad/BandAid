@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readBandName, saveBandName, bandRoomCode, DEFAULT_BAND_NAME } from './bandCode';
+import { readBandName, saveBandName, bandRoomCode, hasSavedBandName, DEFAULT_BAND_NAME } from './bandCode';
 
 function fakeStorage(seed: Record<string, string> = {}) {
   const m = new Map(Object.entries(seed));
@@ -33,6 +33,26 @@ describe('saveBandName', () => {
   it('falls back to the default on blank input', () => {
     const s = fakeStorage();
     expect(saveBandName('   ', s)).toBe(DEFAULT_BAND_NAME);
+  });
+});
+
+describe('hasSavedBandName', () => {
+  it('is false on a fresh install (default name is not "configured")', () => {
+    const s = fakeStorage();
+    expect(hasSavedBandName(s)).toBe(false);
+    // Reading the (default) name does not configure anything.
+    readBandName('', s);
+    expect(hasSavedBandName(s)).toBe(false);
+  });
+
+  it('is true after an explicit save, and after a ?band= link (which persists)', () => {
+    const a = fakeStorage();
+    saveBandName('Rhythm Cats', a);
+    expect(hasSavedBandName(a)).toBe(true);
+
+    const b = fakeStorage();
+    readBandName('?band=rhythm-cats', b); // links write the key by design
+    expect(hasSavedBandName(b)).toBe(true);
   });
 });
 
