@@ -25,6 +25,17 @@ describe('bundled library manifest', () => {
     }
   });
 
+  it('rehearsal set matches the gig running order', () => {
+    const rehearsal = m.setLists.find((l) => l.id === 'rehearsal-set');
+    expect(rehearsal).toBeDefined();
+    expect(rehearsal!.entries.map((e) => e.songId)).toEqual([
+      'east-tennessee-blues',
+      'stones-rag',
+      'old-blue',
+      'wabash-cannonball',
+    ]);
+  });
+
   it('set-list variant references resolve to declared variants', () => {
     const byId = new Map(m.songs.map((s) => [s.id, s]));
     for (const list of m.setLists) {

@@ -120,16 +120,16 @@
       "name": "Rehearsal Set",
       "entries": [
         {
-          "songId": "stones-rag"
-        },
-        {
           "songId": "east-tennessee-blues"
         },
         {
-          "songId": "wabash-cannonball"
+          "songId": "stones-rag"
         },
         {
           "songId": "old-blue"
+        },
+        {
+          "songId": "wabash-cannonball"
         }
       ]
     }
