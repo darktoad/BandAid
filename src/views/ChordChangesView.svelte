@@ -17,7 +17,7 @@
   import { prefersFlats, transposeChordLabel, transposeNote } from '../chords/transposeChord';
   import SyncBadge from '../sync/SyncBadge.svelte';
   import type { SyncTone } from '../sync/syncStatusLabel';
-  import { MIN_FIT_SCALE, planFit, planWrittenFit } from './fitPlan';
+  import { MAX_FIT_SCALE, MIN_FIT_SCALE, planFit, planWrittenFit } from './fitPlan';
 
   /**
    * Chord-Changes-in-Time view (M1). A presentation template over the unified music
@@ -625,41 +625,75 @@
     const contentH = scroller.firstElementChild?.getBoundingClientRect().height ?? 0;
     const viewH = scroller.clientHeight;
     if (contentH <= 0 || viewH <= 0) return;
-    if (rowsAsWritten) {
-      // Engraved breaks own the rows; scale is the single lever. Height tracks scale
-      // near-linearly (fixed row count), so plan once, then verify and trim.
-      let s = planWrittenFit(viewH, contentH * (100 / scalePct));
-      while (s !== scalePct) {
-        scalePct = s;
-        const rendered = nextRender();
-        controller.setScale(s / 100);
-        await rendered;
-        if (scroller.scrollHeight <= scroller.clientHeight || s <= MIN_FIT_SCALE) break;
-        s = Math.max(MIN_FIT_SCALE, s - 5);
+    const fits = () => scroller.scrollHeight <= scroller.clientHeight;
+    const renderAt = async (apply: () => void) => {
+      const rendered = nextRender();
+      apply();
+      await rendered;
+    };
+    // Land on the LARGEST 5%-grid scale whose REAL render fits the view: walk down
+    // while it overflows, then probe one step up while there's room (reverting the
+    // probe that overflows). The endpoint — max{s : rendered height ≤ view} — doesn't
+    // depend on where the walk started, which is what makes Fit deterministic even
+    // where height is a step function of scale: rendered height is NOT linear in
+    // scale, because rows that outgrow the viewport width get wrapped (most visibly
+    // in "as written" mode, where an engraved 4-bar row can wrap into 2). A one-shot
+    // linear estimate measured from the current render lands somewhere different per
+    // starting state — the repeated-toggle drift the band hit.
+    const settle = async (s: number, apply: (s: number) => void): Promise<void> => {
+      // Bounded by the 5% grid; the cap only guards against a pathological renderer.
+      let guard = 2 * (MAX_FIT_SCALE - MIN_FIT_SCALE) / 5;
+      while (guard-- > 0) {
+        if (!fits() && s > MIN_FIT_SCALE) {
+          s -= 5;
+          scalePct = s;
+          await renderAt(() => apply(s));
+          continue;
+        }
+        if (fits() && s < MAX_FIT_SCALE) {
+          const up = s + 5;
+          scalePct = up;
+          await renderAt(() => apply(up));
+          if (fits()) {
+            s = up;
+            continue;
+          }
+          scalePct = s;
+          await renderAt(() => apply(s)); // revert the probe that overflowed
+          if (fits()) break; // stable endpoint: largest grid scale that fits
+          continue; // revert overflowed too (renderer wobble) — resume walking down
+        }
+        break; // at a bound, or settled
       }
+    };
+    if (rowsAsWritten) {
+      // Engraved breaks own the rows; scale is the single lever. The planner's linear
+      // estimate is just the walk's starting point.
+      const s0 = planWrittenFit(viewH, contentH * (100 / scalePct));
+      if (s0 !== scalePct) {
+        scalePct = s0;
+        await renderAt(() => controller!.setScale(s0 / 100));
+      }
+      await settle(s0, (s) => controller!.setScale(s / 100));
       return;
     }
     // Normalize the measured row height to 100% scale — the planner must not see the
     // current scale, or the result would depend on how the player got here.
     const rowH100 = (contentH / Math.ceil(measureCount / barsPerRow)) * (100 / scalePct);
     const base = pickBarsPerRow(lastStageWidth || stageEl?.clientWidth || 0, measureCount);
-    let { barsPerRow: bestN, scalePct: bestS } = planFit({
+    const { barsPerRow: bestN, scalePct: bestS } = planFit({
       measureCount,
       viewH,
       rowH100,
       baseBarsPerRow: base,
     });
-    while (bestN !== barsPerRow || bestS !== scalePct) {
+    if (bestN !== barsPerRow || bestS !== scalePct) {
       barsPerRow = bestN; // the overlay mirrors the notation 1:1
       lastBarsPerRow = bestN;
       scalePct = bestS;
-      const rendered = nextRender();
-      controller.setLayout(bestN, bestS / 100);
-      await rendered;
-      // Estimate ran long (row heights shift with density): trim a step and re-verify.
-      if (scroller.scrollHeight <= scroller.clientHeight || bestS <= MIN_FIT_SCALE) break;
-      bestS = Math.max(MIN_FIT_SCALE, bestS - 5);
+      await renderAt(() => controller!.setLayout(bestN, bestS / 100));
     }
+    await settle(bestS, (s) => controller!.setLayout(bestN, s / 100));
   }
   // Return to the top of the tune (a synced seek: the band jumps with you).
   function returnToStart() {

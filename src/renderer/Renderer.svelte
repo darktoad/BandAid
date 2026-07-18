@@ -57,6 +57,11 @@
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
+    /* Reserve the scrollbar's space even when nothing overflows: a classic scrollbar
+       appearing/disappearing changes the content width, which re-wraps rows and changes
+       the content HEIGHT — a feedback loop that makes "does this scale fit?" depend on
+       the previous render (Fit's repeated-toggle drift). A constant width breaks it. */
+    scrollbar-gutter: stable;
     background: #faf7f2;
   }
   .render-surface {
