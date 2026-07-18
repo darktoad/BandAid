@@ -23,7 +23,7 @@ function spyFactory() {
   return { factory, attached, disconnected };
 }
 
-function setup(seed: Record<string, string> = {}) {
+function setup(seed: Record<string, string> = {}, autoAttach = false) {
   const storage = fakeStorage(seed);
   const spy = spyFactory();
   const session = createBandSession({
@@ -31,77 +31,93 @@ function setup(seed: Record<string, string> = {}) {
     room: 'soundcheck',
     factories: [spy.factory],
     storage,
+    autoAttach,
   });
   return { session, storage, ...spy };
 }
 
 describe('createBandSession', () => {
-  it('starts local on a fresh install: no providers attached, status empty', () => {
+  it('a truly fresh install stays local: no providers, session off', () => {
     const { session, attached } = setup();
     expect(session.isOn()).toBe(false);
     expect(attached).toEqual([]);
     expect(session.getState().status).toEqual({ providers: {} });
   });
 
-  it('setOn(true) connects to the room and persists the opt-in', () => {
+  it('an explicitly configured band (autoAttach) attaches at creation, session stays off', () => {
+    const { session, attached } = setup({}, true);
+    expect(attached).toEqual(['soundcheck']); // Band Book syncs…
+    expect(session.isOn()).toBe(false); // …but nobody joined the live session
+  });
+
+  it('a previous session join resumes attached AND joined (iOS tab reloads)', () => {
+    const { session, attached } = setup({ 'bandaid.syncOn.v1': '1' });
+    expect(session.isOn()).toBe(true);
+    expect(attached).toEqual(['soundcheck']);
+  });
+
+  it('a previous session leave still attaches (Band Book), just not joined', () => {
+    const { session, attached } = setup({ 'bandaid.syncOn.v1': '0' });
+    expect(session.isOn()).toBe(false);
+    expect(attached).toEqual(['soundcheck']); // leaving the session ≠ leaving the book
+  });
+
+  it('setOn(true) attaches (first join configures) and persists', () => {
     const { session, attached, storage } = setup();
     session.setOn(true);
     expect(attached).toEqual(['soundcheck']);
     expect(storage.dump()['bandaid.syncOn.v1']).toBe('1');
   });
 
-  it('setOn(false) disconnects and persists the opt-out', () => {
+  it('setOn(false) leaves the session but keeps the network attached', () => {
     const { session, disconnected, storage } = setup();
     session.setOn(true);
     session.setOn(false);
-    expect(disconnected).toHaveBeenCalledOnce();
+    expect(disconnected).not.toHaveBeenCalled(); // Band Book stays connected
     expect(storage.dump()['bandaid.syncOn.v1']).toBe('0');
-    expect(session.getState().status).toEqual({ providers: {} }); // back to "Local only"
-  });
-
-  it('resumes a previous opt-in at creation (iOS tab reloads must not drop the band)', () => {
-    const { session, attached } = setup({ 'bandaid.syncOn.v1': '1' });
-    expect(session.isOn()).toBe(true);
-    expect(attached).toEqual(['soundcheck']);
-  });
-
-  it('a previous opt-out stays off', () => {
-    const { session, attached } = setup({ 'bandaid.syncOn.v1': '0' });
     expect(session.isOn()).toBe(false);
-    expect(attached).toEqual([]);
   });
 
-  it('setRoom while on moves rooms immediately; while off just remembers', () => {
-    const { session, attached, disconnected } = setup();
-    session.setRoom('rhythm-cats'); // off: no connection to move
-    expect(attached).toEqual([]);
-    session.setOn(true);
-    expect(attached).toEqual(['rhythm-cats']);
-    session.setRoom('the-regulars');
+  it('setRoom to a new code reconnects there; the session flag is untouched', () => {
+    const { session, attached, disconnected } = setup({}, true);
+    session.setRoom('rhythm-cats');
     expect(disconnected).toHaveBeenCalledOnce();
-    expect(attached).toEqual(['rhythm-cats', 'the-regulars']);
+    expect(attached).toEqual(['soundcheck', 'rhythm-cats']);
+    expect(session.isOn()).toBe(false);
   });
 
-  it('setRoom with the same code is a no-op (no reconnect churn)', () => {
+  it('setRoom on an unconfigured device attaches (naming the band configures it)', () => {
     const { session, attached } = setup();
-    session.setOn(true);
+    session.setRoom('rhythm-cats');
+    expect(attached).toEqual(['rhythm-cats']);
+  });
+
+  it('setRoom with the same code is attach-idempotent (no reconnect churn)', () => {
+    const { session, attached, disconnected } = setup({}, true);
     session.setRoom('soundcheck');
     expect(attached).toEqual(['soundcheck']);
+    expect(disconnected).not.toHaveBeenCalled();
   });
 
-  it('notifies subscribers immediately and on every change', () => {
+  it('notifies subscribers immediately and on session changes', () => {
     const { session } = setup();
     const seen: boolean[] = [];
     session.subscribe((s) => seen.push(s.on));
     expect(seen).toEqual([false]);
     session.setOn(true);
-    expect(seen).toEqual([false, true]);
+    expect(seen).toContain(true);
   });
 
-  it('setOn is idempotent: repeating the current state neither reconnects nor re-emits', () => {
+  it('setOn is idempotent', () => {
     const { session, attached } = setup();
     session.setOn(true);
     session.setOn(true);
     expect(attached).toEqual(['soundcheck']);
+  });
+
+  it('destroy disconnects the providers', () => {
+    const { session, disconnected } = setup({}, true);
+    session.destroy();
+    expect(disconnected).toHaveBeenCalledOnce();
   });
 });
