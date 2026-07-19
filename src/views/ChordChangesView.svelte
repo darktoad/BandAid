@@ -355,7 +355,12 @@
         if (fitOn) void fitToView();
       }, 200);
     });
-    if (stageEl) ro.observe(stageEl);
+    // Observe the notation's own box, not the stage: with the lyrics pane open the
+    // stage keeps its width but the notation loses a chunk of it, and bars-per-row +
+    // fit must react to the box the music actually renders in. (Height signals —
+    // sheet, collapse — reach this box identically.)
+    const observed = renderScrollEl ?? stageEl;
+    if (observed) ro.observe(observed);
     return () => {
       ro.disconnect();
       clearTimeout(fitDebounce);
@@ -521,6 +526,8 @@
     if (stageEl) applyResponsiveLayout(stageEl.clientWidth);
     // Saved "as written" pref: re-apply the engraved breaks the renderer cleared at load.
     if (rowsAsWritten) c.setEngravedBreaks(true, barsPerRow);
+    // The split pane resumes open across reloads — its lyrics must load with the song.
+    if (rehearsalView && lyricsPane) void ensureLyricsLoaded();
   }
 
   // Melody alone, or melody + the player's part stacked (one player → synced cursors).
@@ -560,10 +567,9 @@
   let lyricsReturnFocus: HTMLElement | null = null;
   const focusOnMount = (el: HTMLElement) => el.focus();
 
-  async function openLyrics() {
-    lyricsReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    lyricsOpen = true;
-    // The note renders immediately from the manifest; only lyrics need a fetch, and only once.
+  // The note renders immediately from the manifest; only lyrics need a fetch, and only
+  // once — shared by the classic modal and the rehearsal split pane.
+  async function ensureLyricsLoaded() {
     if (!song.lyricsUrl || lyricsSheet || lyricsLoading) return;
     lyricsLoading = true;
     lyricsError = null;
@@ -577,6 +583,117 @@
       lyricsLoading = false;
     }
   }
+  async function openLyrics() {
+    lyricsReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    lyricsOpen = true;
+    void ensureLyricsLoaded();
+  }
+
+  // Split view (spec Part 4): the lyrics/banter sheet beside (landscape) or under
+  // (portrait) the notation. Personal + persisted. In classic view the lyrics button
+  // keeps opening the full-screen modal instead.
+  let lyricsPane = $state(loadLyricsPanePref());
+  function loadLyricsPanePref(): boolean {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem('bandaid.lyricsPane') === '1';
+    } catch {
+      return false;
+    }
+  }
+  function toggleLyricsPane() {
+    lyricsPane = !lyricsPane;
+    if (lyricsPane) void ensureLyricsLoaded();
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem('bandaid.lyricsPane', lyricsPane ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Pane split: the fraction of the panes box the LYRICS pane gets. Draggable via the
+  // splitter; clamped so neither pane collapses; remembered separately per orientation
+  // (a good side-by-side width is not a good stacked height). ONE source of truth for
+  // orientation — a window listener driving both the layout class and the ratio — so
+  // CSS and JS can never disagree (a media query + separate matchMedia can).
+  let isLandscape = $state(typeof window === 'undefined' || window.innerWidth > window.innerHeight);
+  onMount(() => {
+    const onOrient = () => (isLandscape = window.innerWidth > window.innerHeight);
+    window.addEventListener('resize', onOrient);
+    return () => window.removeEventListener('resize', onOrient);
+  });
+  function loadSplit(key: string, fallback: number): number {
+    try {
+      const v = Number(typeof localStorage !== 'undefined' ? localStorage.getItem(key) : NaN);
+      return v >= 0.25 && v <= 0.6 ? v : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  let splitLandscape = $state(loadSplit('bandaid.paneSplit.landscape', 0.36));
+  let splitPortrait = $state(loadSplit('bandaid.paneSplit.portrait', 0.42));
+  let splitFrac = $derived(isLandscape ? splitLandscape : splitPortrait);
+  let panesEl = $state<HTMLElement | undefined>(undefined);
+  function startSplitDrag(e: PointerEvent) {
+    const panes = panesEl;
+    if (!panes) return;
+    e.preventDefault();
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      /* pointer already gone (e.g. synthetic events) — window listeners still track */
+    }
+    const move = (ev: PointerEvent) => {
+      const r = panes.getBoundingClientRect();
+      const frac = isLandscape ? (r.right - ev.clientX) / r.width : (r.bottom - ev.clientY) / r.height;
+      const clamped = Math.min(0.6, Math.max(0.25, frac));
+      if (isLandscape) splitLandscape = clamped;
+      else splitPortrait = clamped;
+    };
+    const up = () => {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('bandaid.paneSplit.landscape', String(splitLandscape));
+          localStorage.setItem('bandaid.paneSplit.portrait', String(splitPortrait));
+        }
+      } catch {
+        /* ignore */
+      }
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+
+  // Fit-to-pane: the WHOLE ChordPro sheet shrinks into the pane — no mid-song
+  // scrolling (spec Part 4). Content width equals pane width (block layout), so
+  // height is the binding dimension; re-runs on pane/content resize (orientation,
+  // splitter drag, key change reflowing chords).
+  let paneEl = $state<HTMLElement | undefined>(undefined);
+  let paneContentEl = $state<HTMLElement | undefined>(undefined);
+  let paneZoom = $state(1);
+  $effect(() => {
+    // Direct deps alongside the ResizeObserver: the sheet arriving/transposing and the
+    // splitter/orientation/collapse all change the boxes, and effects run after the DOM
+    // update — so the measure below sees the new layout even before the RO fires.
+    void displaySheet;
+    void lyricsLoading;
+    void splitFrac;
+    void isLandscape;
+    void barsCollapsed;
+    const pane = paneEl;
+    const content = paneContentEl;
+    if (!pane || !content) {
+      paneZoom = 1;
+      return;
+    }
+    const compute = () => (paneZoom = pageScale(pane.clientWidth, pane.clientHeight, content.offsetWidth, content.offsetHeight));
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(pane);
+    ro.observe(content);
+    return () => ro.disconnect();
+  });
   const closeLyrics = () => {
     lyricsOpen = false;
     lyricsReturnFocus?.focus();
@@ -835,7 +952,7 @@
     </select>
   {/if}
   {#if song.notes || song.lyricsUrl}
-    <button class="iconbtn" onclick={openLyrics} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
+    <button class="iconbtn" class:active={rehearsalView && lyricsPane} onclick={() => (rehearsalView ? toggleLyricsPane() : openLyrics())} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="9" /><line x1="12" y1="11" x2="12" y2="16" /><circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none" />
       </svg>
@@ -1063,7 +1180,7 @@
   <div class="error">Renderer error: {errorMsg}</div>
 {/if}
 
-<main class="stage" bind:this={stageEl}>
+<main class="stage" class:split={rehearsalView && lyricsPane} bind:this={stageEl}>
   {#if showMasthead}
     <!-- Our own deduped masthead (alphaTab's title block is suppressed): the crucial
          fields only — title, and composer when present. Key/tempo live in the header. -->
@@ -1072,23 +1189,45 @@
       {#if composer}<div class="mh-sub">{composer}</div>{/if}
     </div>
   {/if}
-  <div class="render-wrap">
-    <Renderer
-      musicXmlUrl={song.url}
-      bind:scrollEl={renderScrollEl}
-      bind:surfaceEl={renderSurfaceEl}
-      pageZoom={rehearsalView ? (manualZoom ?? (fitOn ? pageZoom : 1)) : 1}
-      bareScroll={rehearsalView}
-      onready={onReady}
-      onposition={(b) => setBar(b)}
-      onplaying={(p) => (playing = p)}
-      onplayable={() => {
-        canPlay = true;
-        applyAudio(); // re-assert volumes now the synth is ready (not just at score load)
-        wireFollower();
-      }}
-      onerror={(e) => (errorMsg = e.message)}
-    />
+  <div class="panes" class:landscape={isLandscape} bind:this={panesEl}>
+    <div class="render-wrap">
+      <Renderer
+        musicXmlUrl={song.url}
+        bind:scrollEl={renderScrollEl}
+        bind:surfaceEl={renderSurfaceEl}
+        pageZoom={rehearsalView ? (manualZoom ?? (fitOn ? pageZoom : 1)) : 1}
+        bareScroll={rehearsalView}
+        onready={onReady}
+        onposition={(b) => setBar(b)}
+        onplaying={(p) => (playing = p)}
+        onplayable={() => {
+          canPlay = true;
+          applyAudio(); // re-assert volumes now the synth is ready (not just at score load)
+          wireFollower();
+        }}
+        onerror={(e) => (errorMsg = e.message)}
+      />
+    </div>
+    {#if rehearsalView && lyricsPane}
+      <div
+        class="splitter"
+        role="separator"
+        aria-orientation={isLandscape ? 'vertical' : 'horizontal'}
+        aria-label="Resize lyrics pane"
+        onpointerdown={startSplitDrag}
+      ></div>
+      <aside class="lyrics-pane" bind:this={paneEl} style:flex-basis={`${splitFrac * 100}%`} aria-label="Lyrics and notes">
+        <div class="pane-content" bind:this={paneContentEl} style:transform={paneZoom < 1 ? `scale(${paneZoom})` : undefined}>
+          {#if lyricsError}
+            <p class="lyrics-msg">{lyricsError}</p>
+          {:else if lyricsLoading && !lyricsSheet}
+            <p class="lyrics-msg">Loading…</p>
+          {:else}
+            <LyricsSheet note={song.notes} sheet={displaySheet ?? undefined} />
+          {/if}
+        </div>
+      </aside>
+    {/if}
   </div>
 </main>
 
@@ -1344,7 +1483,41 @@
   }
 
   .stage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .render-wrap { flex: 1 1 auto; min-height: 0; }
+  .panes {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column; /* portrait: notation over lyrics */
+  }
+  .render-wrap { flex: 1 1 auto; min-height: 0; min-width: 0; }
+  .lyrics-pane {
+    flex: 0 0 42%;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden; /* fit-to-pane means never scroll */
+    background: var(--panel);
+    padding: 0.6rem 0.8rem;
+  }
+  .pane-content { transform-origin: top center; }
+  /* The splitter: a thin visible grip with a fat touch target.
+     touch-action none — dragging it must never scroll the page. */
+  .splitter {
+    flex: 0 0 10px;
+    touch-action: none;
+    cursor: row-resize;
+    background: linear-gradient(to bottom, transparent 4px, var(--line) 4px, var(--line) 6px, transparent 6px);
+  }
+  .splitter:hover {
+    background: linear-gradient(to bottom, transparent 4px, var(--accent) 4px, var(--accent) 6px, transparent 6px);
+  }
+  .stage.split .panes.landscape { flex-direction: row; }
+  .stage.split .panes.landscape .splitter {
+    cursor: col-resize;
+    background: linear-gradient(to right, transparent 4px, var(--line) 4px, var(--line) 6px, transparent 6px);
+  }
+  .stage.split .panes.landscape .splitter:hover {
+    background: linear-gradient(to right, transparent 4px, var(--accent) 4px, var(--accent) 6px, transparent 6px);
+  }
 
   /* Minimal chart masthead above the music (alphaTab's own title is suppressed). */
   .masthead {
