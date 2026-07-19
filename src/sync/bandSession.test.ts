@@ -23,7 +23,31 @@ function spyFactory() {
   return { factory, attached, disconnected };
 }
 
-function setup(seed: Record<string, string> = {}, autoAttach = false) {
+function fakeAwareness() {
+  const states = new Map<number, Record<string, unknown>>();
+  const listeners = new Set<() => void>();
+  return {
+    setLocalStateField(field: string, value: unknown) {
+      states.set(1, { ...(states.get(1) ?? {}), [field]: value });
+      listeners.forEach((l) => l());
+    },
+    getStates: () => states,
+    on: (_e: 'change', cb: () => void) => void listeners.add(cb),
+    off: (_e: 'change', cb: () => void) => void listeners.delete(cb),
+    /** Test helper: a remote device's awareness state landing/leaving. */
+    setRemote(id: number, state: Record<string, unknown> | null) {
+      if (state === null) states.delete(id);
+      else states.set(id, state);
+      listeners.forEach((l) => l());
+    },
+  };
+}
+
+function setup(
+  seed: Record<string, string> = {},
+  autoAttach = false,
+  awareness?: ReturnType<typeof fakeAwareness>,
+) {
   const storage = fakeStorage(seed);
   const spy = spyFactory();
   const session = createBandSession({
@@ -32,6 +56,7 @@ function setup(seed: Record<string, string> = {}, autoAttach = false) {
     factories: [spy.factory],
     storage,
     autoAttach,
+    awareness,
   });
   return { session, storage, ...spy };
 }
@@ -119,5 +144,52 @@ describe('createBandSession', () => {
     const { session, disconnected } = setup({}, true);
     session.destroy();
     expect(disconnected).toHaveBeenCalledOnce();
+  });
+});
+
+describe('session count (awareness)', () => {
+  it('publishes the joined flag on join and leave', () => {
+    const aw = fakeAwareness();
+    const { session } = setup({}, false, aw);
+    expect(aw.getStates().get(1)).toEqual({ session: { joined: false } });
+    session.setOn(true);
+    expect(aw.getStates().get(1)).toEqual({ session: { joined: true } });
+    session.setOn(false);
+    expect(aw.getStates().get(1)).toEqual({ session: { joined: false } });
+  });
+
+  it('counts every device whose awareness says joined, self included', () => {
+    const aw = fakeAwareness();
+    const { session } = setup({}, false, aw);
+    expect(session.getState().sessionCount).toBe(0);
+    session.setOn(true);
+    expect(session.getState().sessionCount).toBe(1); // just this device
+    aw.setRemote(2, { session: { joined: true } });
+    expect(session.getState().sessionCount).toBe(2); // the band is in
+    aw.setRemote(3, { session: { joined: false } }); // online, not joined
+    expect(session.getState().sessionCount).toBe(2);
+  });
+
+  it('emits to subscribers when a remote device joins or leaves the session', () => {
+    const aw = fakeAwareness();
+    const { session } = setup({}, false, aw);
+    const counts: number[] = [];
+    session.subscribe((s) => counts.push(s.sessionCount));
+    aw.setRemote(2, { session: { joined: true } });
+    aw.setRemote(2, null); // device gone (awareness expiry)
+    expect(counts).toContain(1);
+    expect(counts.at(-1)).toBe(0);
+  });
+
+  it('a resumed session join publishes joined at creation', () => {
+    const aw = fakeAwareness();
+    setup({ 'bandaid.syncOn.v1': '1' }, false, aw);
+    expect(aw.getStates().get(1)).toEqual({ session: { joined: true } });
+  });
+
+  it('works without awareness (count is just self-derived)', () => {
+    const { session } = setup();
+    session.setOn(true);
+    expect(session.getState().sessionCount).toBe(1);
   });
 });
