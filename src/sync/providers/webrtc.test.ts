@@ -29,9 +29,9 @@ function setup() {
 }
 
 describe('webrtcProvider status', () => {
-  it('starts connecting (no peers of either kind)', () => {
+  it('starts alone (attached and listening, no peers of either kind) — a steady state, not liminal', () => {
     const { p } = setup();
-    expect(p.getStatus!()).toBe('connecting');
+    expect(p.getStatus!()).toBe('alone');
   });
 
   it('a BroadcastChannel peer (another tab, same origin) counts as connected', () => {
@@ -42,20 +42,20 @@ describe('webrtcProvider status', () => {
     expect(p.getStatus!()).toBe('connected');
   });
 
-  it('a webrtc peer needs the sync handshake before counting', () => {
+  it('a webrtc peer mid-handshake is the one genuinely liminal state: connecting', () => {
     const { p, peers, synced } = setup();
     peers(['peer-1'], []);
-    expect(p.getStatus!()).toBe('connecting'); // found, not yet synced
+    expect(p.getStatus!()).toBe('connecting'); // found, sync handshake in flight
     synced(true);
     expect(p.getStatus!()).toBe('connected');
   });
 
-  it('falls back to connecting when the last peer of both kinds leaves', () => {
+  it('returns to alone when the last peer of both kinds leaves', () => {
     const { p, peers, synced } = setup();
     peers(['peer-1'], ['tab-b']);
     synced(true);
     expect(p.getStatus!()).toBe('connected');
     peers([], []);
-    expect(p.getStatus!()).toBe('connecting');
+    expect(p.getStatus!()).toBe('alone');
   });
 });

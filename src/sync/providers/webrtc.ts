@@ -20,9 +20,14 @@ export const webrtcProvider: ProviderFactory = (doc, bandCode) => {
   // handshake, per above) and BroadcastChannel peers — other TABS on this same origin,
   // which y-webrtc syncs directly with no signaling server or handshake event. A BC
   // peer is a genuinely synced doc, so it counts as connected on its own (and it's
-  // what two-tab dev verification sees).
-  const status = (): ConnectionStatus =>
-    (webrtcPeerCount > 0 && synced) || bcPeerCount > 0 ? 'connected' : 'connecting';
+  // what two-tab dev verification sees). No peers of either kind is 'alone' — the
+  // normal resting state of an attached room, NOT a connection in progress;
+  // 'connecting' is reserved for a found peer whose sync handshake is in flight.
+  const status = (): ConnectionStatus => {
+    if ((webrtcPeerCount > 0 && synced) || bcPeerCount > 0) return 'connected';
+    if (webrtcPeerCount > 0) return 'connecting';
+    return 'alone';
+  };
   return {
     name: 'webrtc',
     disconnect: () => p.destroy(),
