@@ -106,6 +106,15 @@ export default defineConfig(({ command }) => ({
   // alphaTab uses a web worker + audio worklet; keep them un-inlined and served.
   optimizeDeps: {
     exclude: ['@coderline/alphatab'],
+    // Pre-declare the awareness protocol: Vite's dep scanner misses it inside the
+    // .svelte import graph, and a mid-session re-optimize serves TWO yjs module
+    // instances (the "Yjs was already imported" console error — breaks instanceof
+    // checks in dev). Listing it keeps the whole yjs graph in one optimized pass.
+    include: ['yjs', 'y-protocols/awareness'],
+  },
+  // Belt & braces for the same class of bug: always resolve a single yjs copy.
+  resolve: {
+    dedupe: ['yjs'],
   },
   server: {
     port: 5173,

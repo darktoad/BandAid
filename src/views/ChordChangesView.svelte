@@ -43,6 +43,7 @@
     // (playback + song follow).
     sync: {
       on: boolean;
+      sessionCount: number; // devices in the live session (self included when joined)
       bandName: string;
       summary: { label: string; tone: SyncTone };
       toggle: () => void;
@@ -781,7 +782,7 @@
           aria-pressed={sync.on}
           onclick={sync.toggle}
           title="Follow the band's song switches and playback together — set lists, keys and tempos sync on their own"
-        >{sync.on ? 'Joined' : 'Join'}</button>
+        >{sync.on ? (sync.sessionCount > 1 ? `Joined · ${sync.sessionCount}` : 'Joined') : 'Join'}</button>
       </div>
       <SyncBadge summary={sync.summary} />
     </div>
