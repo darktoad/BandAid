@@ -13,16 +13,24 @@ import type { ConnectionStatus, ProviderFactory } from './types';
  */
 export const webrtcProvider: ProviderFactory = (doc, bandCode) => {
   const p = new WebrtcProvider(`bandaid-${bandCode}`, doc);
-  let peerCount = 0;
+  let webrtcPeerCount = 0;
+  let bcPeerCount = 0;
   let synced = false;
-  const status = (): ConnectionStatus => (peerCount > 0 && synced ? 'connected' : 'connecting');
+  // Two peer tiers: real WebRTC peers (other devices; count only after the Yjs sync
+  // handshake, per above) and BroadcastChannel peers — other TABS on this same origin,
+  // which y-webrtc syncs directly with no signaling server or handshake event. A BC
+  // peer is a genuinely synced doc, so it counts as connected on its own (and it's
+  // what two-tab dev verification sees).
+  const status = (): ConnectionStatus =>
+    (webrtcPeerCount > 0 && synced) || bcPeerCount > 0 ? 'connected' : 'connecting';
   return {
     name: 'webrtc',
     disconnect: () => p.destroy(),
     getStatus: status,
     onStatusChange: (cb) => {
-      const onPeers = ({ webrtcPeers }: { webrtcPeers: string[] }) => {
-        peerCount = webrtcPeers.length;
+      const onPeers = ({ webrtcPeers, bcPeers }: { webrtcPeers: string[]; bcPeers: string[] }) => {
+        webrtcPeerCount = webrtcPeers.length;
+        bcPeerCount = bcPeers.length;
         cb(status());
       };
       const onSynced = ({ synced: s }: { synced: boolean }) => {
