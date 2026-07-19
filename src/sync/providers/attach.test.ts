@@ -15,6 +15,17 @@ describe('attachProviders', () => {
     expect(d2).toHaveBeenCalledOnce();
   });
 
+  it('forwards the shared awareness instance to every factory', () => {
+    const seen: unknown[] = [];
+    const factory: ProviderFactory = (_doc, _code, awareness) => {
+      seen.push(awareness);
+      return { name: 'spy', disconnect: () => {} };
+    };
+    const fakeAwareness = { the: 'awareness' } as never;
+    attachProviders(new Y.Doc(), 'band', [factory], fakeAwareness);
+    expect(seen).toEqual([fakeAwareness]);
+  });
+
   it('skips a factory that throws and still attaches the others', () => {
     const doc = new Y.Doc();
     const ok = vi.fn();

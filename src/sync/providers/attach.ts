@@ -1,4 +1,5 @@
 import type * as Y from 'yjs';
+import type { Awareness } from 'y-protocols/awareness';
 import type { ConnectionStatus, ProviderFactory, SyncProvider } from './types';
 import { createChannel } from '../channel';
 export type { ConnectionStatus, ProviderFactory, SyncProvider } from './types';
@@ -20,7 +21,12 @@ export interface AttachedSync {
  * are synchronous and never gated on this — a provider stuck disconnected only means its
  * transport never ships updates; it can't block the app.
  */
-export function attachProviders(doc: Y.Doc, bandCode: string, factories: ProviderFactory[]): AttachedSync {
+export function attachProviders(
+  doc: Y.Doc,
+  bandCode: string,
+  factories: ProviderFactory[],
+  awareness?: Awareness,
+): AttachedSync {
   const built: SyncProvider[] = [];
   const current: Record<string, ConnectionStatus> = {};
   const unsubscribes: Array<() => void> = [];
@@ -29,7 +35,7 @@ export function attachProviders(doc: Y.Doc, bandCode: string, factories: Provide
   for (const make of factories) {
     let p: SyncProvider;
     try {
-      p = make(doc, bandCode);
+      p = make(doc, bandCode, awareness);
     } catch (e) {
       console.warn(`[sync] provider failed to attach, skipping:`, e);
       continue;
