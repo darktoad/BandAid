@@ -201,6 +201,26 @@
     saveFitPref();
   }
 
+  // Collapsed bars (spec Part 4, option a): manual only — NEVER driven by playback
+  // state. Personal, persisted so a gig device stays collapsed across reloads.
+  let barsCollapsed = $state(loadCollapsedPref());
+  function loadCollapsedPref(): boolean {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem('bandaid.barsCollapsed') === '1';
+    } catch {
+      return false;
+    }
+  }
+  function setBarsCollapsed(on: boolean) {
+    barsCollapsed = on;
+    if (on) showMore = false; // the sheet is part of the chrome being hidden
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem('bandaid.barsCollapsed', on ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  }
+
   // Masthead visibility is a local viewing preference (not song/session state).
   // Default hidden — the topbar already shows the title; the masthead is opt-in polish.
   function loadMastheadPref(): boolean {
@@ -768,7 +788,8 @@
   // Ignore Space when focused in a control.
   function onKeydown(e: KeyboardEvent) {
     if (e.code === 'Escape') {
-      if (lyricsOpen) closeLyrics();
+      if (rehearsalView && barsCollapsed) setBarsCollapsed(false);
+      else if (lyricsOpen) closeLyrics();
       else if (showMore) showMore = false;
       return;
     }
@@ -785,6 +806,9 @@
 
 <svelte:window onkeydown={onKeydown} />
 
+<!-- The whole chrome (topbar + transport + settings sheet) collapses in rehearsal
+     view — one manual toggle, never playback-driven; the corner button restores. -->
+{#if !(rehearsalView && barsCollapsed)}
 <!-- Top header: navigation and meta only — songs on the far left, the title, then
      info and the menu on the far right. Nothing here touches band state. -->
 <header class="topbar">
@@ -862,6 +886,12 @@
   <button class="pill" class:on={tempoModified} onclick={openSettings} disabled={!transport} title="Tempo">
     ♩ = {currentBpm}{#if tempoModified}<span class="dot">●</span>{/if}
   </button>
+
+  {#if rehearsalView}
+    <button class="iconbtn" onclick={() => setBarsCollapsed(true)} aria-label="Hide controls" title="Hide the control bars (Esc or the corner button brings them back)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,14 12,8 18,14" /></svg>
+    </button>
+  {/if}
 </div>
 
 <!-- Settings sheet (opened by the ☰, or the Key / Tempo pills). Inline on wide
@@ -1020,6 +1050,13 @@
       <span class="readout" title={__BUILD_TIME__}>{buildStamp}</span>
     </div>
   </div>
+{/if}
+{/if}
+
+{#if rehearsalView && barsCollapsed}
+  <button class="restore-bars" onclick={() => setBarsCollapsed(false)} aria-label="Show controls">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,10 12,16 18,10" /></svg>
+  </button>
 {/if}
 
 {#if errorMsg}
@@ -1235,6 +1272,30 @@
   /* The Fit pill signals its state with color too — its whole job in the transport
      strip is that disengaging (Size drag) is VISIBLE (spec Part 2 #4). */
   .pill.fit.on { color: var(--accent); }
+
+  /* Collapsed-chrome restore: the ONLY thing on screen besides the music. Small,
+     semi-transparent, corner placement per spec; above alphaTab cursors (z 1000). */
+  .restore-bars {
+    position: fixed;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1005;
+    width: 2.2rem;
+    height: 2.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+    opacity: 0.45;
+  }
+  .restore-bars:hover,
+  .restore-bars:focus-visible {
+    opacity: 1;
+  }
+  @media (pointer: coarse) {
+    .restore-bars { width: 2.75rem; height: 2.75rem; }
+  }
 
   /* Touch screens get full-size (≥44px) targets on the controls tapped mid-practice;
      pointer precision keeps the compact sizes on desktop. */
