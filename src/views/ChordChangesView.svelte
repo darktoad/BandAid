@@ -18,6 +18,7 @@
   import SyncBadge from '../sync/SyncBadge.svelte';
   import type { SyncTone } from '../sync/syncStatusLabel';
   import { MAX_FIT_SCALE, MIN_FIT_SCALE, planFit, planWrittenFit } from './fitPlan';
+  import { pageScale } from './pageScale';
 
   /**
    * Chord-Changes-in-Time view (M1). A presentation template over the unified music
@@ -137,6 +138,29 @@
     if (fitOn) void nextRender().then(() => fitToView());
   }
 
+  // Rehearsal view (spec Parts 3–4): page-mode Fit, split lyrics, collapsible bars.
+  // Default ON; 'classic' is the two-tap escape hatch. Personal, per device.
+  let rehearsalView = $state(loadRehearsalPref());
+  function loadRehearsalPref(): boolean {
+    try {
+      return typeof localStorage === 'undefined' || localStorage.getItem('bandaid.rehearsalView') !== 'classic';
+    } catch {
+      return true;
+    }
+  }
+  function setRehearsalView(on: boolean) {
+    if (on === rehearsalView) return;
+    rehearsalView = on;
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem('bandaid.rehearsalView', on ? 'on' : 'classic');
+    } catch {
+      /* ignore */
+    }
+    manualZoom = null;
+    // Re-establish the mode's own fit: classic walks renders; rehearsal just zooms.
+    if (fitOn) void fitToView();
+  }
+
   // Fit mode: keep the whole tune sized to the view. Band feedback, twice over — players
   // kept re-tapping Fit after each song switch, and the Auto-fit toggle that fixed it read
   // as a second competing concept next to the Fit button. One toggle now owns both jobs:
@@ -164,6 +188,7 @@
     }
   }
   function toggleFit() {
+    manualZoom = null; // tapping Fit clears any pinch zoom
     fitOn = !fitOn;
     saveFitPref();
     // Turning it on fits the current tune now, not just on the next load/resize.
@@ -220,6 +245,26 @@
 
   let stageEl: HTMLElement;
   let renderScrollEl = $state<HTMLDivElement | undefined>(undefined); // the notation's scroller
+  let renderSurfaceEl = $state<HTMLDivElement | undefined>(undefined); // the alphaTab surface
+  // Page-mode shrink (rehearsal view): recomputed from the latest render + viewport;
+  // 1 in classic view or with Fit off. manualZoom is a pinch override (ephemeral).
+  let pageZoom = $state(1);
+  let manualZoom = $state<number | null>(null);
+  function recomputePageZoom() {
+    const scroller = renderScrollEl;
+    const surface = renderSurfaceEl;
+    if (!rehearsalView || !fitOn || !scroller || !surface) {
+      pageZoom = 1;
+      return;
+    }
+    pageZoom = pageScale(scroller.clientWidth, scroller.clientHeight, surface.offsetWidth, surface.offsetHeight);
+  }
+  $effect(() => {
+    void renderTick; // every completed render can change the page's natural size
+    void fitOn;
+    void rehearsalView;
+    recomputePageZoom();
+  });
   let renderTick = $state(0); // bumped after every completed (re-)render — bounds are fresh
   // One-shot waiters for the next completed render (fit-to-view's verification pass).
   let renderResolvers: Array<() => void> = [];
@@ -278,6 +323,11 @@
       const initialObserve = lastStageSize === '';
       lastStageSize = size;
       if (initialObserve || !fitOn || !didInitialFit) return;
+      if (rehearsalView) {
+        // Page mode: a re-zoom is a cheap transform — no debounce, no render walk.
+        recomputePageZoom();
+        return;
+      }
       clearTimeout(fitDebounce);
       // Re-check at fire time: a slider drag inside the debounce window releases Fit,
       // and the pending re-fit must not snatch control back.
@@ -595,7 +645,7 @@
   // Current sounding tempo (BPM = the ♩ = N your charts show).
   let currentBpm = $derived(Math.round((tempoBpm * speedPct) / 100));
   function onScale(e: Event) {
-    releaseFit(); // dragging the slider is taking manual control
+    if (!rehearsalView) releaseFit(); // classic: dragging Size takes manual control
     scalePct = Number((e.target as HTMLInputElement).value);
     controller?.setScale(scalePct / 100);
   }
@@ -619,6 +669,12 @@
   // (wide-screen) sheet open that means the reduced viewport, and the
   // ResizeObserver re-fits when the sheet closes.
   async function fitToView() {
+    // Rehearsal view: Fit is a CSS transform over the engraved page — no render walk,
+    // cannot fail to fit, and Size (engraving scale) stays independent (spec Part 3).
+    if (rehearsalView) {
+      recomputePageZoom();
+      return;
+    }
     const scroller = renderScrollEl;
     if (!scroller || !controller || measureCount <= 0) return;
     // Measure the notation surface itself: the scroller's scrollHeight is floored at its
@@ -795,7 +851,9 @@
     aria-pressed={fitOn}
     onclick={toggleFit}
     disabled={!controller}
-    title="Keep the whole tune sized to the view — adjusting Size takes back manual control"
+    title={rehearsalView
+      ? 'Keep the whole page in view (Size adjusts engraving legibility independently)'
+      : 'Keep the whole tune sized to the view — adjusting Size takes back manual control'}
   >Fit</button>
 
   <button class="pill" class:on={transposeModified} onclick={openSettings} disabled={!controller} title="Key">
@@ -842,6 +900,16 @@
         aria-label="Band name"
       />
     </label>
+
+    <!-- The performance-view escape hatch (spec Part 5): Classic restores the pre-PR-3
+         experience in two taps. Personal, per device. -->
+    <div class="row">
+      <span class="label">View</span>
+      <div class="chips">
+        <button class:active={!rehearsalView} aria-pressed={!rehearsalView} onclick={() => setRehearsalView(false)}>Classic</button>
+        <button class:active={rehearsalView} aria-pressed={rehearsalView} onclick={() => setRehearsalView(true)}>Rehearsal</button>
+      </div>
+    </div>
 
     <div class="row">
       <span class="label">Title</span>
@@ -971,6 +1039,9 @@
     <Renderer
       musicXmlUrl={song.url}
       bind:scrollEl={renderScrollEl}
+      bind:surfaceEl={renderSurfaceEl}
+      pageZoom={rehearsalView ? (manualZoom ?? (fitOn ? pageZoom : 1)) : 1}
+      bareScroll={rehearsalView}
       onready={onReady}
       onposition={(b) => setBar(b)}
       onplaying={(p) => (playing = p)}
