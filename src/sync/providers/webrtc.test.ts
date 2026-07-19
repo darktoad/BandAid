@@ -5,8 +5,12 @@ import { webrtcProvider } from './webrtc';
 // Capture the event handlers the adapter registers so tests can drive y-webrtc's
 // 'peers' / 'synced' events without any real networking.
 const handlers = new Map<string, (payload: unknown) => void>();
+let lastOptions: Record<string, unknown> | undefined;
 vi.mock('y-webrtc', () => ({
   WebrtcProvider: class {
+    constructor(_room: string, _doc: unknown, options?: Record<string, unknown>) {
+      lastOptions = options;
+    }
     on(event: string, cb: (payload: unknown) => void) {
       handlers.set(event, cb);
     }
@@ -27,6 +31,14 @@ function setup() {
   const synced = (s: boolean) => handlers.get('synced')!({ synced: s });
   return { p, seen, peers, synced };
 }
+
+describe('webrtcProvider', () => {
+  it('hands the shared awareness to the underlying WebrtcProvider', () => {
+    const fakeAwareness = { the: 'awareness' } as never;
+    webrtcProvider(new Y.Doc(), 'test-band', fakeAwareness);
+    expect(lastOptions?.awareness).toBe(fakeAwareness);
+  });
+});
 
 describe('webrtcProvider status', () => {
   it('starts alone (attached and listening, no peers of either kind) — a steady state, not liminal', () => {
