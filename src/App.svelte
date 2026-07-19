@@ -20,6 +20,7 @@
   import { songFromSearch, searchWithSong } from './library/urlState';
   import type { SharedSongIntent } from './session/types';
   import { skewLog } from './sync/skewLog';
+  import { Awareness } from 'y-protocols/awareness';
 
   // One Yjs doc, three attachments: the synced store (app-facing API), always-on
   // IndexedDB persistence, and the band session. The network attaches whenever the
@@ -28,6 +29,9 @@
   // corrections) syncs without any toggle. "Join session" is the separate, live
   // layer — playback + song follow — and is what the settings toggle controls.
   const ydoc = createBandDoc();
+  // Ephemeral per-device state (the session-joined flag) — rides the same providers
+  // as the doc but expires with the device, so counts can't go stale.
+  const awareness = new Awareness(ydoc);
   // A `?band=` link prefills AND persists the band name — that counts as configured.
   const initialBandName = readBandName(typeof location !== 'undefined' ? location.search : '');
   let bandName = $state(initialBandName);
@@ -37,6 +41,7 @@
     room: bandRoomCode(initialBandName), // later edits go through setBandName → band.setRoom
     factories: [webrtcProvider, ...(host ? [partyserverProvider(host)] : [])],
     autoAttach: hasSavedBandName(),
+    awareness,
   });
   // Live session stamps (transport/song) publish only while the band is joined —
   // solo practice must never accumulate stamps that yank the band on a later rejoin.
@@ -61,6 +66,7 @@
     clearTimeout(noticeTimer);
     unsubBand();
     band.destroy();
+    awareness.destroy();
     localPersistence.disconnect();
     setListStore?.destroy();
   });
@@ -217,7 +223,7 @@
     <ChordChangesView
       song={current}
       {store}
-      sync={{ on: bandState.on, bandName, summary: syncSummary, toggle: toggleSync, setBandName }}
+      sync={{ on: bandState.on, sessionCount: bandState.sessionCount, bandName, summary: syncSummary, toggle: toggleSync, setBandName }}
       onsongs={openPicker}
       onprogress={(f) => (progress = f)}
       onvariant={(variantId) => {
