@@ -91,10 +91,11 @@
   let lyricsError = $state<string | null>(null);
 
   // Chord overlay: a personal, per-device preference (localStorage) — deliberately NOT
-  // per-song or session/band state. On by default (it's the point of the app); charts
-  // (fretboard diagrams) off by default — most players read the chord name alone.
+  // per-song or session/band state. Off by default (a personal-PRACTICE tool — during
+  // rehearsal the band reads the chart, spec Part 4); players who turned it on keep it
+  // on via the saved pref. Charts (fretboard diagrams) also off by default.
   const savedOverlay = loadOverlayPrefs();
-  let overlayOn = $state<boolean>(savedOverlay.on ?? true);
+  let overlayOn = $state<boolean>(savedOverlay.on ?? false);
   let showCharts = $state<boolean>(savedOverlay.charts ?? false);
   let chartInstrument = $state<Instrument>(savedOverlay.instrument === 'ukulele' ? 'ukulele' : 'guitar');
   let chordTimeline = $state<ChordOnset[]>([]);
