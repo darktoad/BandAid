@@ -19,6 +19,7 @@
   import type { SyncTone } from '../sync/syncStatusLabel';
   import { MAX_FIT_SCALE, MIN_FIT_SCALE, planFit, planWrittenFit } from './fitPlan';
   import { pageScale } from './pageScale';
+  import { pinchZoom } from './pinchZoom';
 
   /**
    * Chord-Changes-in-Time view (M1). A presentation template over the unified music
@@ -285,6 +286,20 @@
     void rehearsalView;
     recomputePageZoom();
   });
+  // Pinch/wheel zoom on the notation: manual control disengages Fit (same contract as
+  // dragging Size in classic view); tapping Fit snaps back. Ephemeral by design.
+  function onNotationZoom(z: number) {
+    if (!rehearsalView) return;
+    manualZoom = z;
+    releaseFit();
+  }
+  function resetNotationZoom() {
+    if (!rehearsalView) return;
+    manualZoom = null;
+    fitOn = true;
+    saveFitPref();
+    void fitToView();
+  }
   let renderTick = $state(0); // bumped after every completed (re-)render — bounds are fresh
   // One-shot waiters for the next completed render (fit-to-view's verification pass).
   let renderResolvers: Array<() => void> = [];
@@ -672,6 +687,8 @@
   let paneEl = $state<HTMLElement | undefined>(undefined);
   let paneContentEl = $state<HTMLElement | undefined>(undefined);
   let paneZoom = $state(1);
+  // Pinch/wheel override for the lyrics pane; double-tap resets to auto-fit.
+  let paneManualZoom = $state<number | null>(null);
   $effect(() => {
     // Direct deps alongside the ResizeObserver: the sheet arriving/transposing and the
     // splitter/orientation/collapse all change the boxes, and effects run after the DOM
@@ -1190,7 +1207,16 @@
     </div>
   {/if}
   <div class="panes" class:landscape={isLandscape} bind:this={panesEl}>
-    <div class="render-wrap">
+    <div
+      class="render-wrap"
+      use:pinchZoom={{
+        getZoom: () => manualZoom ?? (fitOn ? pageZoom : 1),
+        onZoom: onNotationZoom,
+        onReset: resetNotationZoom,
+        hasOverflow: () => !!renderScrollEl && (renderScrollEl.scrollHeight > renderScrollEl.clientHeight || renderScrollEl.scrollWidth > renderScrollEl.clientWidth),
+        pan: (dx, dy) => renderScrollEl?.scrollBy(dx, dy),
+      }}
+    >
       <Renderer
         musicXmlUrl={song.url}
         bind:scrollEl={renderScrollEl}
@@ -1216,8 +1242,27 @@
         aria-label="Resize lyrics pane"
         onpointerdown={startSplitDrag}
       ></div>
-      <aside class="lyrics-pane" bind:this={paneEl} style:flex-basis={`${splitFrac * 100}%`} aria-label="Lyrics and notes">
-        <div class="pane-content" bind:this={paneContentEl} style:transform={paneZoom < 1 ? `scale(${paneZoom})` : undefined}>
+      <aside
+        class="lyrics-pane"
+        class:zoomed={paneManualZoom !== null}
+        bind:this={paneEl}
+        style:flex-basis={`${splitFrac * 100}%`}
+        use:pinchZoom={{
+          getZoom: () => paneManualZoom ?? paneZoom,
+          onZoom: (z) => (paneManualZoom = z),
+          onReset: () => (paneManualZoom = null),
+          hasOverflow: () => !!paneEl && (paneEl.scrollHeight > paneEl.clientHeight || paneEl.scrollWidth > paneEl.clientWidth),
+          pan: (dx, dy) => paneEl?.scrollBy(dx, dy),
+        }}
+        aria-label="Lyrics and notes"
+      >
+        <div
+          class="pane-content"
+          bind:this={paneContentEl}
+          style:transform={(paneManualZoom ?? paneZoom) !== 1 ? `scale(${paneManualZoom ?? paneZoom})` : undefined}
+          style:transform-origin={(paneManualZoom ?? 0) > 1 ? 'top left' : undefined}
+          style:width={(paneManualZoom ?? 0) > 1 ? `${Math.ceil((paneEl?.clientWidth ?? 0) * (paneManualZoom ?? 1))}px` : undefined}
+        >
           {#if lyricsError}
             <p class="lyrics-msg">{lyricsError}</p>
           {:else if lyricsLoading && !lyricsSheet}
@@ -1497,7 +1542,12 @@
     overflow: hidden; /* fit-to-pane means never scroll */
     background: var(--panel);
     padding: 0.6rem 0.8rem;
+    /* Gestures: keep native panning, suppress browser pinch-zoom; no scrollbars ever. */
+    touch-action: pan-x pan-y;
+    scrollbar-width: none;
   }
+  .lyrics-pane::-webkit-scrollbar { display: none; }
+  .lyrics-pane.zoomed { overflow: auto; }
   .pane-content { transform-origin: top center; }
   /* The splitter: a thin visible grip with a fat touch target.
      touch-action none — dragging it must never scroll the page. */

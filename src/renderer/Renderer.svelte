@@ -31,18 +31,32 @@
   } = $props();
 
   let controller: RendererController | undefined;
-  // The surface's LAYOUT size (transform-independent), for the clamp below. CSS
-  // transforms don't fire ResizeObserver, so scaling can't feed back into itself.
-  let surfaceW = $state(0);
+  // Natural page dims, transform-independent (CSS scale doesn't change layout size, so
+  // the transform can't feed back into these). The clamp below sizes the scrollable
+  // area to the VISUAL (post-scale) size from them.
+  //  - viewW: the scroller's own content width — the width alphaTab lays out to. A
+  //    STABLE reference (never the surface's own offsetWidth, which would collapse to
+  //    0 the instant we freeze the surface width and then stick there).
+  //  - surfaceH: the surface's natural content height at that width.
+  let viewW = $state(0);
   let surfaceH = $state(0);
   let ro: ResizeObserver | undefined;
+  const measure = () => {
+    viewW = scrollEl?.clientWidth ?? viewW;
+    surfaceH = surfaceEl?.offsetHeight ?? surfaceH;
+  };
+  // Belt to the RO's braces: re-measure synchronously whenever the zoom changes —
+  // effects run after the DOM update, so this sees the settled layout even where
+  // RO delivery is throttled (hidden/background documents).
+  $effect(() => {
+    void pageZoom;
+    measure();
+  });
 
   onMount(async () => {
-    ro = new ResizeObserver(() => {
-      surfaceW = surfaceEl?.offsetWidth ?? 0;
-      surfaceH = surfaceEl?.offsetHeight ?? 0;
-    });
+    ro = new ResizeObserver(() => measure());
     if (surfaceEl) ro.observe(surfaceEl);
+    if (scrollEl) ro.observe(scrollEl);
     try {
       controller = await createRenderer(surfaceEl!, musicXmlUrl);
       controller.onError((e) => onerror?.(e));
@@ -68,17 +82,19 @@
   <!-- Page mode: the surface keeps its natural LAYOUT size (alphaTab lays out to it);
        the transform scales only the pixels, and the clamp resizes the scrollable area
        to match — trimming ghost scroll space when shrunk, extending it when zoomed in. -->
+  <!-- No measurement yet (surfaceH 0) → no clamp: a ghost scroll area beats an
+       invisible zero-height page. -->
   <div
     class="page-clamp"
-    style:height={pageZoom !== 1 ? `${Math.ceil(surfaceH * pageZoom)}px` : undefined}
-    style:width={pageZoom > 1 ? `${Math.ceil(surfaceW * pageZoom)}px` : undefined}
+    style:height={pageZoom !== 1 && surfaceH > 0 ? `${Math.ceil(surfaceH * pageZoom)}px` : undefined}
+    style:width={pageZoom > 1 && viewW > 0 ? `${Math.ceil(viewW * pageZoom)}px` : undefined}
   >
     <div
       class="render-surface"
       bind:this={surfaceEl}
       style:transform={pageZoom !== 1 ? `scale(${pageZoom})` : undefined}
       style:transform-origin={pageZoom > 1 ? 'top left' : undefined}
-      style:width={pageZoom > 1 ? `${Math.ceil(surfaceW)}px` : undefined}
+      style:width={pageZoom > 1 && viewW > 0 ? `${Math.ceil(viewW)}px` : undefined}
     ></div>
   </div>
 </div>
