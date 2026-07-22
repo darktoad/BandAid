@@ -698,10 +698,14 @@
     window.addEventListener('pointerup', up);
   }
 
-  // Fit-to-pane: the WHOLE ChordPro sheet shrinks into the pane — no mid-song
-  // scrolling (spec Part 4). Content width equals pane width (block layout), so
-  // height is the binding dimension; re-runs on pane/content resize (orientation,
-  // splitter drag, key change reflowing chords).
+  // Fit-to-pane, the same virtual-page trick the notation uses: lay the sheet out
+  // WIDER than the pane, then scale it back to exactly the pane's width. Two wins over
+  // scaling a pane-width layout down (which is what this used to do):
+  //   - the scaled page fills the width, so there are no dead margins either side (a
+  //     centred 0.8 scale wastes 10% of the pane on EACH edge);
+  //   - the wider layout wraps far less, so lines stop breaking mid-phrase.
+  // Height is then the only thing left to fit, and it shrinks doubly as the layout
+  // widens (fewer wrapped lines AND a smaller scale), so the search below converges.
   let paneEl = $state<HTMLElement | undefined>(undefined);
   let paneContentEl = $state<HTMLElement | undefined>(undefined);
   let paneZoom = $state(1);
@@ -722,23 +726,42 @@
       paneZoom = 1;
       return;
     }
-    // Text floor, not the notation floor: words punish shrinking harder than staves.
-    // Past it the pane scrolls rather than squeezing (collapsing sections is the way to
-    // make a long sheet fit). Clamped, never mode-switched, so dragging the splitter
-    // resizes smoothly instead of snapping.
-    const compute = () =>
-      (paneZoom = pageFitZoom(
-        pane.clientWidth,
-        pane.clientHeight,
-        content.offsetWidth,
-        content.offsetHeight,
-        MIN_LEGIBLE_TEXT_ZOOM,
-      ));
+    // The layout width is driven imperatively here (not via a style: binding) because
+    // the search has to write a width and read the reflowed height in the same pass.
+    const compute = () => {
+      const paneW = pane.clientWidth;
+      const paneH = pane.clientHeight;
+      if (paneW <= 0 || paneH <= 0) return;
+      let z = 1;
+      // A few passes settle it: text height isn't linear in the layout width once
+      // lines rewrap, so solve by iteration rather than arithmetic. Bounded and
+      // monotonic — no oscillation, and the deadband stops sub-pixel churn.
+      for (let i = 0; i < 4; i++) {
+        content.style.width = `${Math.round(paneW / z)}px`;
+        const h = content.offsetHeight; // forces layout at the new width
+        const fit = h > 0 ? paneH / h : 1;
+        // Text floor, not the notation floor: words punish shrinking harder than
+        // staves. Past it the pane scrolls rather than squeezing (collapsing sections
+        // is how you make a long sheet fit).
+        const next = Math.min(1, Math.max(MIN_LEGIBLE_TEXT_ZOOM, fit));
+        if (Math.abs(next - z) < 0.01) {
+          z = next;
+          break;
+        }
+        z = next;
+      }
+      content.style.width = `${Math.round(paneW / z)}px`;
+      paneZoom = z;
+    };
     compute();
+    // Observe the PANE only: the content's size is an output of compute(), so watching
+    // it too would feed the search back into itself.
     const ro = new ResizeObserver(compute);
     ro.observe(pane);
-    ro.observe(content);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      content.style.width = '';
+    };
   });
   const closeLyrics = () => {
     lyricsOpen = false;
@@ -1286,12 +1309,14 @@
         }}
         aria-label="Lyrics and notes"
       >
+        <!-- width is set imperatively by the fit search above (it writes a layout width
+             and reads the reflowed height in one pass); scaling from the top LEFT makes
+             the scaled page sit flush against the pane's edge instead of being centred
+             with dead space either side. -->
         <div
           class="pane-content"
           bind:this={paneContentEl}
           style:transform={(paneManualZoom ?? paneZoom) !== 1 ? `scale(${paneManualZoom ?? paneZoom})` : undefined}
-          style:transform-origin={(paneManualZoom ?? 0) > 1 ? 'top left' : undefined}
-          style:width={(paneManualZoom ?? 0) > 1 ? `${Math.ceil((paneEl?.clientWidth ?? 0) * (paneManualZoom ?? 1))}px` : undefined}
         >
           {#if lyricsError}
             <p class="lyrics-msg">{lyricsError}</p>
@@ -1582,7 +1607,7 @@
     scrollbar-width: none;
   }
   .lyrics-pane::-webkit-scrollbar { display: none; }
-  .pane-content { transform-origin: top center; }
+  .pane-content { transform-origin: top left; }
   /* The splitter: a thin visible grip with a fat touch target.
      touch-action none — dragging it must never scroll the page. */
   .splitter {
