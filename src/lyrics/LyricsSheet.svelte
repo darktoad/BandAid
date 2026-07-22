@@ -91,8 +91,12 @@
 {/if}
 
 <style>
+  /* Section content sits indented under its title, so the fold headings form a clean
+     left edge and each block reads as belonging to the heading above it. This is what
+     carries the grouping now that the panel's own side padding is minimal. */
   .note {
     margin: 0 0 1rem;
+    padding-left: 1rem;
     padding-bottom: 0.9rem;
     border-bottom: 1px solid var(--line);
     color: var(--muted);
@@ -176,6 +180,7 @@
   .line {
     display: flex;
     flex-wrap: wrap;
+    padding-left: 1rem;
     margin-bottom: 0.55rem;
     line-height: 1.1;
   }
