@@ -1599,9 +1599,11 @@
        pane must pan. Scrollbars stay hidden either way (screen real estate). */
     overflow: auto;
     background: var(--panel);
-    /* Tight horizontal padding: the pane is narrow and every px belongs to the words.
-       Grouping comes from indenting each section's lines under its title instead. */
-    padding: 0.6rem 0.3rem;
+    /* Left padding lines the fold chevrons up with the sheet music's own left margin
+       (~15px), which also keeps them clear of the splitter — chevrons hard against the
+       edge would swallow drags meant for the divider. The right side has neither
+       constraint, so it stays tight and the words get the width. */
+    padding: 0.6rem 0.3rem 0.6rem 1rem;
     /* Gestures: keep native panning, suppress browser pinch-zoom; no scrollbars ever. */
     touch-action: pan-x pan-y;
     scrollbar-width: none;
