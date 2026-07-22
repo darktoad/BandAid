@@ -106,6 +106,12 @@ export async function createRenderer(
       // useWorkers:false forced) is silent there. Fonts/soundfont stay local.
       useWorkers: true,
       fontDirectory: `${ALPHATAB_ASSET_BASE}/font/`,
+      // Render the WHOLE score, not just what alphaTab thinks is on screen. The
+      // rehearsal view engraves to a virtual page wider than the viewport and
+      // CSS-scales it down; with lazy loading on, alphaTab's visibility test sees
+      // nothing inside the clipped box and renders a blank page. Our charts are
+      // 16–64 bars, so eager rendering costs nothing.
+      enableLazyLoading: false,
     },
     player: {
       enablePlayer: true,

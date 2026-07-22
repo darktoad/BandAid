@@ -18,7 +18,7 @@
   import SyncBadge from '../sync/SyncBadge.svelte';
   import type { SyncTone } from '../sync/syncStatusLabel';
   import { MAX_FIT_SCALE, MIN_FIT_SCALE, planFit, planWrittenFit } from './fitPlan';
-  import { pageScale } from './pageScale';
+  import { pageFitZoom, virtualPageWidth } from './pageScale';
   import { pinchZoom } from './pinchZoom';
 
   /**
@@ -272,14 +272,28 @@
   // 1 in classic view or with Fit off. manualZoom is a pinch override (ephemeral).
   let pageZoom = $state(1);
   let manualZoom = $state<number | null>(null);
+  // The virtual page: rehearsal view engraves to a page WIDER than the device and
+  // scales it down — a photo of the fiddler's sheet, not a reflowed web page. Without
+  // it a phone wraps a 4-bar row down to ~2.7 bars and the page grows tall and thin.
+  // virtualPageWidth() trades width against legibility: chart width (4–6 bars/row) on
+  // tablets and up, a narrower page on a phone where 4–6 bars can't be read at all.
+  let pageWidth = $state(0);
   function recomputePageZoom() {
     const scroller = renderScrollEl;
     const surface = renderSurfaceEl;
+    if (!rehearsalView || !scroller) {
+      pageWidth = 0;
+    } else if (scroller.clientWidth > 0) {
+      pageWidth = virtualPageWidth(scroller.clientWidth);
+    }
     if (!rehearsalView || !fitOn || !scroller || !surface) {
       pageZoom = 1;
       return;
     }
-    pageZoom = pageScale(scroller.clientWidth, scroller.clientHeight, surface.offsetWidth, surface.offsetHeight);
+    // pageFitZoom, not pageScale: whole-page fitting stops at the legibility floor and
+    // falls back to width-fit + scroll, so a phone shows readable music instead of a
+    // crushed ribbon of hairlines.
+    pageZoom = pageFitZoom(scroller.clientWidth, scroller.clientHeight, surface.offsetWidth, surface.offsetHeight);
   }
   $effect(() => {
     void renderTick; // every completed render can change the page's natural size
@@ -333,7 +347,10 @@
   }
   function applyResponsiveLayout(w: number) {
     lastStageWidth = w;
-    const bpr = pickBarsPerRow(w, measureCount);
+    // Rehearsal view lays out to the VIRTUAL page, not the device: bars-per-row must
+    // be picked for the page's width or a phone would ask for 2/row on a 900px page.
+    const layoutW = rehearsalView && pageWidth > 0 ? pageWidth : w;
+    const bpr = pickBarsPerRow(layoutW, measureCount);
     barsPerRow = bpr; // keep the overlay's row count in step with the notation
     // "As written": the file's engraved breaks own the notation rows — keep the
     // responsive pick fresh (the overlay strip and the toggle-off handoff use it)
@@ -705,7 +722,10 @@
       paneZoom = 1;
       return;
     }
-    const compute = () => (paneZoom = pageScale(pane.clientWidth, pane.clientHeight, content.offsetWidth, content.offsetHeight));
+    // Same legibility guard as the notation: a long sheet squeezed into a phone-sized
+    // pane lands around 0.12 — 2px text. Past the floor, keep the words readable and
+    // let the pane scroll instead.
+    const compute = () => (paneZoom = pageFitZoom(pane.clientWidth, pane.clientHeight, content.offsetWidth, content.offsetHeight));
     compute();
     const ro = new ResizeObserver(compute);
     ro.observe(pane);
@@ -1223,6 +1243,7 @@
         bind:scrollEl={renderScrollEl}
         bind:surfaceEl={renderSurfaceEl}
         pageZoom={rehearsalView ? (manualZoom ?? (fitOn ? pageZoom : 1)) : 1}
+        pageWidth={rehearsalView ? pageWidth : 0}
         bareScroll={rehearsalView}
         onready={onReady}
         onposition={(b) => setBar(b)}
@@ -1540,7 +1561,10 @@
     flex: 0 0 42%;
     min-height: 0;
     min-width: 0;
-    overflow: hidden; /* fit-to-pane means never scroll */
+    /* Auto-fit usually shows the whole sheet with nothing to scroll — but when the
+       legibility floor stops the shrink (small panes), or the player pinches in, the
+       pane must pan. Scrollbars stay hidden either way (screen real estate). */
+    overflow: auto;
     background: var(--panel);
     padding: 0.6rem 0.8rem;
     /* Gestures: keep native panning, suppress browser pinch-zoom; no scrollbars ever. */
@@ -1548,7 +1572,6 @@
     scrollbar-width: none;
   }
   .lyrics-pane::-webkit-scrollbar { display: none; }
-  .lyrics-pane.zoomed { overflow: auto; }
   .pane-content { transform-origin: top center; }
   /* The splitter: a thin visible grip with a fat touch target.
      touch-action none — dragging it must never scroll the page. */
