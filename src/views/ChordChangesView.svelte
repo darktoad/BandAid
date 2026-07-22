@@ -1298,7 +1298,7 @@
           {:else if lyricsLoading && !lyricsSheet}
             <p class="lyrics-msg">Loading…</p>
           {:else}
-            <LyricsSheet note={song.notes} sheet={displaySheet ?? undefined} />
+            <LyricsSheet songId={song.id} note={song.notes} sheet={displaySheet ?? undefined} />
           {/if}
         </div>
       </aside>
@@ -1334,7 +1334,7 @@
         {:else if lyricsLoading && !lyricsSheet}
           <p class="lyrics-msg">Loading…</p>
         {:else}
-          <LyricsSheet note={song.notes} sheet={displaySheet ?? undefined} />
+          <LyricsSheet songId={song.id} note={song.notes} sheet={displaySheet ?? undefined} />
         {/if}
       </div>
     </div>
