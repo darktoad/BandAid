@@ -24,6 +24,17 @@ const SYNC_ON_KEY = 'bandaid.syncOn.v1';
 export interface BandSessionState {
   on: boolean;
   status: SyncStatus;
+  /** Devices currently joined to the live session (this one included when joined). */
+  sessionCount: number;
+}
+
+/** The narrow slice of y-protocols' Awareness that bandSession uses — the real class
+ *  satisfies it structurally; tests fake it. */
+export interface AwarenessLike {
+  setLocalStateField(field: string, value: unknown): void;
+  getStates(): Map<number, Record<string, unknown> | null>;
+  on(event: 'change', cb: () => void): void;
+  off(event: 'change', cb: () => void): void;
 }
 
 export interface BandSession {
@@ -44,16 +55,32 @@ export function createBandSession(opts: {
   storage?: StorageLike | null;
   /** A band room is explicitly configured — attach the providers at creation. */
   autoAttach?: boolean;
+  /** Shared awareness instance; carries the ephemeral session-joined flag. */
+  awareness?: AwarenessLike;
 }): BandSession {
   const storage = opts.storage === undefined ? safeStorage() : opts.storage;
+  const awareness = opts.awareness;
   let room = opts.room;
   let on = false;
   let attached: AttachedSync | undefined;
   let unsubStatus: (() => void) | undefined;
 
+  // Ephemeral by design: awareness states vanish with the device, so the count can
+  // never go stale the way doc data could. No awareness (tests, degraded boot) →
+  // fall back to counting just this device.
+  const sessionCount = (): number => {
+    if (!awareness) return on ? 1 : 0;
+    let n = 0;
+    for (const s of awareness.getStates().values()) {
+      if ((s as { session?: { joined?: boolean } } | null)?.session?.joined) n++;
+    }
+    return n;
+  };
+
   const getState = (): BandSessionState => ({
     on,
     status: attached?.getStatus() ?? { providers: {} },
+    sessionCount: sessionCount(),
   });
   const channel = createChannel(getState);
 
@@ -61,7 +88,8 @@ export function createBandSession(opts: {
   // itself emits the freshly-connected state.
   function ensureAttached() {
     if (attached) return;
-    attached = attachProviders(opts.doc, room, opts.factories);
+    // AwarenessLike is the narrow structural view of the real Awareness the App passes.
+    attached = attachProviders(opts.doc, room, opts.factories, awareness as never);
     unsubStatus = attached.onStatusChange(() => channel.emit());
   }
   function disconnect() {
@@ -75,6 +103,7 @@ export function createBandSession(opts: {
     if (next === on) return;
     on = next;
     writeItem(storage, SYNC_ON_KEY, next ? '1' : '0');
+    awareness?.setLocalStateField('session', { joined: next });
     // Joining is a configuring act (the user chose a room to join). Leaving the
     // session never detaches — the Band Book keeps syncing.
     if (next) ensureAttached();
@@ -85,6 +114,11 @@ export function createBandSession(opts: {
   if (opts.autoAttach || readItem(storage, SYNC_ON_KEY) !== null) ensureAttached();
   // Resume a previous session join across reloads.
   if (readItem(storage, SYNC_ON_KEY) === '1') on = true;
+  // Publish the initial joined flag (covers a resumed session), and re-emit whenever
+  // any device's awareness changes — that's what moves the session count.
+  awareness?.setLocalStateField('session', { joined: on });
+  const onAwareness = () => channel.emit();
+  awareness?.on('change', onAwareness);
 
   return {
     getState,
@@ -103,6 +137,9 @@ export function createBandSession(opts: {
       channel.emit();
     },
     subscribe: channel.subscribe,
-    destroy: disconnect,
+    destroy: () => {
+      awareness?.off('change', onAwareness);
+      disconnect();
+    },
   };
 }

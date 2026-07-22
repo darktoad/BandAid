@@ -1,4 +1,5 @@
 import type * as Y from 'yjs';
+import type { Awareness } from 'y-protocols/awareness';
 
 /** 'unavailable' means the provider has no network concept (e.g. indexeddb).
  *  'alone' is a STEADY state: attached and listening, but nobody else is in the room —
@@ -14,4 +15,7 @@ export interface SyncProvider {
   getStatus?(): ConnectionStatus;
   onStatusChange?(cb: (status: ConnectionStatus) => void): () => void;
 }
-export type ProviderFactory = (doc: Y.Doc, bandCode: string) => SyncProvider;
+/** The optional shared Awareness instance carries ephemeral per-device state (e.g. the
+ *  session-joined flag) over the same transports as the doc. Providers with no concept
+ *  of it (indexeddb) simply ignore the argument. */
+export type ProviderFactory = (doc: Y.Doc, bandCode: string, awareness?: Awareness) => SyncProvider;

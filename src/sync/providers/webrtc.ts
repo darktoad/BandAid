@@ -11,8 +11,8 @@ import type { ConnectionStatus, ProviderFactory } from './types';
  * instead — `synced` alone can get stuck true after the last peer leaves (a vacuous-truth
  * quirk in y-webrtc's own check with zero peers), so gate on peer count too.
  */
-export const webrtcProvider: ProviderFactory = (doc, bandCode) => {
-  const p = new WebrtcProvider(`bandaid-${bandCode}`, doc);
+export const webrtcProvider: ProviderFactory = (doc, bandCode, awareness) => {
+  const p = new WebrtcProvider(`bandaid-${bandCode}`, doc, awareness ? { awareness } : undefined);
   let webrtcPeerCount = 0;
   let bcPeerCount = 0;
   let synced = false;
