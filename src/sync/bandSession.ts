@@ -7,11 +7,19 @@ import { readItem, writeItem, safeStorage, type StorageLike } from './storage';
 const SYNC_ON_KEY = 'bandaid.syncOn.v1';
 
 /**
- * Owns the join/leave lifecycle of band sync: attach/detach the network providers,
- * switch rooms, aggregate status — and remember the choice. Sync stays strictly
- * opt-in (the key is only ever written by the user's own toggle), but once opted in
- * it survives reloads: iOS Safari silently reloads a backgrounded tab, and a
- * mid-rehearsal app switch must not drop the device out of the band.
+ * Owns the network lifecycle of the shared doc, split in two tiers (Band Book design,
+ * spec 2026-07-18 Part 1):
+ *
+ *  - NETWORK ATTACH (Band Book): providers attach whenever a band room is CONFIGURED —
+ *    an explicitly saved band name (autoAttach) or any previous use of the session
+ *    toggle (the syncOn key exists, either value). Once attached, durable Band Book
+ *    data (set lists, song settings, corrections) syncs whenever the device is online.
+ *    Only destroy() detaches. A truly fresh install stays local: the DEFAULT band name
+ *    is shared by every install and must never connect on its own.
+ *
+ *  - SESSION (live layer): the on/off flag — persisted so an iOS tab reload doesn't
+ *    drop a joined device mid-rehearsal — gates only what publishes/follows live
+ *    stamps (transport + song follow). It no longer touches the network.
  */
 export interface BandSessionState {
   on: boolean;
@@ -34,6 +42,8 @@ export function createBandSession(opts: {
   room: string;
   factories: ProviderFactory[];
   storage?: StorageLike | null;
+  /** A band room is explicitly configured — attach the providers at creation. */
+  autoAttach?: boolean;
 }): BandSession {
   const storage = opts.storage === undefined ? safeStorage() : opts.storage;
   let room = opts.room;
@@ -47,9 +57,10 @@ export function createBandSession(opts: {
   });
   const channel = createChannel(getState);
 
-  // onStatusChange delivers the current status immediately on subscribe, so connect()
-  // itself emits the freshly-connected state — callers must not emit again after it.
-  function connect() {
+  // onStatusChange delivers the current status immediately on subscribe, so attaching
+  // itself emits the freshly-connected state.
+  function ensureAttached() {
+    if (attached) return;
     attached = attachProviders(opts.doc, room, opts.factories);
     unsubStatus = attached.onStatusChange(() => channel.emit());
   }
@@ -64,28 +75,32 @@ export function createBandSession(opts: {
     if (next === on) return;
     on = next;
     writeItem(storage, SYNC_ON_KEY, next ? '1' : '0');
-    if (next) {
-      connect();
-    } else {
-      disconnect();
-      channel.emit();
-    }
+    // Joining is a configuring act (the user chose a room to join). Leaving the
+    // session never detaches — the Band Book keeps syncing.
+    if (next) ensureAttached();
+    channel.emit();
   }
 
-  // Resume a previous opt-in. A fresh install has no key and starts local.
-  if (readItem(storage, SYNC_ON_KEY) === '1') setOn(true);
+  // Attach policy at creation — see the header comment.
+  if (opts.autoAttach || readItem(storage, SYNC_ON_KEY) !== null) ensureAttached();
+  // Resume a previous session join across reloads.
+  if (readItem(storage, SYNC_ON_KEY) === '1') on = true;
 
   return {
     getState,
     isOn: () => on,
     setOn,
     setRoom(code) {
-      if (code === room) return;
-      room = code;
-      if (on) {
-        disconnect();
-        connect();
+      // An explicit room set is a configuring act: make sure we're attached even if
+      // the code didn't change (e.g. re-confirming the prefilled name).
+      if (code === room) {
+        ensureAttached();
+        return;
       }
+      room = code;
+      if (attached) disconnect();
+      ensureAttached();
+      channel.emit();
     },
     subscribe: channel.subscribe,
     destroy: disconnect,

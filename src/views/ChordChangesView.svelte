@@ -39,8 +39,9 @@
   let { song, store, sync, onsongs, onprogress, onvariant }: {
     song: { id: string; url: string; title: string; key?: { tonalCenter: string; mode: string; fifths?: number }; composer?: string; notes?: string; lyricsUrl?: string; variantId?: string; variantName?: string; variants?: import('../library/types').SongVariant[] };
     store: SyncedSessionStore;
-    // Band sync controls for the settings sheet: the app starts local; syncing is an
-    // intentional step, toggled here.
+    // Session controls for the settings sheet: the network (Band Book) attaches on its
+    // own once the band is configured; this toggle only joins/leaves the live session
+    // (playback + song follow).
     sync: {
       on: boolean;
       bandName: string;
@@ -809,12 +810,19 @@
 {#if showMore}
   <button class="sheet-scrim" onclick={() => (showMore = false)} aria-label="Close settings"></button>
   <div class="sheet">
-    <!-- Band sync: the app starts local; turning this on is the intentional step that
-         joins the band room named below. -->
+    <!-- Session: the opt-in LIVE layer — follow the band's song switches and playback
+         together. Set lists, keys, tempos, and arrangements are Band Book data: they
+         sync whenever the device is online and the band is configured, no toggle
+         (spec 2026-07-18 Part 1). The badge shows the Band Book connection. -->
     <div class="row">
-      <span class="label">Sync</span>
+      <span class="label">Session</span>
       <div class="chips">
-        <button class:active={sync.on} aria-pressed={sync.on} onclick={sync.toggle}>{sync.on ? 'On' : 'Off'}</button>
+        <button
+          class:active={sync.on}
+          aria-pressed={sync.on}
+          onclick={sync.toggle}
+          title="Follow the band's song switches and playback together — set lists, keys and tempos sync on their own"
+        >{sync.on ? 'Joined' : 'Join'}</button>
       </div>
       <SyncBadge summary={sync.summary} />
     </div>

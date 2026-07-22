@@ -22,6 +22,27 @@ describe('summarizeSyncStatus', () => {
     });
   });
 
+  it('reports "Only you" when attached but nobody else is in the room (steady state, not liminal)', () => {
+    expect(summarizeSyncStatus({ providers: { indexeddb: 'unavailable', webrtc: 'alone' } })).toEqual({
+      label: 'Only you',
+      tone: 'local',
+    });
+  });
+
+  it('something genuinely in flight outranks alone (a dialing relay reads Connecting…)', () => {
+    expect(summarizeSyncStatus({ providers: { webrtc: 'alone', partyserver: 'connecting' } })).toEqual({
+      label: 'Connecting…',
+      tone: 'connecting',
+    });
+  });
+
+  it('a connected provider outranks alone', () => {
+    expect(summarizeSyncStatus({ providers: { webrtc: 'alone', partyserver: 'connected' } })).toEqual({
+      label: 'Synced',
+      tone: 'synced',
+    });
+  });
+
   it('reports offline when every real provider has disconnected', () => {
     expect(summarizeSyncStatus({ providers: { webrtc: 'disconnected', partyserver: 'disconnected' } })).toEqual({
       label: 'Offline',

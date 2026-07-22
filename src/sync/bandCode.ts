@@ -34,6 +34,16 @@ export function saveBandName(
 }
 
 /**
+ * True once a band name has been explicitly saved — typed into settings, or arrived
+ * via a ?band= link (readBandName persists those). Gates the Band Book's auto-attach:
+ * the DEFAULT name must never connect on its own, because every fresh install shares
+ * it and the Band Book must not sync with strangers.
+ */
+export function hasSavedBandName(storage: StorageLike | null = safeStorage()): boolean {
+  return readItem(storage, KEY) !== null;
+}
+
+/**
  * The room code derived from a display name: case- and whitespace-insensitive so
  * "Sound Check" and "sound check" on two phones land in the same room. The room code
  * travels inside WebSocket URL paths (PartyServer) and signaling room names, so it is

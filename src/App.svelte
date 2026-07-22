@@ -10,7 +10,7 @@
   import { partyserverProvider } from './sync/providers/partyserver';
   import { createBandSession } from './sync/bandSession';
   import { createIntentFollower } from './sync/follower';
-  import { readBandName, saveBandName, bandRoomCode } from './sync/bandCode';
+  import { readBandName, saveBandName, bandRoomCode, hasSavedBandName } from './sync/bandCode';
   import { readItem, writeItem, safeStorage } from './sync/storage';
   import { summarizeSyncStatus } from './sync/syncStatusLabel';
   import { createLibraryService, type LibraryService } from './library/libraryService';
@@ -22,12 +22,13 @@
   import { skewLog } from './sync/skewLog';
 
   // One Yjs doc, three attachments: the synced store (app-facing API), always-on
-  // IndexedDB persistence, and the band session (opt-in network providers). Joining
-  // the band is an intentional step (the Sync toggle in the settings sheet) — but the
-  // choice persists across reloads, because iOS Safari silently reloads backgrounded
-  // tabs and a mid-rehearsal app switch must not drop the device out of the band.
+  // IndexedDB persistence, and the band session. The network attaches whenever the
+  // band room is CONFIGURED (a saved band name — typed or via ?band= link — or any
+  // previous use of the session toggle): Band Book data (set lists, song settings,
+  // corrections) syncs without any toggle. "Join session" is the separate, live
+  // layer — playback + song follow — and is what the settings toggle controls.
   const ydoc = createBandDoc();
-  // A `?band=` link or a previous session only prefills the band NAME — never connects.
+  // A `?band=` link prefills AND persists the band name — that counts as configured.
   const initialBandName = readBandName(typeof location !== 'undefined' ? location.search : '');
   let bandName = $state(initialBandName);
   const host = import.meta.env.VITE_SYNC_HOST;
@@ -35,6 +36,7 @@
     doc: ydoc,
     room: bandRoomCode(initialBandName), // later edits go through setBandName → band.setRoom
     factories: [webrtcProvider, ...(host ? [partyserverProvider(host)] : [])],
+    autoAttach: hasSavedBandName(),
   });
   // Live session stamps (transport/song) publish only while the band is joined —
   // solo practice must never accumulate stamps that yank the band on a later rejoin.
