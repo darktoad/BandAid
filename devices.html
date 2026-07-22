@@ -109,6 +109,22 @@
         margin: auto;
       }
 
+      .warn {
+        margin: 0.9rem 1.2rem 0;
+        padding: 0.6rem 0.8rem;
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        background: rgba(217, 138, 61, 0.12);
+        color: var(--ink);
+        font-size: 0.82rem;
+        line-height: 1.5;
+      }
+      .warn code {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 0.05rem 0.3rem;
+      }
       .board {
         display: flex;
         flex-wrap: wrap;
@@ -176,6 +192,7 @@
       <button id="reload">Reload all</button>
     </header>
 
+    <div class="warn" id="warn" hidden></div>
     <div class="board" id="board"></div>
 
     <script type="module">
@@ -194,6 +211,14 @@
           { ...d, w: d.h, h: d.w, orient: 'landscape' },
         ],
       );
+
+      // Opened straight off disk (double-clicked), a root-relative "/?song=..." resolves
+      // to file:///?song=... — which Windows answers with a directory listing of C:\.
+      // Resolve against the dev server explicitly so the board works either way, and say
+      // so loudly, because a board full of file listings looks like the app is broken.
+      const DEV_ORIGIN = 'http://localhost:5173';
+      const FROM_DISK = location.protocol === 'file:';
+      const APP_ORIGIN = FROM_DISK ? DEV_ORIGIN : location.origin;
 
       const board = document.getElementById('board');
       const qInput = document.getElementById('q');
@@ -245,7 +270,9 @@
       // Six alphaTab instances starting at once will fight over CPU and the soundfont
       // fetch; stagger them so each renders cleanly.
       async function loadStaggered() {
-        const url = qInput.value || '/';
+        const path = qInput.value || '/';
+        // Absolute against the app's origin — never relative to this file's location.
+        const url = /^https?:/i.test(path) ? path : APP_ORIGIN + (path.startsWith('/') ? path : '/' + path);
         for (const frame of frames) {
           frame.src = url;
           await new Promise((r) => setTimeout(r, 700));
@@ -271,6 +298,16 @@
       });
       qInput.addEventListener('change', rebuild);
       document.getElementById('reload').addEventListener('click', rebuild);
+
+      if (FROM_DISK) {
+        const warn = document.getElementById('warn');
+        warn.hidden = false;
+        warn.innerHTML =
+          `Opened from disk, so the frames are pointed at <code>${DEV_ORIGIN}</code> — ` +
+          `they'll work, but cross-origin. For the intended setup open ` +
+          `<code>${DEV_ORIGIN}/devices.html</code> instead (and make sure ` +
+          `<code>npm run dev</code> is running).`;
+      }
 
       rebuild();
     </script>
