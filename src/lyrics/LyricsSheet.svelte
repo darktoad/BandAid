@@ -67,7 +67,6 @@
             <button class="fold label" aria-expanded={!shut} onclick={() => toggle(key)}>
               <span class="chev" class:closed={shut} aria-hidden="true">▾</span>
               <span>{section.label}</span>
-              {#if shut}<span class="count">{section.lines.length} lines</span>{/if}
             </button>
           {:else}
             <h3 class="label static">{section.label}</h3>
@@ -164,14 +163,6 @@
   }
   .chev.closed {
     transform: rotate(-90deg);
-  }
-  .count {
-    margin-left: auto;
-    color: var(--muted);
-    font-size: 0.7rem;
-    font-weight: 400;
-    text-transform: none;
-    letter-spacing: 0;
   }
   @media (prefers-reduced-motion: reduce) {
     .chev { transition: none; }
