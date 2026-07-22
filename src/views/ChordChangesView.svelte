@@ -18,7 +18,7 @@
   import SyncBadge from '../sync/SyncBadge.svelte';
   import type { SyncTone } from '../sync/syncStatusLabel';
   import { MAX_FIT_SCALE, MIN_FIT_SCALE, planFit, planWrittenFit } from './fitPlan';
-  import { pageFitZoom, virtualPageWidth } from './pageScale';
+  import { MIN_LEGIBLE_TEXT_ZOOM, pageFitZoom, virtualPageWidth } from './pageScale';
   import { pinchZoom } from './pinchZoom';
 
   /**
@@ -722,10 +722,18 @@
       paneZoom = 1;
       return;
     }
-    // Same legibility guard as the notation: a long sheet squeezed into a phone-sized
-    // pane lands around 0.12 — 2px text. Past the floor, keep the words readable and
-    // let the pane scroll instead.
-    const compute = () => (paneZoom = pageFitZoom(pane.clientWidth, pane.clientHeight, content.offsetWidth, content.offsetHeight));
+    // Text floor, not the notation floor: words punish shrinking harder than staves.
+    // Past it the pane scrolls rather than squeezing (collapsing sections is the way to
+    // make a long sheet fit). Clamped, never mode-switched, so dragging the splitter
+    // resizes smoothly instead of snapping.
+    const compute = () =>
+      (paneZoom = pageFitZoom(
+        pane.clientWidth,
+        pane.clientHeight,
+        content.offsetWidth,
+        content.offsetHeight,
+        MIN_LEGIBLE_TEXT_ZOOM,
+      ));
     compute();
     const ro = new ResizeObserver(compute);
     ro.observe(pane);
