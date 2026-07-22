@@ -17,6 +17,7 @@
   import { prefersFlats, transposeChordLabel, transposeNote } from '../chords/transposeChord';
   import SyncBadge from '../sync/SyncBadge.svelte';
   import type { SyncTone } from '../sync/syncStatusLabel';
+  import { MAX_FIT_SCALE, MIN_FIT_SCALE, planFit, planWrittenFit } from './fitPlan';
 
   /**
    * Chord-Changes-in-Time view (M1). A presentation template over the unified music
@@ -606,17 +607,15 @@
     const p = (x: number) => String(x).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())} · ${__COMMIT_SHA__}`;
   })();
-  // Fit the whole tune in the viewport. Two knobs: scale, and bars-per-row up to 6 (the
-  // widest the band's paper charts use) — wider rows mean fewer rows, letting a short
-  // tune trade bar width for a single-page fit. In "as written" mode bars-per-row
-  // belongs to the file, so Fit drops to scale only. Estimate each candidate layout's height
-  // from the current render's row height, take the one that fits at the largest scale
-  // (min 75% for legibility — below that the tune stays multi-page and the paged
-  // auto-turn covers it), then verify against the real render and trim if the estimate
-  // ran long. Fits to the stage as it currently is: with the inline (wide-screen)
-  // sheet open that means the reduced viewport, and the ResizeObserver re-fits when
-  // the sheet closes — keeping the Fit button in place instead of vanishing with the
-  // sheet it lives in.
+  // Fit the whole tune in the viewport. The layout choice (bars-per-row up to 6 +
+  // scale) is computed by the pure planner in fitPlan.ts from scale-NORMALIZED
+  // measurements, so Fit is deterministic: same song + viewport → same layout, no
+  // matter what the player dragged or fitted beforehand (spec Part 2 #3). In
+  // "as written" mode bars-per-row belongs to the file, so Fit drops to scale only.
+  // The plan is verified against the real render and trimmed if the row-height
+  // estimate ran long. Fits to the stage as it currently is: with the inline
+  // (wide-screen) sheet open that means the reduced viewport, and the
+  // ResizeObserver re-fits when the sheet closes.
   async function fitToView() {
     const scroller = renderScrollEl;
     if (!scroller || !controller || measureCount <= 0) return;
@@ -626,45 +625,75 @@
     const contentH = scroller.firstElementChild?.getBoundingClientRect().height ?? 0;
     const viewH = scroller.clientHeight;
     if (contentH <= 0 || viewH <= 0) return;
-    // "As written": the engraved breaks own the row structure, so scale is the single
-    // lever — size THIS layout to the view. Height tracks scale near-linearly (the row
-    // count is fixed), so estimate in one step, then verify and trim like below.
-    if (rowsAsWritten) {
-      let s = Math.max(75, Math.min(225, Math.floor(((viewH / contentH) * scalePct) / 5) * 5));
-      while (s !== scalePct) {
-        scalePct = s;
-        const rendered = nextRender();
-        controller.setScale(s / 100);
-        await rendered;
-        if (scroller.scrollHeight <= scroller.clientHeight || s <= 75) break;
-        s = Math.max(75, s - 5);
+    const fits = () => scroller.scrollHeight <= scroller.clientHeight;
+    const renderAt = async (apply: () => void) => {
+      const rendered = nextRender();
+      apply();
+      await rendered;
+    };
+    // Land on the LARGEST 5%-grid scale whose REAL render fits the view: walk down
+    // while it overflows, then probe one step up while there's room (reverting the
+    // probe that overflows). The endpoint — max{s : rendered height ≤ view} — doesn't
+    // depend on where the walk started, which is what makes Fit deterministic even
+    // where height is a step function of scale: rendered height is NOT linear in
+    // scale, because rows that outgrow the viewport width get wrapped (most visibly
+    // in "as written" mode, where an engraved 4-bar row can wrap into 2). A one-shot
+    // linear estimate measured from the current render lands somewhere different per
+    // starting state — the repeated-toggle drift the band hit.
+    const settle = async (s: number, apply: (s: number) => void): Promise<void> => {
+      // Bounded by the 5% grid; the cap only guards against a pathological renderer.
+      let guard = 2 * (MAX_FIT_SCALE - MIN_FIT_SCALE) / 5;
+      while (guard-- > 0) {
+        if (!fits() && s > MIN_FIT_SCALE) {
+          s -= 5;
+          scalePct = s;
+          await renderAt(() => apply(s));
+          continue;
+        }
+        if (fits() && s < MAX_FIT_SCALE) {
+          const up = s + 5;
+          scalePct = up;
+          await renderAt(() => apply(up));
+          if (fits()) {
+            s = up;
+            continue;
+          }
+          scalePct = s;
+          await renderAt(() => apply(s)); // revert the probe that overflowed
+          if (fits()) break; // stable endpoint: largest grid scale that fits
+          continue; // revert overflowed too (renderer wobble) — resume walking down
+        }
+        break; // at a bound, or settled
       }
+    };
+    if (rowsAsWritten) {
+      // Engraved breaks own the rows; scale is the single lever. The planner's linear
+      // estimate is just the walk's starting point.
+      const s0 = planWrittenFit(viewH, contentH * (100 / scalePct));
+      if (s0 !== scalePct) {
+        scalePct = s0;
+        await renderAt(() => controller!.setScale(s0 / 100));
+      }
+      await settle(s0, (s) => controller!.setScale(s / 100));
       return;
     }
-    const rowH = contentH / Math.ceil(measureCount / barsPerRow); // at the current scale
+    // Normalize the measured row height to 100% scale — the planner must not see the
+    // current scale, or the result would depend on how the player got here.
+    const rowH100 = (contentH / Math.ceil(measureCount / barsPerRow)) * (100 / scalePct);
     const base = pickBarsPerRow(lastStageWidth || stageEl?.clientWidth || 0, measureCount);
-    let bestN = barsPerRow;
-    let bestS = 75;
-    for (let n = base; n <= 6; n++) {
-      if (measureCount > n && measureCount % n === 1) continue; // no orphan rows
-      const rows = Math.ceil(measureCount / n);
-      const s = Math.min(225, Math.floor(((viewH / (rows * rowH)) * scalePct) / 5) * 5);
-      if (s > bestS) {
-        bestN = n;
-        bestS = s;
-      }
-    }
-    while (bestN !== barsPerRow || bestS !== scalePct) {
+    const { barsPerRow: bestN, scalePct: bestS } = planFit({
+      measureCount,
+      viewH,
+      rowH100,
+      baseBarsPerRow: base,
+    });
+    if (bestN !== barsPerRow || bestS !== scalePct) {
       barsPerRow = bestN; // the overlay mirrors the notation 1:1
       lastBarsPerRow = bestN;
       scalePct = bestS;
-      const rendered = nextRender();
-      controller.setLayout(bestN, bestS / 100);
-      await rendered;
-      // Estimate ran long (row heights shift with density): trim a step and re-verify.
-      if (scroller.scrollHeight <= scroller.clientHeight || bestS <= 75) break;
-      bestS = Math.max(75, bestS - 5);
+      await renderAt(() => controller!.setLayout(bestN, bestS / 100));
     }
+    await settle(bestS, (s) => controller!.setLayout(bestN, s / 100));
   }
   // Return to the top of the tune (a synced seek: the band jumps with you).
   function returnToStart() {
@@ -755,6 +784,18 @@
 
   <span class="spacer"></span>
 
+  <!-- Fit is a LOCAL viewing pref (the exception in this band-synced strip): it needs
+       a permanent home outside the settings sheet so its state stays visible — when
+       dragging Size disengages it, the player sees it switch off (spec Part 2 #1, #4). -->
+  <button
+    class="pill fit"
+    class:on={fitOn}
+    aria-pressed={fitOn}
+    onclick={toggleFit}
+    disabled={!controller}
+    title="Keep the whole tune sized to the view — adjusting Size takes back manual control"
+  >Fit</button>
+
   <button class="pill" class:on={transposeModified} onclick={openSettings} disabled={!controller} title="Key">
     <span class="lbl">Key</span> {keyName}{#if transposeModified}<span class="dot">●</span>{/if}
   </button>
@@ -834,18 +875,12 @@
       <button class="reset" onclick={resetTranspose} disabled={!controller || !transposeModified} title="Reset to original key" aria-label="Reset to original key"><Icon name="reset" size={16} /></button>
     </div>
 
+    <!-- Size is manual control: dragging it disengages Fit (the Fit pill in the
+         transport strip visibly switches off). -->
     <div class="row">
       <span class="label">Size</span>
       <input type="range" min="75" max="225" step="25" value={scalePct} oninput={onScale} disabled={!controller} aria-label="Notation size" aria-valuetext={`${scalePct}%`} />
       <span class="readout">{scalePct}%</span>
-      <button
-        class="fitbtn"
-        class:active={fitOn}
-        aria-pressed={fitOn}
-        onclick={toggleFit}
-        disabled={!controller}
-        title="Keep the whole tune sized to the view — adjusting Size takes back manual control"
-      >Fit</button>
     </div>
 
     <!-- Row breaks: Auto reflows by screen width; As written follows the printed
@@ -1117,8 +1152,9 @@
     min-height: 2.2rem;
   }
   .chips button.active { border-color: var(--accent); color: var(--accent); }
-  .fitbtn { flex: 0 0 auto; padding: 0.4rem 0.7rem; font-size: 0.85rem; min-height: 2.2rem; }
-  .fitbtn.active { border-color: var(--accent); color: var(--accent); }
+  /* The Fit pill signals its state with color too — its whole job in the transport
+     strip is that disengaging (Size drag) is VISIBLE (spec Part 2 #4). */
+  .pill.fit.on { color: var(--accent); }
 
   /* Touch screens get full-size (≥44px) targets on the controls tapped mid-practice;
      pointer precision keeps the compact sizes on desktop. */
@@ -1127,7 +1163,6 @@
     .pill { min-height: 2.75rem; }
     .stepper button,
     .chips button,
-    .fitbtn,
     .reset { min-width: 2.75rem; min-height: 2.75rem; }
   }
 
