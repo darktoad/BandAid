@@ -12,6 +12,7 @@
     scrollEl = $bindable(),
     surfaceEl = $bindable(),
     pageZoom = 1,
+    pageWidth = 0,
     bareScroll = false,
   }: {
     musicXmlUrl: string;
@@ -26,6 +27,10 @@
     surfaceEl?: HTMLDivElement;
     /** Page-mode zoom: CSS-scales the rendered page (≤1 shrinks to fit, >1 pinch-zoomed in); 1 = no transform. */
     pageZoom?: number;
+    /** Virtual page width in px: engrave to THIS width rather than the viewport's, so a
+     *  row holds a chart's worth of bars (4–6) on any screen; the transform then scales
+     *  the page down to fit. 0/undefined = lay out to the container (classic). */
+    pageWidth?: number;
     /** Rehearsal view: hide scrollbars entirely (panning is wheel/swipe) and drop the gutter. */
     bareScroll?: boolean;
   } = $props();
@@ -45,11 +50,17 @@
     viewW = scrollEl?.clientWidth ?? viewW;
     surfaceH = surfaceEl?.offsetHeight ?? surfaceH;
   };
-  // Belt to the RO's braces: re-measure synchronously whenever the zoom changes —
-  // effects run after the DOM update, so this sees the settled layout even where
-  // RO delivery is throttled (hidden/background documents).
+  // The page's own layout width: the virtual page when set, else the container.
+  let naturalW = $derived(pageWidth > 0 ? pageWidth : viewW);
+  // True whenever the page is being laid out to its own width and/or scaled — the
+  // regime where the clamp owns sizing/centring and the origin must be top-left.
+  let pageScaled = $derived(pageWidth > 0 || pageZoom !== 1);
+  // Belt to the RO's braces: re-measure synchronously whenever the zoom or page width
+  // changes — effects run after the DOM update, so this sees the settled layout even
+  // where RO delivery is throttled (hidden/background documents).
   $effect(() => {
     void pageZoom;
+    void pageWidth;
     measure();
   });
 
@@ -84,17 +95,21 @@
        to match — trimming ghost scroll space when shrunk, extending it when zoomed in. -->
   <!-- No measurement yet (surfaceH 0) → no clamp: a ghost scroll area beats an
        invisible zero-height page. -->
+  <!-- Page transforms scale from the TOP LEFT and the clamp carries the visual size,
+       centring itself with margin:auto. (Scaling from `top center` would pivot on the
+       page's own midpoint — a 1600px virtual page shrunk toward x=800 lands entirely
+       outside a 375px viewport and gets clipped to blank.) -->
   <div
     class="page-clamp"
     style:height={pageZoom !== 1 && surfaceH > 0 ? `${Math.ceil(surfaceH * pageZoom)}px` : undefined}
-    style:width={pageZoom > 1 && viewW > 0 ? `${Math.ceil(viewW * pageZoom)}px` : undefined}
+    style:width={pageScaled && naturalW > 0 ? `${Math.ceil(naturalW * pageZoom)}px` : undefined}
   >
     <div
       class="render-surface"
       bind:this={surfaceEl}
       style:transform={pageZoom !== 1 ? `scale(${pageZoom})` : undefined}
-      style:transform-origin={pageZoom > 1 ? 'top left' : undefined}
-      style:width={pageZoom > 1 && viewW > 0 ? `${Math.ceil(viewW)}px` : undefined}
+      style:transform-origin={pageScaled ? 'top left' : undefined}
+      style:width={pageScaled && naturalW > 0 ? `${Math.ceil(naturalW)}px` : undefined}
     ></div>
   </div>
 </div>
@@ -133,6 +148,7 @@
   }
   .page-clamp {
     overflow: hidden;
+    margin: 0 auto; /* centres a page narrower than the viewport */
   }
   .render-surface {
     width: 100%;
