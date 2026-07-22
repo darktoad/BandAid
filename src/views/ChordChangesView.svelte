@@ -1574,7 +1574,9 @@
        pane must pan. Scrollbars stay hidden either way (screen real estate). */
     overflow: auto;
     background: var(--panel);
-    padding: 0.6rem 0.8rem;
+    /* Tight horizontal padding: the pane is narrow and every px belongs to the words.
+       Grouping comes from indenting each section's lines under its title instead. */
+    padding: 0.6rem 0.3rem;
     /* Gestures: keep native panning, suppress browser pinch-zoom; no scrollbars ever. */
     touch-action: pan-x pan-y;
     scrollbar-width: none;
@@ -1647,7 +1649,7 @@
   .lyrics-body {
     flex: 1 1 auto;
     overflow-y: auto;
-    padding: 1rem 1rem 2rem;
+    padding: 1rem 0.4rem 2rem;
   }
   /* Full-screen leaves very long line lengths on tablets — cap the text column. */
   .lyrics-col {
