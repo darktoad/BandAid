@@ -17,6 +17,14 @@ export function pageScale(viewW: number, viewH: number, contentW: number, conten
 export const MIN_LEGIBLE_PAGE_ZOOM = 0.55;
 
 /**
+ * The floor for TEXT (the lyrics/banter pane). Higher than the notation's: shrinking
+ * body text is far more punishing than shrinking a stave — 0.55 of a 16px sheet is 9px,
+ * unreadable across a music stand. Lyrics would rather scroll than shrink; collapsing
+ * sections is the way to make a long sheet fit, not squeezing the words.
+ */
+export const MIN_LEGIBLE_TEXT_ZOOM = 0.8;
+
+/**
  * Page-mode Fit with a legibility guard. "Whole page in view" is the goal, but only
  * while the result is still readable — on a tall, narrow screen (a phone) fitting a
  * whole tune vertically crushes it AND wastes most of the width. When the whole-page
@@ -44,9 +52,27 @@ export function virtualPageWidth(viewW: number): number {
   return Math.round(Math.max(viewW, Math.min(CHART_PAGE_WIDTH, viewW / MIN_LEGIBLE_PAGE_ZOOM)));
 }
 
-export function pageFitZoom(viewW: number, viewH: number, contentW: number, contentH: number): number {
+/**
+ * Page-mode Fit with a legibility guard: shrink toward "whole page in view", but never
+ * past the floor — below it, hold at the floor and let the content scroll instead.
+ *
+ * CONTINUITY MATTERS. An earlier version switched modes at the floor (whole-page above
+ * it, width-fit below), so a one-pixel splitter drag jumped the lyrics ~1.8x in size.
+ * Clamping instead of switching keeps zoom monotonic in the box size, so dragging a
+ * splitter changes the size smoothly and never snaps.
+ *
+ * Width always wins over the floor: exceeding the width-fit scale would overflow
+ * sideways, and nobody reads music by scrolling horizontally.
+ */
+export function pageFitZoom(
+  viewW: number,
+  viewH: number,
+  contentW: number,
+  contentH: number,
+  floor: number = MIN_LEGIBLE_PAGE_ZOOM,
+): number {
+  if (viewW <= 0 || viewH <= 0 || contentW <= 0 || contentH <= 0) return 1;
   const whole = pageScale(viewW, viewH, contentW, contentH);
-  if (whole >= MIN_LEGIBLE_PAGE_ZOOM) return whole;
-  if (viewW <= 0 || contentW <= 0) return 1;
-  return Math.min(1, viewW / contentW);
+  const widthFit = Math.min(1, viewW / contentW);
+  return Math.min(widthFit, Math.max(whole, floor));
 }

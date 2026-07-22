@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { CHART_PAGE_WIDTH, MIN_LEGIBLE_PAGE_ZOOM, pageFitZoom, pageScale, virtualPageWidth } from './pageScale';
+import {
+  CHART_PAGE_WIDTH,
+  MIN_LEGIBLE_PAGE_ZOOM,
+  MIN_LEGIBLE_TEXT_ZOOM,
+  pageFitZoom,
+  pageScale,
+  virtualPageWidth,
+} from './pageScale';
 
 describe('pageScale', () => {
   it('shrinks by the tighter dimension', () => {
@@ -45,17 +52,33 @@ describe('pageFitZoom', () => {
     expect(pageFitZoom(1280, 616, 1280, 823)).toBeCloseTo(0.748, 2);
   });
 
-  it('fits WIDTH instead of crushing the page below legibility (phone)', () => {
-    // The real phone case: 375x708 view, 375x1966 page. Whole-page would be 0.36 —
-    // ~4px staves. Fit the width (1) and let it scroll under the auto page-turn.
-    const z = pageFitZoom(375, 708, 375, 1966);
-    expect(z).toBe(1);
+  it('holds at the floor rather than crushing the page (phone), letting it scroll', () => {
+    // The real phone case: whole-page would be 0.36 — ~4px staves. Hold the floor.
     expect(pageScale(375, 708, 375, 1966)).toBeLessThan(MIN_LEGIBLE_PAGE_ZOOM);
+    expect(pageFitZoom(375, 708, 375, 1966)).toBeCloseTo(MIN_LEGIBLE_PAGE_ZOOM, 3);
   });
 
-  it('still shrinks a too-WIDE page to the width, even when illegibly tall', () => {
-    // Width-bound fallback is a real shrink when the page is wider than the view.
+  it('never exceeds the width fit — no horizontal scrolling to read music', () => {
+    // Page twice the view's width: width-fit 0.5 wins over the 0.55 floor.
     expect(pageFitZoom(500, 400, 1000, 4000)).toBe(0.5);
+  });
+
+  it('is CONTINUOUS across the floor — a 1px drag must not snap the size', () => {
+    // The bug David hit: pane 475px→494px jumped zoom 1.00 → 0.566 (1.8x).
+    // Sweep the boundary and assert no step bigger than the input change.
+    const paneW = 500;
+    let prev = pageFitZoom(paneW, 1000, paneW, 3000, MIN_LEGIBLE_TEXT_ZOOM);
+    for (let contentH = 3000; contentH >= 1000; contentH -= 10) {
+      const z = pageFitZoom(paneW, 1000, paneW, contentH, MIN_LEGIBLE_TEXT_ZOOM);
+      expect(Math.abs(z - prev)).toBeLessThan(0.05); // smooth, no cliff
+      prev = z;
+    }
+  });
+
+  it('takes a custom floor — text refuses to shrink as far as notation', () => {
+    // Same box: notation may go to 0.55, lyrics stop at 0.8 and scroll instead.
+    expect(pageFitZoom(500, 500, 500, 1000)).toBeCloseTo(MIN_LEGIBLE_PAGE_ZOOM, 3);
+    expect(pageFitZoom(500, 500, 500, 1000, MIN_LEGIBLE_TEXT_ZOOM)).toBeCloseTo(MIN_LEGIBLE_TEXT_ZOOM, 3);
   });
 
   it('never upscales', () => {
