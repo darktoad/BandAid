@@ -1,6 +1,6 @@
 // wrangler.jsonc
 {
-  "name": "bandaid-sync",
+  "name": "bandaid",
   "main": "party/index.ts",
   "compatibility_date": "2026-07-01",
   "durable_objects": {
