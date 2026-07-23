@@ -198,21 +198,22 @@
     saveFitPref();
   }
 
-  // Collapsed bars (spec Part 4, option a): manual only — NEVER driven by playback
-  // state. Personal, persisted so a gig device stays collapsed across reloads.
-  let barsCollapsed = $state(loadCollapsedPref());
-  function loadCollapsedPref(): boolean {
+  // Fullscreen (spec Part 4, option a): one manual toggle hides ALL chrome — topbar,
+  // transport, sheet — and the notation gets every pixel. Manual only, NEVER driven by
+  // playback state. Personal, persisted so a gig device stays fullscreen across reloads.
+  let fullscreen = $state(loadFullscreenPref());
+  function loadFullscreenPref(): boolean {
     try {
-      return typeof localStorage !== 'undefined' && localStorage.getItem('bandaid.barsCollapsed') === '1';
+      return typeof localStorage !== 'undefined' && localStorage.getItem('bandaid.fullscreen') === '1';
     } catch {
       return false;
     }
   }
-  function setBarsCollapsed(on: boolean) {
-    barsCollapsed = on;
+  function setFullscreen(on: boolean) {
+    fullscreen = on;
     if (on) showMore = false; // the sheet is part of the chrome being hidden
     try {
-      if (typeof localStorage !== 'undefined') localStorage.setItem('bandaid.barsCollapsed', on ? '1' : '0');
+      if (typeof localStorage !== 'undefined') localStorage.setItem('bandaid.fullscreen', on ? '1' : '0');
     } catch {
       /* ignore */
     }
@@ -667,7 +668,7 @@
     void lyricsLoading;
     void splitFrac;
     void isLandscape;
-    void barsCollapsed;
+    void fullscreen;
     const pane = paneEl;
     const content = paneContentEl;
     if (!pane || !content) {
@@ -824,7 +825,7 @@
   // Ignore Space when focused in a control.
   function onKeydown(e: KeyboardEvent) {
     if (e.code === 'Escape') {
-      if (barsCollapsed) setBarsCollapsed(false);
+      if (fullscreen) setFullscreen(false);
       else if (showMore) showMore = false;
       return;
     }
@@ -842,8 +843,9 @@
 <svelte:window onkeydown={onKeydown} />
 
 <!-- The whole chrome (topbar + transport + settings sheet) collapses to fullscreen —
-     one manual toggle, never playback-driven; the corner button restores. -->
-{#if !barsCollapsed}
+     one manual toggle (the floating corner button on the notation), never
+     playback-driven; the same button or Esc restores. -->
+{#if !fullscreen}
 <!-- Top header: navigation and meta only — songs on the far left, the title, then
      info and the menu on the far right. Nothing here touches band state. -->
 <header class="topbar">
@@ -923,9 +925,6 @@
     ♩ = {currentBpm}{#if tempoModified}<span class="dot">●</span>{/if}
   </button>
 
-  <button class="iconbtn" onclick={() => setBarsCollapsed(true)} aria-label="Hide controls" title="Hide the control bars (Esc or the corner button brings them back)">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,14 12,8 18,14" /></svg>
-  </button>
 </div>
 {/if}
 
@@ -1087,12 +1086,6 @@
 {/if}
 {/if}
 
-{#if barsCollapsed}
-  <button class="restore-bars" onclick={() => setBarsCollapsed(false)} aria-label="Show controls">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,10 12,16 18,10" /></svg>
-  </button>
-{/if}
-
 {#if errorMsg}
   <div class="error">Renderer error: {errorMsg}</div>
 {/if}
@@ -1133,6 +1126,28 @@
         }}
         onerror={(e) => (errorMsg = e.message)}
       />
+      <!-- Floating notation controls: fullscreen is a corner toggle on the music itself
+           (like a video player), so it works whatever chrome is showing; while
+           fullscreen, notes & lyrics stay one tap away without restoring the bars. -->
+      <div class="float-controls">
+        <button
+          class="floatbtn"
+          onclick={() => setFullscreen(!fullscreen)}
+          aria-label={fullscreen ? 'Exit full screen' : 'Full screen'}
+          title={fullscreen ? 'Bring the control bars back (Esc works too)' : 'Full screen — hide the control bars, the music gets every pixel'}
+        >
+          {#if fullscreen}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" /><line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+          {:else}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+          {/if}
+        </button>
+        {#if fullscreen && (song.notes || song.lyricsUrl)}
+          <button class="floatbtn" class:active={lyricsPane} onclick={toggleLyricsPane} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><line x1="12" y1="11" x2="12" y2="16" /><circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none" /></svg>
+          </button>
+        {/if}
+      </div>
     </div>
     {#if lyricsPane}
       <div
@@ -1337,13 +1352,20 @@
      strip is that disengaging (Size drag) is VISIBLE (spec Part 2 #4). */
   .pill.fit.on { color: var(--accent); }
 
-  /* Collapsed-chrome restore: the ONLY thing on screen besides the music. Small,
-     semi-transparent, corner placement per spec; above alphaTab cursors (z 1000). */
-  .restore-bars {
-    position: fixed;
+  /* Floating notation controls (fullscreen toggle; notes & lyrics while fullscreen):
+     small, semi-transparent, corner placement on the notation pane itself; above
+     alphaTab cursors (z 1000). */
+  .float-controls {
+    position: absolute;
     top: 0.5rem;
     right: 0.5rem;
-    z-index: 1005;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.4rem;
+  }
+  .floatbtn {
     width: 2.2rem;
     height: 2.2rem;
     display: inline-flex;
@@ -1353,12 +1375,17 @@
     border-radius: 50%;
     opacity: 0.45;
   }
-  .restore-bars:hover,
-  .restore-bars:focus-visible {
+  .floatbtn:hover,
+  .floatbtn:focus-visible {
     opacity: 1;
   }
+  .floatbtn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    opacity: 0.75;
+  }
   @media (pointer: coarse) {
-    .restore-bars { width: 2.75rem; height: 2.75rem; }
+    .floatbtn { width: 2.75rem; height: 2.75rem; }
   }
 
   /* Touch screens get full-size (≥44px) targets on the controls tapped mid-practice;
@@ -1414,7 +1441,7 @@
     display: flex;
     flex-direction: column; /* portrait: notation over lyrics */
   }
-  .render-wrap { flex: 1 1 auto; min-height: 0; min-width: 0; }
+  .render-wrap { position: relative; flex: 1 1 auto; min-height: 0; min-width: 0; }
   .lyrics-pane {
     flex: 0 0 42%;
     min-height: 0;
