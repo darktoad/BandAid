@@ -1037,3 +1037,28 @@ Deliberate simplifications (flagged for after real use): pinch zoom is per-song-
 - **Deviations, deliberate:** pane manual zoom deferred (auto-fit covers the gig need; spec's "independently scalable" partially met by notation Size — noted in PR body); collapse trigger placed in the transport strip (spec doesn't place it); Escape as secondary restore (not specced, cheap, keyboard-consistent).
 - **Risk register:** alphaTab hit-testing and cursor alignment under CSS transform (explicit browser checks); stage-RO retarget to `renderScrollEl` changes the width source for classic view too — verify classic bars-per-row still responds to window resizes in the Task 4 browser pass (`renderScrollEl` width == old stage width when no pane exists, so behavior should be identical).
 - **Type consistency:** `pageScale(viewW, viewH, contentW, contentH)` used identically in Tasks 2 & 4; `rehearsalView`/`setRehearsalView`, `barsCollapsed`/`setBarsCollapsed`, `lyricsPane`/`toggleLyricsPane` names consistent across tasks; Renderer props `pageZoom`/`surfaceEl` match Task 2 Steps 1 & 3.
+
+---
+
+## Rework (2026-07-22): review corrections to Tasks 2–3
+
+David's review of the built PR surfaced two intent misses in the original spec/plan:
+
+1. **"Rehearsal view" was never a layout concept he wanted.** The Classic/Rehearsal
+   View toggle (spec Part 5's rollout escape hatch) is gone; the page-mode layout is
+   the only layout, which also retired the classic render-walk Fit machinery
+   (`fitPlan.ts` + `setLayout`) and the classic lyrics modal. Scrolling past the
+   legibility floor + paged auto-turn cover pages taller than the view (page flipping
+   is a possible future refinement).
+2. **"Rehearsal mode" means transport visibility.** A settings-sheet toggle (default
+   on) shows/hides the transport strip. Off = static sheet display for playing live;
+   on covers solo practice AND in-sync band practice at the shared tempo — it is not
+   solo-vs-band. Key/tempo stay editable through the sheet while the strip is hidden.
+3. **The collapse is a fullscreen toggle, available at any time.** The transport-strip
+   chevron + fixed corner restore pair became one floating, semi-transparent corner
+   button on the notation pane itself (like a video player's fullscreen control), so
+   it survives the strip being hidden. While fullscreen, a second float toggles the
+   notes & lyrics pane without restoring the chrome. Esc still restores.
+
+localStorage: `bandaid.rehearsalView` and `bandaid.barsCollapsed` are abandoned;
+`bandaid.rehearsalMode` ('on'/'off') and `bandaid.fullscreen` ('1'/'0') replace them.
