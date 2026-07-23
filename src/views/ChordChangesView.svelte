@@ -17,7 +17,6 @@
   import { prefersFlats, transposeChordLabel, transposeNote } from '../chords/transposeChord';
   import SyncBadge from '../sync/SyncBadge.svelte';
   import type { SyncTone } from '../sync/syncStatusLabel';
-  import { MAX_FIT_SCALE, MIN_FIT_SCALE, planFit, planWrittenFit } from './fitPlan';
   import { MIN_LEGIBLE_TEXT_ZOOM, pageFitZoom, virtualPageWidth } from './pageScale';
   import { pinchZoom } from './pinchZoom';
 
@@ -82,10 +81,9 @@
   let showMasthead = $state(loadMastheadPref()); // local viewing pref, persisted
   let errorMsg = $state<string | null>(null);
 
-  // Lyrics/notes slide-over: personal + local, never synced. Open state is ephemeral.
-  // The fetched sheet is cached per song; App.svelte remounts this view via {#key song.id},
-  // so these reset on a song switch — no in-component reset needed.
-  let lyricsOpen = $state(false);
+  // Lyrics/notes: personal + local, never synced. The fetched sheet is cached per song;
+  // App.svelte remounts this view via {#key song.id}, so these reset on a song switch —
+  // no in-component reset needed.
   let lyricsSheet = $state<SongSheet | null>(null);
   let lyricsLoading = $state(false);
   let lyricsError = $state<string | null>(null);
@@ -135,32 +133,8 @@
     // and lastBarsPerRow must match so the next resize isn't skipped as a no-op.
     lastBarsPerRow = barsPerRow;
     controller.setEngravedBreaks(on, barsPerRow);
-    // A layout-mode switch isn't manual sizing — Fit stays on and re-establishes
-    // itself in the new mode once the switch's own render has landed.
-    if (fitOn) void nextRender().then(() => fitToView());
-  }
-
-  // Rehearsal view (spec Parts 3–4): page-mode Fit, split lyrics, collapsible bars.
-  // Default ON; 'classic' is the two-tap escape hatch. Personal, per device.
-  let rehearsalView = $state(loadRehearsalPref());
-  function loadRehearsalPref(): boolean {
-    try {
-      return typeof localStorage === 'undefined' || localStorage.getItem('bandaid.rehearsalView') !== 'classic';
-    } catch {
-      return true;
-    }
-  }
-  function setRehearsalView(on: boolean) {
-    if (on === rehearsalView) return;
-    rehearsalView = on;
-    try {
-      if (typeof localStorage !== 'undefined') localStorage.setItem('bandaid.rehearsalView', on ? 'on' : 'classic');
-    } catch {
-      /* ignore */
-    }
-    manualZoom = null;
-    // Re-establish the mode's own fit: classic walks renders; rehearsal just zooms.
-    if (fitOn) void fitToView();
+    // A layout-mode switch isn't manual sizing — Fit stays on; the renderTick effect
+    // recomputes the page zoom once the switch's own render has landed.
   }
 
   // Fit mode: keep the whole tune sized to the view. Band feedback, twice over — players
@@ -170,7 +144,6 @@
   // dragging the Size slider takes manual control and switches it off. A local viewing
   // preference (like the masthead / row breaks), on by default.
   let fitOn = $state(loadFitPref());
-  let didInitialFit = false; // one-shot guard: the load-time fit runs once per song load
   function loadFitPref(): boolean {
     try {
       // Fit unless the player explicitly turned it off. (Key predates the merged
@@ -194,7 +167,7 @@
     fitOn = !fitOn;
     saveFitPref();
     // Turning it on fits the current tune now, not just on the next load/resize.
-    if (fitOn) void fitToView();
+    if (fitOn) recomputePageZoom();
   }
   // Manual sizing takes control back from Fit (the current layout is left alone).
   function releaseFit() {
@@ -268,11 +241,11 @@
   let stageEl: HTMLElement;
   let renderScrollEl = $state<HTMLDivElement | undefined>(undefined); // the notation's scroller
   let renderSurfaceEl = $state<HTMLDivElement | undefined>(undefined); // the alphaTab surface
-  // Page-mode shrink (rehearsal view): recomputed from the latest render + viewport;
-  // 1 in classic view or with Fit off. manualZoom is a pinch override (ephemeral).
+  // Page-mode shrink: recomputed from the latest render + viewport; 1 with Fit off.
+  // manualZoom is a pinch override (ephemeral).
   let pageZoom = $state(1);
   let manualZoom = $state<number | null>(null);
-  // The virtual page: rehearsal view engraves to a page WIDER than the device and
+  // The virtual page: the notation engraves to a page WIDER than the device and
   // scales it down — a photo of the fiddler's sheet, not a reflowed web page. Without
   // it a phone wraps a 4-bar row down to ~2.7 bars and the page grows tall and thin.
   // virtualPageWidth() trades width against legibility: chart width (4–6 bars/row) on
@@ -281,12 +254,12 @@
   function recomputePageZoom() {
     const scroller = renderScrollEl;
     const surface = renderSurfaceEl;
-    if (!rehearsalView || !scroller) {
+    if (!scroller) {
       pageWidth = 0;
     } else if (scroller.clientWidth > 0) {
       pageWidth = virtualPageWidth(scroller.clientWidth);
     }
-    if (!rehearsalView || !fitOn || !scroller || !surface) {
+    if (!fitOn || !scroller || !surface) {
       pageZoom = 1;
       return;
     }
@@ -298,27 +271,21 @@
   $effect(() => {
     void renderTick; // every completed render can change the page's natural size
     void fitOn;
-    void rehearsalView;
     recomputePageZoom();
   });
-  // Pinch/wheel zoom on the notation: manual control disengages Fit (same contract as
-  // dragging Size in classic view); tapping Fit snaps back. Ephemeral by design.
+  // Pinch/wheel zoom on the notation: manual control disengages Fit; tapping Fit
+  // snaps back. Ephemeral by design.
   function onNotationZoom(z: number) {
-    if (!rehearsalView) return;
     manualZoom = z;
     releaseFit();
   }
   function resetNotationZoom() {
-    if (!rehearsalView) return;
     manualZoom = null;
     fitOn = true;
     saveFitPref();
-    void fitToView();
+    recomputePageZoom();
   }
   let renderTick = $state(0); // bumped after every completed (re-)render — bounds are fresh
-  // One-shot waiters for the next completed render (fit-to-view's verification pass).
-  let renderResolvers: Array<() => void> = [];
-  const nextRender = () => new Promise<void>((resolve) => renderResolvers.push(resolve));
   // Matches the overlay's page-turn: JS-driven scrolling can't be reached by a CSS
   // reduced-motion rule, so honor the preference here.
   const reducedMotion =
@@ -347,9 +314,9 @@
   }
   function applyResponsiveLayout(w: number) {
     lastStageWidth = w;
-    // Rehearsal view lays out to the VIRTUAL page, not the device: bars-per-row must
+    // The notation lays out to the VIRTUAL page, not the device: bars-per-row must
     // be picked for the page's width or a phone would ask for 2/row on a 900px page.
-    const layoutW = rehearsalView && pageWidth > 0 ? pageWidth : w;
+    const layoutW = pageWidth > 0 ? pageWidth : w;
     const bpr = pickBarsPerRow(layoutW, measureCount);
     barsPerRow = bpr; // keep the overlay's row count in step with the notation
     // "As written": the file's engraved breaks own the notation rows — keep the
@@ -361,32 +328,14 @@
     controller.setBarsPerRow(bpr);
   }
 
-  // Debounced viewport re-fit (rotation, window resize, split-screen, the inline
-  // settings sheet opening/closing) while Fit is on. Gated on didInitialFit so the
-  // load sequence's own fit (onRender) runs first.
-  let fitDebounce: ReturnType<typeof setTimeout> | undefined;
-  let lastStageSize = '';
+  // Viewport re-fit (rotation, window resize, split-screen, the inline settings sheet
+  // opening/closing): a page re-zoom is a cheap transform — no debounce, no render walk.
   onMount(() => {
     const ro = new ResizeObserver((entries) => {
       const rect = entries[0]?.contentRect;
       const w = rect?.width ?? stageEl.clientWidth;
       applyResponsiveLayout(w);
-      const size = rect ? `${Math.round(rect.width)}x${Math.round(rect.height)}` : '';
-      if (size === lastStageSize) return;
-      const initialObserve = lastStageSize === '';
-      lastStageSize = size;
-      if (initialObserve || !fitOn || !didInitialFit) return;
-      if (rehearsalView) {
-        // Page mode: a re-zoom is a cheap transform — no debounce, no render walk.
-        recomputePageZoom();
-        return;
-      }
-      clearTimeout(fitDebounce);
-      // Re-check at fire time: a slider drag inside the debounce window releases Fit,
-      // and the pending re-fit must not snatch control back.
-      fitDebounce = setTimeout(() => {
-        if (fitOn) void fitToView();
-      }, 200);
+      recomputePageZoom();
     });
     // Observe the notation's own box, not the stage: with the lyrics pane open the
     // stage keeps its width but the notation loses a chunk of it, and bars-per-row +
@@ -394,10 +343,7 @@
     // sheet, collapse — reach this box identically.)
     const observed = renderScrollEl ?? stageEl;
     if (observed) ro.observe(observed);
-    return () => {
-      ro.disconnect();
-      clearTimeout(fitDebounce);
-    };
+    return () => ro.disconnect();
   });
 
   // Tempo/key are shared session state (band-synced): a bandmate's change lands in the
@@ -519,16 +465,8 @@
     // Re-pick bars-per-row now the bar count is known (orphan avoidance needs it) —
     // the ResizeObserver only re-fires on actual size changes.
     if (lastStageWidth > 0) applyResponsiveLayout(lastStageWidth);
-    c.onRender(() => {
-      renderTick++;
-      renderResolvers.splice(0).forEach((resolve) => resolve());
-      // Fit once per song load, on the first painted render (content is now measurable).
-      // fitToView re-renders as it searches, but the guard keeps this from re-entering.
-      if (fitOn && !didInitialFit && renderScrollEl?.firstElementChild) {
-        didInitialFit = true;
-        void fitToView();
-      }
-    });
+    // Every completed render bumps the tick; the pageZoom effect re-fits from it.
+    c.onRender(() => renderTick++);
     // Masthead credit: the curated manifest composer wins; fall back to the score's
     // credit unless it's an export toolchain stamping its own name (e.g. Music21).
     const scoreCredit = info?.composer ?? '';
@@ -560,7 +498,7 @@
     // Saved "as written" pref: re-apply the engraved breaks the renderer cleared at load.
     if (rowsAsWritten) c.setEngravedBreaks(true, barsPerRow);
     // The split pane resumes open across reloads — its lyrics must load with the song.
-    if (rehearsalView && lyricsPane) void ensureLyricsLoaded();
+    if (lyricsPane) void ensureLyricsLoaded();
   }
 
   // Melody alone, or melody + the player's part stacked (one player → synced cursors).
@@ -595,13 +533,8 @@
     transport?.setCountIn(countIn);
   }
 
-  // Keyboard flow for the slide-over: focus lands on its close button when it opens
-  // (the action below) and returns to the opener when it closes.
-  let lyricsReturnFocus: HTMLElement | null = null;
-  const focusOnMount = (el: HTMLElement) => el.focus();
-
-  // The note renders immediately from the manifest; only lyrics need a fetch, and only
-  // once — shared by the classic modal and the rehearsal split pane.
+  // The note renders immediately from the manifest; only lyrics need a fetch, and
+  // only once per song load.
   async function ensureLyricsLoaded() {
     if (!song.lyricsUrl || lyricsSheet || lyricsLoading) return;
     lyricsLoading = true;
@@ -616,15 +549,8 @@
       lyricsLoading = false;
     }
   }
-  async function openLyrics() {
-    lyricsReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    lyricsOpen = true;
-    void ensureLyricsLoaded();
-  }
-
   // Split view (spec Part 4): the lyrics/banter sheet beside (landscape) or under
-  // (portrait) the notation. Personal + persisted. In classic view the lyrics button
-  // keeps opening the full-screen modal instead.
+  // (portrait) the notation. Personal + persisted.
   let lyricsPane = $state(loadLyricsPanePref());
   function loadLyricsPanePref(): boolean {
     try {
@@ -763,11 +689,6 @@
       content.style.width = '';
     };
   });
-  const closeLyrics = () => {
-    lyricsOpen = false;
-    lyricsReturnFocus?.focus();
-  };
-
   function togglePlay() {
     if (!transport) return;
     if (playing) transport.pause();
@@ -851,7 +772,8 @@
   // Current sounding tempo (BPM = the ♩ = N your charts show).
   let currentBpm = $derived(Math.round((tempoBpm * speedPct) / 100));
   function onScale(e: Event) {
-    if (!rehearsalView) releaseFit(); // classic: dragging Size takes manual control
+    // Size adjusts engraving legibility only — page Fit is an independent transform
+    // (spec Part 3), so dragging it never disengages Fit.
     scalePct = Number((e.target as HTMLInputElement).value);
     controller?.setScale(scalePct / 100);
   }
@@ -865,100 +787,6 @@
     const p = (x: number) => String(x).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())} · ${__COMMIT_SHA__}`;
   })();
-  // Fit the whole tune in the viewport. The layout choice (bars-per-row up to 6 +
-  // scale) is computed by the pure planner in fitPlan.ts from scale-NORMALIZED
-  // measurements, so Fit is deterministic: same song + viewport → same layout, no
-  // matter what the player dragged or fitted beforehand (spec Part 2 #3). In
-  // "as written" mode bars-per-row belongs to the file, so Fit drops to scale only.
-  // The plan is verified against the real render and trimmed if the row-height
-  // estimate ran long. Fits to the stage as it currently is: with the inline
-  // (wide-screen) sheet open that means the reduced viewport, and the
-  // ResizeObserver re-fits when the sheet closes.
-  async function fitToView() {
-    // Rehearsal view: Fit is a CSS transform over the engraved page — no render walk,
-    // cannot fail to fit, and Size (engraving scale) stays independent (spec Part 3).
-    if (rehearsalView) {
-      recomputePageZoom();
-      return;
-    }
-    const scroller = renderScrollEl;
-    if (!scroller || !controller || measureCount <= 0) return;
-    // Measure the notation surface itself: the scroller's scrollHeight is floored at its
-    // own clientHeight, so a tune SHORTER than the view would read "exactly fits" and
-    // Fit could only ever shrink, never grow into the free space.
-    const contentH = scroller.firstElementChild?.getBoundingClientRect().height ?? 0;
-    const viewH = scroller.clientHeight;
-    if (contentH <= 0 || viewH <= 0) return;
-    const fits = () => scroller.scrollHeight <= scroller.clientHeight;
-    const renderAt = async (apply: () => void) => {
-      const rendered = nextRender();
-      apply();
-      await rendered;
-    };
-    // Land on the LARGEST 5%-grid scale whose REAL render fits the view: walk down
-    // while it overflows, then probe one step up while there's room (reverting the
-    // probe that overflows). The endpoint — max{s : rendered height ≤ view} — doesn't
-    // depend on where the walk started, which is what makes Fit deterministic even
-    // where height is a step function of scale: rendered height is NOT linear in
-    // scale, because rows that outgrow the viewport width get wrapped (most visibly
-    // in "as written" mode, where an engraved 4-bar row can wrap into 2). A one-shot
-    // linear estimate measured from the current render lands somewhere different per
-    // starting state — the repeated-toggle drift the band hit.
-    const settle = async (s: number, apply: (s: number) => void): Promise<void> => {
-      // Bounded by the 5% grid; the cap only guards against a pathological renderer.
-      let guard = 2 * (MAX_FIT_SCALE - MIN_FIT_SCALE) / 5;
-      while (guard-- > 0) {
-        if (!fits() && s > MIN_FIT_SCALE) {
-          s -= 5;
-          scalePct = s;
-          await renderAt(() => apply(s));
-          continue;
-        }
-        if (fits() && s < MAX_FIT_SCALE) {
-          const up = s + 5;
-          scalePct = up;
-          await renderAt(() => apply(up));
-          if (fits()) {
-            s = up;
-            continue;
-          }
-          scalePct = s;
-          await renderAt(() => apply(s)); // revert the probe that overflowed
-          if (fits()) break; // stable endpoint: largest grid scale that fits
-          continue; // revert overflowed too (renderer wobble) — resume walking down
-        }
-        break; // at a bound, or settled
-      }
-    };
-    if (rowsAsWritten) {
-      // Engraved breaks own the rows; scale is the single lever. The planner's linear
-      // estimate is just the walk's starting point.
-      const s0 = planWrittenFit(viewH, contentH * (100 / scalePct));
-      if (s0 !== scalePct) {
-        scalePct = s0;
-        await renderAt(() => controller!.setScale(s0 / 100));
-      }
-      await settle(s0, (s) => controller!.setScale(s / 100));
-      return;
-    }
-    // Normalize the measured row height to 100% scale — the planner must not see the
-    // current scale, or the result would depend on how the player got here.
-    const rowH100 = (contentH / Math.ceil(measureCount / barsPerRow)) * (100 / scalePct);
-    const base = pickBarsPerRow(lastStageWidth || stageEl?.clientWidth || 0, measureCount);
-    const { barsPerRow: bestN, scalePct: bestS } = planFit({
-      measureCount,
-      viewH,
-      rowH100,
-      baseBarsPerRow: base,
-    });
-    if (bestN !== barsPerRow || bestS !== scalePct) {
-      barsPerRow = bestN; // the overlay mirrors the notation 1:1
-      lastBarsPerRow = bestN;
-      scalePct = bestS;
-      await renderAt(() => controller!.setLayout(bestN, bestS / 100));
-    }
-    await settle(bestS, (s) => controller!.setLayout(bestN, s / 100));
-  }
   // Return to the top of the tune (a synced seek: the band jumps with you).
   function returnToStart() {
     setBar(1);
@@ -974,8 +802,7 @@
   // Ignore Space when focused in a control.
   function onKeydown(e: KeyboardEvent) {
     if (e.code === 'Escape') {
-      if (rehearsalView && barsCollapsed) setBarsCollapsed(false);
-      else if (lyricsOpen) closeLyrics();
+      if (barsCollapsed) setBarsCollapsed(false);
       else if (showMore) showMore = false;
       return;
     }
@@ -992,9 +819,9 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<!-- The whole chrome (topbar + transport + settings sheet) collapses in rehearsal
-     view — one manual toggle, never playback-driven; the corner button restores. -->
-{#if !(rehearsalView && barsCollapsed)}
+<!-- The whole chrome (topbar + transport + settings sheet) collapses to fullscreen —
+     one manual toggle, never playback-driven; the corner button restores. -->
+{#if !barsCollapsed}
 <!-- Top header: navigation and meta only — songs on the far left, the title, then
      info and the menu on the far right. Nothing here touches band state. -->
 <header class="topbar">
@@ -1021,7 +848,7 @@
     </select>
   {/if}
   {#if song.notes || song.lyricsUrl}
-    <button class="iconbtn" class:active={rehearsalView && lyricsPane} onclick={() => (rehearsalView ? toggleLyricsPane() : openLyrics())} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
+    <button class="iconbtn" class:active={lyricsPane} onclick={toggleLyricsPane} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="9" /><line x1="12" y1="11" x2="12" y2="16" /><circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none" />
       </svg>
@@ -1061,9 +888,7 @@
     aria-pressed={fitOn}
     onclick={toggleFit}
     disabled={!controller}
-    title={rehearsalView
-      ? 'Keep the whole page in view (Size adjusts engraving legibility independently)'
-      : 'Keep the whole tune sized to the view — adjusting Size takes back manual control'}
+    title="Keep the whole page in view (Size adjusts engraving legibility independently)"
   >Fit</button>
 
   <button class="pill" class:on={transposeModified} onclick={openSettings} disabled={!controller} title="Key">
@@ -1073,11 +898,9 @@
     ♩ = {currentBpm}{#if tempoModified}<span class="dot">●</span>{/if}
   </button>
 
-  {#if rehearsalView}
-    <button class="iconbtn" onclick={() => setBarsCollapsed(true)} aria-label="Hide controls" title="Hide the control bars (Esc or the corner button brings them back)">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,14 12,8 18,14" /></svg>
-    </button>
-  {/if}
+  <button class="iconbtn" onclick={() => setBarsCollapsed(true)} aria-label="Hide controls" title="Hide the control bars (Esc or the corner button brings them back)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,14 12,8 18,14" /></svg>
+  </button>
 </div>
 
 <!-- Settings sheet (opened by the ☰, or the Key / Tempo pills). Inline on wide
@@ -1116,16 +939,6 @@
         aria-label="Band name"
       />
     </label>
-
-    <!-- The performance-view escape hatch (spec Part 5): Classic restores the pre-PR-3
-         experience in two taps. Personal, per device. -->
-    <div class="row">
-      <span class="label">View</span>
-      <div class="chips">
-        <button class:active={!rehearsalView} aria-pressed={!rehearsalView} onclick={() => setRehearsalView(false)}>Classic</button>
-        <button class:active={rehearsalView} aria-pressed={rehearsalView} onclick={() => setRehearsalView(true)}>Rehearsal</button>
-      </div>
-    </div>
 
     <div class="row">
       <span class="label">Title</span>
@@ -1239,7 +1052,7 @@
 {/if}
 {/if}
 
-{#if rehearsalView && barsCollapsed}
+{#if barsCollapsed}
   <button class="restore-bars" onclick={() => setBarsCollapsed(false)} aria-label="Show controls">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,10 12,16 18,10" /></svg>
   </button>
@@ -1249,7 +1062,7 @@
   <div class="error">Renderer error: {errorMsg}</div>
 {/if}
 
-<main class="stage" class:split={rehearsalView && lyricsPane} bind:this={stageEl}>
+<main class="stage" class:split={lyricsPane} bind:this={stageEl}>
   {#if showMasthead}
     <!-- Our own deduped masthead (alphaTab's title block is suppressed): the crucial
          fields only — title, and composer when present. Key/tempo live in the header. -->
@@ -1273,9 +1086,8 @@
         musicXmlUrl={song.url}
         bind:scrollEl={renderScrollEl}
         bind:surfaceEl={renderSurfaceEl}
-        pageZoom={rehearsalView ? (manualZoom ?? (fitOn ? pageZoom : 1)) : 1}
-        pageWidth={rehearsalView ? pageWidth : 0}
-        bareScroll={rehearsalView}
+        pageZoom={manualZoom ?? (fitOn ? pageZoom : 1)}
+        pageWidth={pageWidth}
         onready={onReady}
         onposition={(b) => setBar(b)}
         onplaying={(p) => (playing = p)}
@@ -1287,7 +1099,7 @@
         onerror={(e) => (errorMsg = e.message)}
       />
     </div>
-    {#if rehearsalView && lyricsPane}
+    {#if lyricsPane}
       <div
         class="splitter"
         role="separator"
@@ -1342,28 +1154,6 @@
     instrument={chartInstrument}
     {showCharts}
   />
-{/if}
-
-{#if lyricsOpen}
-  <div class="lyrics-panel" role="dialog" aria-modal="true" aria-label="Notes and lyrics">
-    <header class="lyrics-head">
-      <h2 class="lyrics-title">{song.title}</h2>
-      <button class="iconbtn" use:focusOnMount onclick={closeLyrics} aria-label="Close">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
-      </button>
-    </header>
-    <div class="lyrics-body">
-      <div class="lyrics-col">
-        {#if lyricsError}
-          <p class="lyrics-msg">{lyricsError}</p>
-        {:else if lyricsLoading && !lyricsSheet}
-          <p class="lyrics-msg">Loading…</p>
-        {:else}
-          <LyricsSheet songId={song.id} note={song.notes} sheet={displaySheet ?? undefined} />
-        {/if}
-      </div>
-    </div>
-  </div>
 {/if}
 
 <style>
@@ -1647,42 +1437,6 @@
   }
   .mh-sub { color: #6b6258; font-size: 0.78rem; margin-top: 0.15rem; }
 
-  /* Full-screen modal (band feedback: the slide-over was too cramped on stage —
-     lyrics/notes want the whole screen). No scrim: there's no outside to click;
-     the close button and Escape dismiss it. */
-  .lyrics-panel {
-    position: fixed;
-    inset: 0;
-    z-index: 1002;
-    display: flex;
-    flex-direction: column;
-    background: var(--panel);
-    animation: lyrics-in 0.16s ease-out;
-  }
-  @keyframes lyrics-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  .lyrics-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.7rem 0.9rem;
-    border-bottom: 1px solid var(--line);
-    color: var(--ink);
-  }
-  .lyrics-title { margin: 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; }
-  .lyrics-body {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    padding: 1rem 0.4rem 2rem;
-  }
-  /* Full-screen leaves very long line lengths on tablets — cap the text column. */
-  .lyrics-col {
-    max-width: 46rem;
-    margin: 0 auto;
-  }
   .lyrics-msg {
     color: var(--muted);
   }

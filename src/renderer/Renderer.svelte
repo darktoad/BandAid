@@ -13,7 +13,6 @@
     surfaceEl = $bindable(),
     pageZoom = 1,
     pageWidth = 0,
-    bareScroll = false,
   }: {
     musicXmlUrl: string;
     onready?: (controller: RendererController, tracks: TrackInfo[]) => void;
@@ -29,10 +28,8 @@
     pageZoom?: number;
     /** Virtual page width in px: engrave to THIS width rather than the viewport's, so a
      *  row holds a chart's worth of bars (4–6) on any screen; the transform then scales
-     *  the page down to fit. 0/undefined = lay out to the container (classic). */
+     *  the page down to fit. 0/undefined = lay out to the container (no virtual page yet). */
     pageWidth?: number;
-    /** Rehearsal view: hide scrollbars entirely (panning is wheel/swipe) and drop the gutter. */
-    bareScroll?: boolean;
   } = $props();
 
   let controller: RendererController | undefined;
@@ -89,7 +86,7 @@
   });
 </script>
 
-<div class="render-scroll" class:bare={bareScroll} bind:this={scrollEl}>
+<div class="render-scroll" bind:this={scrollEl}>
   <!-- Page mode: the surface keeps its natural LAYOUT size (alphaTab lays out to it);
        the transform scales only the pixels, and the clamp resizes the scrollable area
        to match — trimming ghost scroll space when shrunk, extending it when zoomed in. -->
@@ -115,35 +112,22 @@
 </div>
 
 <style>
-  /* The vertical scrollbar lives on this outer wrapper. Keeping it off the alphaTab host
-     means the host's width is the content-box width (already minus the scrollbar), so
-     alphaTab lays out to the visible width. A classic (non-overlay) scrollbar therefore
-     can't spawn a phantom horizontal scrollbar, and nothing gets clipped. */
+  /* The scrolling lives on this outer wrapper, and every pixel belongs to the music:
+     scrolling works (wheel, Shift+wheel, touch swipe, middle-mouse drag) but the bars
+     are gone. Zero-width scrollbars also mean overflow can never change the render
+     width, so the scrollbar-feedback class of bugs cannot exist. */
   .render-scroll {
     width: 100%;
     height: 100%;
     overflow-y: auto;
     overflow-x: auto;
-    /* Reserve the scrollbar's space even when nothing overflows: a classic scrollbar
-       appearing/disappearing changes the content width, which re-wraps rows and changes
-       the content HEIGHT — a feedback loop that makes "does this scale fit?" depend on
-       the previous render (Fit's repeated-toggle drift). A constant width breaks it. */
-    scrollbar-gutter: stable;
+    scrollbar-width: none;
     /* pan-x pan-y: panning stays native, but the browser's own pinch-zoom is
-       suppressed so the rehearsal view's pinch gesture wins. */
+       suppressed so the notation's pinch gesture wins. */
     touch-action: pan-x pan-y;
     background: #faf7f2;
   }
-  /* Rehearsal panes: every pixel belongs to the music. Scrolling still works
-     (wheel, Shift+wheel, touch swipe, middle-mouse drag) — only the bars are gone.
-     Zero-width scrollbars also mean overflow can never change the render width, so
-     the scrollbar-feedback class of bugs cannot exist in this mode. Classic view
-     keeps its visible bars + stable gutter (the walk-fit depends on them). */
-  .render-scroll.bare {
-    scrollbar-gutter: auto;
-    scrollbar-width: none;
-  }
-  .render-scroll.bare::-webkit-scrollbar {
+  .render-scroll::-webkit-scrollbar {
     display: none;
   }
   .page-clamp {
