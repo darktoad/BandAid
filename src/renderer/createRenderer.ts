@@ -44,9 +44,6 @@ export interface RendererController {
   renderTracks(trackIndices: number[]): void;
   /** Bars per row — drive from container width for responsive, readable notation. */
   setBarsPerRow(bars: number): void;
-  /** Bars per row + scale together in ONE re-render — for fit-to-view, whose
-   *  verification pass must await exactly one render per applied change. */
-  setLayout(bars: number, scale: number): void;
   /** True if the file carries engraved system/page breaks (<print new-system/new-page>). */
   hasEngravedBreaks(): boolean;
   /** Row-break authority, in ONE re-render: on = the file's engraved breaks (bars-per-row
@@ -106,6 +103,12 @@ export async function createRenderer(
       // useWorkers:false forced) is silent there. Fonts/soundfont stay local.
       useWorkers: true,
       fontDirectory: `${ALPHATAB_ASSET_BASE}/font/`,
+      // Render the WHOLE score, not just what alphaTab thinks is on screen. The
+      // rehearsal view engraves to a virtual page wider than the viewport and
+      // CSS-scales it down; with lazy loading on, alphaTab's visibility test sees
+      // nothing inside the clipped box and renders a blank page. Our charts are
+      // 16–64 bars, so eager rendering costs nothing.
+      enableLazyLoading: false,
     },
     player: {
       enablePlayer: true,
@@ -287,12 +290,6 @@ export async function createRenderer(
     },
     setBarsPerRow(bars: number) {
       api.settings.display.barsPerRow = bars;
-      api.updateSettings();
-      rerenderCurrent();
-    },
-    setLayout(bars: number, scale: number) {
-      api.settings.display.barsPerRow = bars;
-      api.settings.display.scale = scale;
       api.updateSettings();
       rerenderCurrent();
     },

@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BandAid · device board</title>
+    <!--
+      Dev-only breakpoint board: the app at every device size at once, so a layout
+      change can be eyeballed across all of them in one glance.
+
+      Vite serves this at /devices.html in dev. It is NOT shipped: the production
+      build only takes index.html as an entry, so this file never reaches Pages.
+
+      Each frame is a real iframe at the device's true CSS viewport, then visually
+      scaled by a transform — so the app inside genuinely believes it is 390x844 (media
+      queries, innerWidth/innerHeight orientation, ResizeObserver all see the real
+      numbers) while the board shows it smaller.
+    -->
+    <style>
+      :root {
+        --bg: #14110f;
+        --panel: #1e1a17;
+        --ink: #f3ede4;
+        --muted: #a89c8c;
+        --accent: #d98a3d;
+        --line: #2e2823;
+        --font-display: Georgia, 'Times New Roman', serif;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.9rem;
+        padding: 0.7rem 1rem;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+      }
+      h1 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      label { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--muted); }
+      input[type='text'], input[type='number'] {
+        background: var(--bg);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0.3rem 0.5rem;
+        font: inherit;
+        font-size: 0.82rem;
+      }
+      input[type='text'] { width: 14rem; }
+      input[type='number'] { width: 4.5rem; }
+      button {
+        font: inherit;
+        font-size: 0.82rem;
+        color: var(--ink);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0.35rem 0.7rem;
+        cursor: pointer;
+      }
+      button:hover { border-color: var(--accent); }
+      button.on { border-color: var(--accent); color: var(--accent); }
+      .spacer { flex: 1 1 auto; }
+
+      /* Physical-size calibration: hold a real ruler against this bar and adjust the
+         DPI until it measures one inch. Without that, "true size" is a guess — and
+         judging legibility on an uncalibrated screen is how small text gets approved. */
+      .ruler {
+        height: 1.15rem;
+        border: 1px solid var(--accent);
+        border-radius: 3px;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent 0,
+          transparent calc(50% - 1px),
+          var(--accent) calc(50% - 1px),
+          var(--accent) calc(50% + 1px),
+          transparent calc(50% + 1px)
+        );
+        position: relative;
+      }
+      .ruler::after {
+        content: '1 inch';
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 0.6rem;
+        color: var(--accent);
+        background: var(--panel);
+        padding: 0 0.25rem;
+        width: max-content;
+        margin: auto;
+      }
+
+      .warn {
+        margin: 0.9rem 1.2rem 0;
+        padding: 0.6rem 0.8rem;
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        background: rgba(217, 138, 61, 0.12);
+        color: var(--ink);
+        font-size: 0.82rem;
+        line-height: 1.5;
+      }
+      .warn code {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 0.05rem 0.3rem;
+      }
+      .board {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 1.6rem;
+        padding: 1.2rem;
+      }
+      figure { margin: 0; }
+      figcaption {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        margin-bottom: 0.4rem;
+        font-size: 0.8rem;
+      }
+      figcaption b { font-weight: 600; }
+      figcaption span { color: var(--muted); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+      figcaption .note { color: var(--accent); }
+      /* The shell is sized to the SCALED dimensions so frames tile without overlap;
+         the iframe inside keeps its true pixel size and is transformed down. */
+      .shell {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #000;
+      }
+      iframe {
+        border: 0;
+        display: block;
+        transform-origin: top left;
+        background: var(--bg);
+      }
+      .idle {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Device board</h1>
+      <label>
+        URL
+        <input id="q" type="text" value="/?song=wabash-cannonball" />
+      </label>
+      <label>
+        View
+        <span>
+          <button id="mode-fit" class="on">Fit</button>
+          <button id="mode-true">True size</button>
+          <button id="mode-full">100%</button>
+        </span>
+      </label>
+      <label title="Calibrate with the ruler so True size matches real hardware">
+        Monitor CSS DPI
+        <input id="dpi" type="number" value="96" min="60" max="300" step="1" />
+      </label>
+      <div class="ruler" id="ruler" style="width: 96px"></div>
+      <span class="spacer"></span>
+      <button id="reload">Reload all</button>
+    </header>
+
+    <div class="warn" id="warn" hidden></div>
+    <div class="board" id="board"></div>
+
+    <script type="module">
+      // cssPpi = the device's CSS pixels per physical inch (not its raw PPI — CSS px
+      // already account for the device pixel ratio). Used only for True size.
+      const DEVICES = [
+        { name: 'iPhone', w: 390, h: 844, cssPpi: 152, who: 'David' },
+        { name: 'iPad', w: 820, h: 1180, cssPpi: 132, who: 'David' },
+        { name: 'Android tablet', w: 800, h: 1280, cssPpi: 145, who: 'guitarist' },
+        { name: 'Chart-width crossover', w: 880, h: 700, cssPpi: 96, note: '≥880 = full 1600px chart page' },
+      ];
+      // Both orientations for each real device; the crossover probe is landscape only.
+      const FRAMES = DEVICES.flatMap((d) =>
+        d.note ? [d] : [
+          { ...d, orient: 'portrait' },
+          { ...d, w: d.h, h: d.w, orient: 'landscape' },
+        ],
+      );
+
+      // Opened straight off disk (double-clicked), a root-relative "/?song=..." resolves
+      // to file:///?song=... — which Windows answers with a directory listing of C:\.
+      // Resolve against the dev server explicitly so the board works either way, and say
+      // so loudly, because a board full of file listings looks like the app is broken.
+      const DEV_ORIGIN = 'http://localhost:5173';
+      const FROM_DISK = location.protocol === 'file:';
+      const APP_ORIGIN = FROM_DISK ? DEV_ORIGIN : location.origin;
+
+      const board = document.getElementById('board');
+      const qInput = document.getElementById('q');
+      const dpiInput = document.getElementById('dpi');
+      const ruler = document.getElementById('ruler');
+      let mode = 'fit';
+
+      const scaleFor = (f) => {
+        if (mode === 'full') return 1;
+        if (mode === 'true') return Number(dpiInput.value) / f.cssPpi;
+        // Fit: shrink so the tallest frames sit comfortably on one screen.
+        return Math.min(1, 380 / f.w, 620 / f.h);
+      };
+
+      function render() {
+        board.innerHTML = '';
+        for (const f of FRAMES) {
+          const s = scaleFor(f);
+          const fig = document.createElement('figure');
+          const cap = document.createElement('figcaption');
+          cap.innerHTML =
+            `<b>${f.name}</b>` +
+            (f.orient ? ` <span>${f.orient}</span>` : '') +
+            ` <span>${f.w}×${f.h} · ${Math.round(s * 100)}%</span>` +
+            (f.note ? ` <span class="note">${f.note}</span>` : '') +
+            (f.who ? ` <span>${f.who}</span>` : '');
+          const shell = document.createElement('div');
+          shell.className = 'shell';
+          shell.style.width = `${Math.round(f.w * s)}px`;
+          shell.style.height = `${Math.round(f.h * s)}px`;
+          const idle = document.createElement('div');
+          idle.className = 'idle';
+          idle.textContent = 'loading…';
+          const frame = document.createElement('iframe');
+          frame.width = f.w;
+          frame.height = f.h;
+          frame.style.transform = `scale(${s})`;
+          frame.loading = 'lazy';
+          frame.addEventListener('load', () => idle.remove());
+          shell.append(idle, frame);
+          fig.append(cap, shell);
+          board.append(fig);
+          frames.push(frame);
+        }
+        loadStaggered();
+      }
+
+      let frames = [];
+      // Six alphaTab instances starting at once will fight over CPU and the soundfont
+      // fetch; stagger them so each renders cleanly.
+      async function loadStaggered() {
+        const path = qInput.value || '/';
+        // Absolute against the app's origin — never relative to this file's location.
+        const url = /^https?:/i.test(path) ? path : APP_ORIGIN + (path.startsWith('/') ? path : '/' + path);
+        for (const frame of frames) {
+          frame.src = url;
+          await new Promise((r) => setTimeout(r, 700));
+        }
+      }
+
+      function rebuild() {
+        frames = [];
+        render();
+      }
+
+      for (const [id, m] of [['mode-fit', 'fit'], ['mode-true', 'true'], ['mode-full', 'full']]) {
+        document.getElementById(id).addEventListener('click', () => {
+          mode = m;
+          for (const el of document.querySelectorAll('header button')) el.classList.remove('on');
+          document.getElementById(id).classList.add('on');
+          rebuild();
+        });
+      }
+      dpiInput.addEventListener('change', () => {
+        ruler.style.width = `${dpiInput.value}px`;
+        if (mode === 'true') rebuild();
+      });
+      qInput.addEventListener('change', rebuild);
+      document.getElementById('reload').addEventListener('click', rebuild);
+
+      if (FROM_DISK) {
+        const warn = document.getElementById('warn');
+        warn.hidden = false;
+        warn.innerHTML =
+          `Opened from disk, so the frames are pointed at <code>${DEV_ORIGIN}</code> — ` +
+          `they'll work, but cross-origin. For the intended setup open ` +
+          `<code>${DEV_ORIGIN}/devices.html</code> instead (and make sure ` +
+          `<code>npm run dev</code> is running).`;
+      }
+
+      rebuild();
+    </script>
+  </body>
+</html>

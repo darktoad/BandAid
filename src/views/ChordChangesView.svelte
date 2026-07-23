@@ -17,7 +17,8 @@
   import { prefersFlats, transposeChordLabel, transposeNote } from '../chords/transposeChord';
   import SyncBadge from '../sync/SyncBadge.svelte';
   import type { SyncTone } from '../sync/syncStatusLabel';
-  import { MAX_FIT_SCALE, MIN_FIT_SCALE, planFit, planWrittenFit } from './fitPlan';
+  import { MIN_LEGIBLE_TEXT_ZOOM, pageFitZoom, virtualPageWidth } from './pageScale';
+  import { pinchZoom } from './pinchZoom';
 
   /**
    * Chord-Changes-in-Time view (M1). A presentation template over the unified music
@@ -80,19 +81,19 @@
   let showMasthead = $state(loadMastheadPref()); // local viewing pref, persisted
   let errorMsg = $state<string | null>(null);
 
-  // Lyrics/notes slide-over: personal + local, never synced. Open state is ephemeral.
-  // The fetched sheet is cached per song; App.svelte remounts this view via {#key song.id},
-  // so these reset on a song switch — no in-component reset needed.
-  let lyricsOpen = $state(false);
+  // Lyrics/notes: personal + local, never synced. The fetched sheet is cached per song;
+  // App.svelte remounts this view via {#key song.id}, so these reset on a song switch —
+  // no in-component reset needed.
   let lyricsSheet = $state<SongSheet | null>(null);
   let lyricsLoading = $state(false);
   let lyricsError = $state<string | null>(null);
 
   // Chord overlay: a personal, per-device preference (localStorage) — deliberately NOT
-  // per-song or session/band state. On by default (it's the point of the app); charts
-  // (fretboard diagrams) off by default — most players read the chord name alone.
+  // per-song or session/band state. Off by default (a personal-PRACTICE tool — during
+  // rehearsal the band reads the chart, spec Part 4); players who turned it on keep it
+  // on via the saved pref. Charts (fretboard diagrams) also off by default.
   const savedOverlay = loadOverlayPrefs();
-  let overlayOn = $state<boolean>(savedOverlay.on ?? true);
+  let overlayOn = $state<boolean>(savedOverlay.on ?? false);
   let showCharts = $state<boolean>(savedOverlay.charts ?? false);
   let chartInstrument = $state<Instrument>(savedOverlay.instrument === 'ukulele' ? 'ukulele' : 'guitar');
   let chordTimeline = $state<ChordOnset[]>([]);
@@ -132,9 +133,30 @@
     // and lastBarsPerRow must match so the next resize isn't skipped as a no-op.
     lastBarsPerRow = barsPerRow;
     controller.setEngravedBreaks(on, barsPerRow);
-    // A layout-mode switch isn't manual sizing — Fit stays on and re-establishes
-    // itself in the new mode once the switch's own render has landed.
-    if (fitOn) void nextRender().then(() => fitToView());
+    // A layout-mode switch isn't manual sizing — Fit stays on; the renderTick effect
+    // recomputes the page zoom once the switch's own render has landed.
+  }
+
+  // Rehearsal mode: whether the transport strip (play, Fit, key, tempo) is shown.
+  // The strip is practice/rehearsal chrome — off, the app is a static sheet display
+  // for playing live. NOT solo-vs-band: in-sync band practice at the shared tempo is
+  // rehearsal mode too. Personal, per device, default on.
+  let rehearsalMode = $state(loadRehearsalPref());
+  function loadRehearsalPref(): boolean {
+    try {
+      return typeof localStorage === 'undefined' || localStorage.getItem('bandaid.rehearsalMode') !== 'off';
+    } catch {
+      return true;
+    }
+  }
+  function setRehearsalMode(on: boolean) {
+    if (on === rehearsalMode) return;
+    rehearsalMode = on;
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem('bandaid.rehearsalMode', on ? 'on' : 'off');
+    } catch {
+      /* ignore */
+    }
   }
 
   // Fit mode: keep the whole tune sized to the view. Band feedback, twice over — players
@@ -144,7 +166,6 @@
   // dragging the Size slider takes manual control and switches it off. A local viewing
   // preference (like the masthead / row breaks), on by default.
   let fitOn = $state(loadFitPref());
-  let didInitialFit = false; // one-shot guard: the load-time fit runs once per song load
   function loadFitPref(): boolean {
     try {
       // Fit unless the player explicitly turned it off. (Key predates the merged
@@ -164,16 +185,38 @@
     }
   }
   function toggleFit() {
+    manualZoom = null; // tapping Fit clears any pinch zoom
     fitOn = !fitOn;
     saveFitPref();
     // Turning it on fits the current tune now, not just on the next load/resize.
-    if (fitOn) void fitToView();
+    if (fitOn) recomputePageZoom();
   }
   // Manual sizing takes control back from Fit (the current layout is left alone).
   function releaseFit() {
     if (!fitOn) return;
     fitOn = false;
     saveFitPref();
+  }
+
+  // Fullscreen (spec Part 4, option a): one manual toggle hides ALL chrome — topbar,
+  // transport, sheet — and the notation gets every pixel. Manual only, NEVER driven by
+  // playback state. Personal, persisted so a gig device stays fullscreen across reloads.
+  let fullscreen = $state(loadFullscreenPref());
+  function loadFullscreenPref(): boolean {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem('bandaid.fullscreen') === '1';
+    } catch {
+      return false;
+    }
+  }
+  function setFullscreen(on: boolean) {
+    fullscreen = on;
+    if (on) showMore = false; // the sheet is part of the chrome being hidden
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem('bandaid.fullscreen', on ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
   }
 
   // Masthead visibility is a local viewing preference (not song/session state).
@@ -220,10 +263,52 @@
 
   let stageEl: HTMLElement;
   let renderScrollEl = $state<HTMLDivElement | undefined>(undefined); // the notation's scroller
+  let renderSurfaceEl = $state<HTMLDivElement | undefined>(undefined); // the alphaTab surface
+  // Page-mode shrink: recomputed from the latest render + viewport; 1 with Fit off.
+  // manualZoom is a pinch override (ephemeral).
+  let pageZoom = $state(1);
+  let manualZoom = $state<number | null>(null);
+  // The virtual page: the notation engraves to a page WIDER than the device and
+  // scales it down — a photo of the fiddler's sheet, not a reflowed web page. Without
+  // it a phone wraps a 4-bar row down to ~2.7 bars and the page grows tall and thin.
+  // virtualPageWidth() trades width against legibility: chart width (4–6 bars/row) on
+  // tablets and up, a narrower page on a phone where 4–6 bars can't be read at all.
+  let pageWidth = $state(0);
+  function recomputePageZoom() {
+    const scroller = renderScrollEl;
+    const surface = renderSurfaceEl;
+    if (!scroller) {
+      pageWidth = 0;
+    } else if (scroller.clientWidth > 0) {
+      pageWidth = virtualPageWidth(scroller.clientWidth);
+    }
+    if (!fitOn || !scroller || !surface) {
+      pageZoom = 1;
+      return;
+    }
+    // pageFitZoom, not pageScale: whole-page fitting stops at the legibility floor and
+    // falls back to width-fit + scroll, so a phone shows readable music instead of a
+    // crushed ribbon of hairlines.
+    pageZoom = pageFitZoom(scroller.clientWidth, scroller.clientHeight, surface.offsetWidth, surface.offsetHeight);
+  }
+  $effect(() => {
+    void renderTick; // every completed render can change the page's natural size
+    void fitOn;
+    recomputePageZoom();
+  });
+  // Pinch/wheel zoom on the notation: manual control disengages Fit; tapping Fit
+  // snaps back. Ephemeral by design.
+  function onNotationZoom(z: number) {
+    manualZoom = z;
+    releaseFit();
+  }
+  function resetNotationZoom() {
+    manualZoom = null;
+    fitOn = true;
+    saveFitPref();
+    recomputePageZoom();
+  }
   let renderTick = $state(0); // bumped after every completed (re-)render — bounds are fresh
-  // One-shot waiters for the next completed render (fit-to-view's verification pass).
-  let renderResolvers: Array<() => void> = [];
-  const nextRender = () => new Promise<void>((resolve) => renderResolvers.push(resolve));
   // Matches the overlay's page-turn: JS-driven scrolling can't be reached by a CSS
   // reduced-motion rule, so honor the preference here.
   const reducedMotion =
@@ -252,7 +337,10 @@
   }
   function applyResponsiveLayout(w: number) {
     lastStageWidth = w;
-    const bpr = pickBarsPerRow(w, measureCount);
+    // The notation lays out to the VIRTUAL page, not the device: bars-per-row must
+    // be picked for the page's width or a phone would ask for 2/row on a 900px page.
+    const layoutW = pageWidth > 0 ? pageWidth : w;
+    const bpr = pickBarsPerRow(layoutW, measureCount);
     barsPerRow = bpr; // keep the overlay's row count in step with the notation
     // "As written": the file's engraved breaks own the notation rows — keep the
     // responsive pick fresh (the overlay strip and the toggle-off handoff use it)
@@ -263,33 +351,22 @@
     controller.setBarsPerRow(bpr);
   }
 
-  // Debounced viewport re-fit (rotation, window resize, split-screen, the inline
-  // settings sheet opening/closing) while Fit is on. Gated on didInitialFit so the
-  // load sequence's own fit (onRender) runs first.
-  let fitDebounce: ReturnType<typeof setTimeout> | undefined;
-  let lastStageSize = '';
+  // Viewport re-fit (rotation, window resize, split-screen, the inline settings sheet
+  // opening/closing): a page re-zoom is a cheap transform — no debounce, no render walk.
   onMount(() => {
     const ro = new ResizeObserver((entries) => {
       const rect = entries[0]?.contentRect;
       const w = rect?.width ?? stageEl.clientWidth;
       applyResponsiveLayout(w);
-      const size = rect ? `${Math.round(rect.width)}x${Math.round(rect.height)}` : '';
-      if (size === lastStageSize) return;
-      const initialObserve = lastStageSize === '';
-      lastStageSize = size;
-      if (initialObserve || !fitOn || !didInitialFit) return;
-      clearTimeout(fitDebounce);
-      // Re-check at fire time: a slider drag inside the debounce window releases Fit,
-      // and the pending re-fit must not snatch control back.
-      fitDebounce = setTimeout(() => {
-        if (fitOn) void fitToView();
-      }, 200);
+      recomputePageZoom();
     });
-    if (stageEl) ro.observe(stageEl);
-    return () => {
-      ro.disconnect();
-      clearTimeout(fitDebounce);
-    };
+    // Observe the notation's own box, not the stage: with the lyrics pane open the
+    // stage keeps its width but the notation loses a chunk of it, and bars-per-row +
+    // fit must react to the box the music actually renders in. (Height signals —
+    // sheet, collapse — reach this box identically.)
+    const observed = renderScrollEl ?? stageEl;
+    if (observed) ro.observe(observed);
+    return () => ro.disconnect();
   });
 
   // Tempo/key are shared session state (band-synced): a bandmate's change lands in the
@@ -411,16 +488,8 @@
     // Re-pick bars-per-row now the bar count is known (orphan avoidance needs it) —
     // the ResizeObserver only re-fires on actual size changes.
     if (lastStageWidth > 0) applyResponsiveLayout(lastStageWidth);
-    c.onRender(() => {
-      renderTick++;
-      renderResolvers.splice(0).forEach((resolve) => resolve());
-      // Fit once per song load, on the first painted render (content is now measurable).
-      // fitToView re-renders as it searches, but the guard keeps this from re-entering.
-      if (fitOn && !didInitialFit && renderScrollEl?.firstElementChild) {
-        didInitialFit = true;
-        void fitToView();
-      }
-    });
+    // Every completed render bumps the tick; the pageZoom effect re-fits from it.
+    c.onRender(() => renderTick++);
     // Masthead credit: the curated manifest composer wins; fall back to the score's
     // credit unless it's an export toolchain stamping its own name (e.g. Music21).
     const scoreCredit = info?.composer ?? '';
@@ -451,6 +520,8 @@
     if (stageEl) applyResponsiveLayout(stageEl.clientWidth);
     // Saved "as written" pref: re-apply the engraved breaks the renderer cleared at load.
     if (rowsAsWritten) c.setEngravedBreaks(true, barsPerRow);
+    // The split pane resumes open across reloads — its lyrics must load with the song.
+    if (lyricsPane) void ensureLyricsLoaded();
   }
 
   // Melody alone, or melody + the player's part stacked (one player → synced cursors).
@@ -485,15 +556,9 @@
     transport?.setCountIn(countIn);
   }
 
-  // Keyboard flow for the slide-over: focus lands on its close button when it opens
-  // (the action below) and returns to the opener when it closes.
-  let lyricsReturnFocus: HTMLElement | null = null;
-  const focusOnMount = (el: HTMLElement) => el.focus();
-
-  async function openLyrics() {
-    lyricsReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    lyricsOpen = true;
-    // The note renders immediately from the manifest; only lyrics need a fetch, and only once.
+  // The note renders immediately from the manifest; only lyrics need a fetch, and
+  // only once per song load.
+  async function ensureLyricsLoaded() {
     if (!song.lyricsUrl || lyricsSheet || lyricsLoading) return;
     lyricsLoading = true;
     lyricsError = null;
@@ -507,11 +572,146 @@
       lyricsLoading = false;
     }
   }
-  const closeLyrics = () => {
-    lyricsOpen = false;
-    lyricsReturnFocus?.focus();
-  };
+  // Split view (spec Part 4): the lyrics/banter sheet beside (landscape) or under
+  // (portrait) the notation. Personal + persisted.
+  let lyricsPane = $state(loadLyricsPanePref());
+  function loadLyricsPanePref(): boolean {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem('bandaid.lyricsPane') === '1';
+    } catch {
+      return false;
+    }
+  }
+  function toggleLyricsPane() {
+    lyricsPane = !lyricsPane;
+    if (lyricsPane) void ensureLyricsLoaded();
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem('bandaid.lyricsPane', lyricsPane ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  }
 
+  // Pane split: the fraction of the panes box the LYRICS pane gets. Draggable via the
+  // splitter; clamped so neither pane collapses; remembered separately per orientation
+  // (a good side-by-side width is not a good stacked height). ONE source of truth for
+  // orientation — a window listener driving both the layout class and the ratio — so
+  // CSS and JS can never disagree (a media query + separate matchMedia can).
+  let isLandscape = $state(typeof window === 'undefined' || window.innerWidth > window.innerHeight);
+  onMount(() => {
+    const onOrient = () => (isLandscape = window.innerWidth > window.innerHeight);
+    window.addEventListener('resize', onOrient);
+    return () => window.removeEventListener('resize', onOrient);
+  });
+  function loadSplit(key: string, fallback: number): number {
+    try {
+      const v = Number(typeof localStorage !== 'undefined' ? localStorage.getItem(key) : NaN);
+      return v >= 0.25 && v <= 0.6 ? v : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  let splitLandscape = $state(loadSplit('bandaid.paneSplit.landscape', 0.36));
+  let splitPortrait = $state(loadSplit('bandaid.paneSplit.portrait', 0.42));
+  let splitFrac = $derived(isLandscape ? splitLandscape : splitPortrait);
+  let panesEl = $state<HTMLElement | undefined>(undefined);
+  function startSplitDrag(e: PointerEvent) {
+    const panes = panesEl;
+    if (!panes) return;
+    e.preventDefault();
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      /* pointer already gone (e.g. synthetic events) — window listeners still track */
+    }
+    const move = (ev: PointerEvent) => {
+      const r = panes.getBoundingClientRect();
+      const frac = isLandscape ? (r.right - ev.clientX) / r.width : (r.bottom - ev.clientY) / r.height;
+      const clamped = Math.min(0.6, Math.max(0.25, frac));
+      if (isLandscape) splitLandscape = clamped;
+      else splitPortrait = clamped;
+    };
+    const up = () => {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('bandaid.paneSplit.landscape', String(splitLandscape));
+          localStorage.setItem('bandaid.paneSplit.portrait', String(splitPortrait));
+        }
+      } catch {
+        /* ignore */
+      }
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+
+  // Fit-to-pane, the same virtual-page trick the notation uses: lay the sheet out
+  // WIDER than the pane, then scale it back to exactly the pane's width. Two wins over
+  // scaling a pane-width layout down (which is what this used to do):
+  //   - the scaled page fills the width, so there are no dead margins either side (a
+  //     centred 0.8 scale wastes 10% of the pane on EACH edge);
+  //   - the wider layout wraps far less, so lines stop breaking mid-phrase.
+  // Height is then the only thing left to fit, and it shrinks doubly as the layout
+  // widens (fewer wrapped lines AND a smaller scale), so the search below converges.
+  let paneEl = $state<HTMLElement | undefined>(undefined);
+  let paneContentEl = $state<HTMLElement | undefined>(undefined);
+  let paneZoom = $state(1);
+  // Pinch/wheel override for the lyrics pane; double-tap resets to auto-fit.
+  let paneManualZoom = $state<number | null>(null);
+  $effect(() => {
+    // Direct deps alongside the ResizeObserver: the sheet arriving/transposing and the
+    // splitter/orientation/collapse all change the boxes, and effects run after the DOM
+    // update — so the measure below sees the new layout even before the RO fires.
+    void displaySheet;
+    void lyricsLoading;
+    void splitFrac;
+    void isLandscape;
+    void fullscreen;
+    const pane = paneEl;
+    const content = paneContentEl;
+    if (!pane || !content) {
+      paneZoom = 1;
+      return;
+    }
+    // The layout width is driven imperatively here (not via a style: binding) because
+    // the search has to write a width and read the reflowed height in the same pass.
+    const compute = () => {
+      const paneW = pane.clientWidth;
+      const paneH = pane.clientHeight;
+      if (paneW <= 0 || paneH <= 0) return;
+      let z = 1;
+      // A few passes settle it: text height isn't linear in the layout width once
+      // lines rewrap, so solve by iteration rather than arithmetic. Bounded and
+      // monotonic — no oscillation, and the deadband stops sub-pixel churn.
+      for (let i = 0; i < 4; i++) {
+        content.style.width = `${Math.round(paneW / z)}px`;
+        const h = content.offsetHeight; // forces layout at the new width
+        const fit = h > 0 ? paneH / h : 1;
+        // Text floor, not the notation floor: words punish shrinking harder than
+        // staves. Past it the pane scrolls rather than squeezing (collapsing sections
+        // is how you make a long sheet fit).
+        const next = Math.min(1, Math.max(MIN_LEGIBLE_TEXT_ZOOM, fit));
+        if (Math.abs(next - z) < 0.01) {
+          z = next;
+          break;
+        }
+        z = next;
+      }
+      content.style.width = `${Math.round(paneW / z)}px`;
+      paneZoom = z;
+    };
+    compute();
+    // Observe the PANE only: the content's size is an output of compute(), so watching
+    // it too would feed the search back into itself.
+    const ro = new ResizeObserver(compute);
+    ro.observe(pane);
+    return () => {
+      ro.disconnect();
+      content.style.width = '';
+    };
+  });
   function togglePlay() {
     if (!transport) return;
     if (playing) transport.pause();
@@ -595,7 +795,8 @@
   // Current sounding tempo (BPM = the ♩ = N your charts show).
   let currentBpm = $derived(Math.round((tempoBpm * speedPct) / 100));
   function onScale(e: Event) {
-    releaseFit(); // dragging the slider is taking manual control
+    // Size adjusts engraving legibility only — page Fit is an independent transform
+    // (spec Part 3), so dragging it never disengages Fit.
     scalePct = Number((e.target as HTMLInputElement).value);
     controller?.setScale(scalePct / 100);
   }
@@ -609,94 +810,6 @@
     const p = (x: number) => String(x).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())} · ${__COMMIT_SHA__}`;
   })();
-  // Fit the whole tune in the viewport. The layout choice (bars-per-row up to 6 +
-  // scale) is computed by the pure planner in fitPlan.ts from scale-NORMALIZED
-  // measurements, so Fit is deterministic: same song + viewport → same layout, no
-  // matter what the player dragged or fitted beforehand (spec Part 2 #3). In
-  // "as written" mode bars-per-row belongs to the file, so Fit drops to scale only.
-  // The plan is verified against the real render and trimmed if the row-height
-  // estimate ran long. Fits to the stage as it currently is: with the inline
-  // (wide-screen) sheet open that means the reduced viewport, and the
-  // ResizeObserver re-fits when the sheet closes.
-  async function fitToView() {
-    const scroller = renderScrollEl;
-    if (!scroller || !controller || measureCount <= 0) return;
-    // Measure the notation surface itself: the scroller's scrollHeight is floored at its
-    // own clientHeight, so a tune SHORTER than the view would read "exactly fits" and
-    // Fit could only ever shrink, never grow into the free space.
-    const contentH = scroller.firstElementChild?.getBoundingClientRect().height ?? 0;
-    const viewH = scroller.clientHeight;
-    if (contentH <= 0 || viewH <= 0) return;
-    const fits = () => scroller.scrollHeight <= scroller.clientHeight;
-    const renderAt = async (apply: () => void) => {
-      const rendered = nextRender();
-      apply();
-      await rendered;
-    };
-    // Land on the LARGEST 5%-grid scale whose REAL render fits the view: walk down
-    // while it overflows, then probe one step up while there's room (reverting the
-    // probe that overflows). The endpoint — max{s : rendered height ≤ view} — doesn't
-    // depend on where the walk started, which is what makes Fit deterministic even
-    // where height is a step function of scale: rendered height is NOT linear in
-    // scale, because rows that outgrow the viewport width get wrapped (most visibly
-    // in "as written" mode, where an engraved 4-bar row can wrap into 2). A one-shot
-    // linear estimate measured from the current render lands somewhere different per
-    // starting state — the repeated-toggle drift the band hit.
-    const settle = async (s: number, apply: (s: number) => void): Promise<void> => {
-      // Bounded by the 5% grid; the cap only guards against a pathological renderer.
-      let guard = 2 * (MAX_FIT_SCALE - MIN_FIT_SCALE) / 5;
-      while (guard-- > 0) {
-        if (!fits() && s > MIN_FIT_SCALE) {
-          s -= 5;
-          scalePct = s;
-          await renderAt(() => apply(s));
-          continue;
-        }
-        if (fits() && s < MAX_FIT_SCALE) {
-          const up = s + 5;
-          scalePct = up;
-          await renderAt(() => apply(up));
-          if (fits()) {
-            s = up;
-            continue;
-          }
-          scalePct = s;
-          await renderAt(() => apply(s)); // revert the probe that overflowed
-          if (fits()) break; // stable endpoint: largest grid scale that fits
-          continue; // revert overflowed too (renderer wobble) — resume walking down
-        }
-        break; // at a bound, or settled
-      }
-    };
-    if (rowsAsWritten) {
-      // Engraved breaks own the rows; scale is the single lever. The planner's linear
-      // estimate is just the walk's starting point.
-      const s0 = planWrittenFit(viewH, contentH * (100 / scalePct));
-      if (s0 !== scalePct) {
-        scalePct = s0;
-        await renderAt(() => controller!.setScale(s0 / 100));
-      }
-      await settle(s0, (s) => controller!.setScale(s / 100));
-      return;
-    }
-    // Normalize the measured row height to 100% scale — the planner must not see the
-    // current scale, or the result would depend on how the player got here.
-    const rowH100 = (contentH / Math.ceil(measureCount / barsPerRow)) * (100 / scalePct);
-    const base = pickBarsPerRow(lastStageWidth || stageEl?.clientWidth || 0, measureCount);
-    const { barsPerRow: bestN, scalePct: bestS } = planFit({
-      measureCount,
-      viewH,
-      rowH100,
-      baseBarsPerRow: base,
-    });
-    if (bestN !== barsPerRow || bestS !== scalePct) {
-      barsPerRow = bestN; // the overlay mirrors the notation 1:1
-      lastBarsPerRow = bestN;
-      scalePct = bestS;
-      await renderAt(() => controller!.setLayout(bestN, bestS / 100));
-    }
-    await settle(bestS, (s) => controller!.setLayout(bestN, s / 100));
-  }
   // Return to the top of the tune (a synced seek: the band jumps with you).
   function returnToStart() {
     setBar(1);
@@ -712,7 +825,7 @@
   // Ignore Space when focused in a control.
   function onKeydown(e: KeyboardEvent) {
     if (e.code === 'Escape') {
-      if (lyricsOpen) closeLyrics();
+      if (fullscreen) setFullscreen(false);
       else if (showMore) showMore = false;
       return;
     }
@@ -729,6 +842,10 @@
 
 <svelte:window onkeydown={onKeydown} />
 
+<!-- The whole chrome (topbar + transport + settings sheet) collapses to fullscreen —
+     one manual toggle (the floating corner button on the notation), never
+     playback-driven; the same button or Esc restores. -->
+{#if !fullscreen}
 <!-- Top header: navigation and meta only — songs on the far left, the title, then
      info and the menu on the far right. Nothing here touches band state. -->
 <header class="topbar">
@@ -755,7 +872,7 @@
     </select>
   {/if}
   {#if song.notes || song.lyricsUrl}
-    <button class="iconbtn" onclick={openLyrics} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
+    <button class="iconbtn" class:active={lyricsPane} onclick={toggleLyricsPane} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="9" /><line x1="12" y1="11" x2="12" y2="16" /><circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none" />
       </svg>
@@ -769,7 +886,10 @@
 </header>
 
 <!-- The synced strip: everything band-synced lives together here — play/pause,
-     return to start, key, tempo. What a bandmate changes, changes here. -->
+     return to start, key, tempo. What a bandmate changes, changes here.
+     Rehearsal chrome: hidden entirely when rehearsal mode is off (static sheet
+     display); key/tempo stay editable through the settings sheet. -->
+{#if rehearsalMode}
 <div class="transport">
   <button class="play" onclick={togglePlay} disabled={!transport || !canPlay} aria-label={!canPlay ? 'Loading' : playing ? 'Pause' : 'Play'}>
     <Icon name={!canPlay ? 'loading' : playing ? 'pause' : 'play'} size={20} />
@@ -795,7 +915,7 @@
     aria-pressed={fitOn}
     onclick={toggleFit}
     disabled={!controller}
-    title="Keep the whole tune sized to the view — adjusting Size takes back manual control"
+    title="Keep the whole page in view (Size adjusts engraving legibility independently)"
   >Fit</button>
 
   <button class="pill" class:on={transposeModified} onclick={openSettings} disabled={!controller} title="Key">
@@ -804,7 +924,9 @@
   <button class="pill" class:on={tempoModified} onclick={openSettings} disabled={!transport} title="Tempo">
     ♩ = {currentBpm}{#if tempoModified}<span class="dot">●</span>{/if}
   </button>
+
 </div>
+{/if}
 
 <!-- Settings sheet (opened by the ☰, or the Key / Tempo pills). Inline on wide
      screens; a bottom sheet over a scrim on phones so the music stays visible. -->
@@ -842,6 +964,15 @@
         aria-label="Band name"
       />
     </label>
+
+    <!-- Rehearsal mode: shows/hides the transport strip. Off = static sheet display
+         for playing live; on covers solo practice AND in-sync band practice. -->
+    <div class="row">
+      <span class="label">Rehearsal</span>
+      <div class="chips">
+        <button class:active={rehearsalMode} aria-pressed={rehearsalMode} onclick={() => setRehearsalMode(!rehearsalMode)} title="Show the transport strip (play, Fit, key, tempo)">{rehearsalMode ? 'On' : 'Off'}</button>
+      </div>
+    </div>
 
     <div class="row">
       <span class="label">Title</span>
@@ -953,12 +1084,13 @@
     </div>
   </div>
 {/if}
+{/if}
 
 {#if errorMsg}
   <div class="error">Renderer error: {errorMsg}</div>
 {/if}
 
-<main class="stage" bind:this={stageEl}>
+<main class="stage" class:split={lyricsPane} bind:this={stageEl}>
   {#if showMasthead}
     <!-- Our own deduped masthead (alphaTab's title block is suppressed): the crucial
          fields only — title, and composer when present. Key/tempo live in the header. -->
@@ -967,20 +1099,97 @@
       {#if composer}<div class="mh-sub">{composer}</div>{/if}
     </div>
   {/if}
-  <div class="render-wrap">
-    <Renderer
-      musicXmlUrl={song.url}
-      bind:scrollEl={renderScrollEl}
-      onready={onReady}
-      onposition={(b) => setBar(b)}
-      onplaying={(p) => (playing = p)}
-      onplayable={() => {
-        canPlay = true;
-        applyAudio(); // re-assert volumes now the synth is ready (not just at score load)
-        wireFollower();
+  <div class="panes" class:landscape={isLandscape} bind:this={panesEl}>
+    <div
+      class="render-wrap"
+      use:pinchZoom={{
+        getZoom: () => manualZoom ?? (fitOn ? pageZoom : 1),
+        onZoom: onNotationZoom,
+        onReset: resetNotationZoom,
+        hasOverflow: () => !!renderScrollEl && (renderScrollEl.scrollHeight > renderScrollEl.clientHeight || renderScrollEl.scrollWidth > renderScrollEl.clientWidth),
+        pan: (dx, dy) => renderScrollEl?.scrollBy(dx, dy),
       }}
-      onerror={(e) => (errorMsg = e.message)}
-    />
+    >
+      <Renderer
+        musicXmlUrl={song.url}
+        bind:scrollEl={renderScrollEl}
+        bind:surfaceEl={renderSurfaceEl}
+        pageZoom={manualZoom ?? (fitOn ? pageZoom : 1)}
+        pageWidth={pageWidth}
+        onready={onReady}
+        onposition={(b) => setBar(b)}
+        onplaying={(p) => (playing = p)}
+        onplayable={() => {
+          canPlay = true;
+          applyAudio(); // re-assert volumes now the synth is ready (not just at score load)
+          wireFollower();
+        }}
+        onerror={(e) => (errorMsg = e.message)}
+      />
+      <!-- Floating notation controls: fullscreen is a corner toggle on the music itself
+           (like a video player), so it works whatever chrome is showing; while
+           fullscreen, notes & lyrics stay one tap away without restoring the bars. -->
+      <div class="float-controls">
+        <button
+          class="floatbtn"
+          onclick={() => setFullscreen(!fullscreen)}
+          aria-label={fullscreen ? 'Exit full screen' : 'Full screen'}
+          title={fullscreen ? 'Bring the control bars back (Esc works too)' : 'Full screen — hide the control bars, the music gets every pixel'}
+        >
+          {#if fullscreen}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" /><line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+          {:else}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+          {/if}
+        </button>
+        {#if fullscreen && (song.notes || song.lyricsUrl)}
+          <button class="floatbtn" class:active={lyricsPane} onclick={toggleLyricsPane} aria-label="Notes and lyrics" title="Notes &amp; lyrics">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><line x1="12" y1="11" x2="12" y2="16" /><circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none" /></svg>
+          </button>
+        {/if}
+      </div>
+    </div>
+    {#if lyricsPane}
+      <div
+        class="splitter"
+        role="separator"
+        aria-orientation={isLandscape ? 'vertical' : 'horizontal'}
+        aria-label="Resize lyrics pane"
+        onpointerdown={startSplitDrag}
+      ></div>
+      <aside
+        class="lyrics-pane"
+        class:zoomed={paneManualZoom !== null}
+        bind:this={paneEl}
+        style:flex-basis={`${splitFrac * 100}%`}
+        use:pinchZoom={{
+          getZoom: () => paneManualZoom ?? paneZoom,
+          onZoom: (z) => (paneManualZoom = z),
+          onReset: () => (paneManualZoom = null),
+          hasOverflow: () => !!paneEl && (paneEl.scrollHeight > paneEl.clientHeight || paneEl.scrollWidth > paneEl.clientWidth),
+          pan: (dx, dy) => paneEl?.scrollBy(dx, dy),
+        }}
+        aria-label="Lyrics and notes"
+      >
+        <!-- width is set imperatively by the fit search above (it writes a layout width
+             and reads the reflowed height in one pass); scaling from the top LEFT makes
+             the scaled page sit flush against the pane's edge instead of being centred
+             with dead space either side. -->
+        <div
+          class="pane-content"
+          bind:this={paneContentEl}
+          style:transform={(paneManualZoom ?? paneZoom) !== 1 ? `scale(${paneManualZoom ?? paneZoom})` : undefined}
+        >
+          {#if lyricsError}
+            <p class="lyrics-msg">{lyricsError}</p>
+          {:else if lyricsLoading && !lyricsSheet}
+            <p class="lyrics-msg">Loading…</p>
+          {:else}
+            <LyricsSheet songId={song.id} note={song.notes} sheet={displaySheet ?? undefined} />
+          {/if}
+        </div>
+      </aside>
+    {/if}
   </div>
 </main>
 
@@ -995,28 +1204,6 @@
     instrument={chartInstrument}
     {showCharts}
   />
-{/if}
-
-{#if lyricsOpen}
-  <div class="lyrics-panel" role="dialog" aria-modal="true" aria-label="Notes and lyrics">
-    <header class="lyrics-head">
-      <h2 class="lyrics-title">{song.title}</h2>
-      <button class="iconbtn" use:focusOnMount onclick={closeLyrics} aria-label="Close">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
-      </button>
-    </header>
-    <div class="lyrics-body">
-      <div class="lyrics-col">
-        {#if lyricsError}
-          <p class="lyrics-msg">{lyricsError}</p>
-        {:else if lyricsLoading && !lyricsSheet}
-          <p class="lyrics-msg">Loading…</p>
-        {:else}
-          <LyricsSheet note={song.notes} sheet={displaySheet ?? undefined} />
-        {/if}
-      </div>
-    </div>
-  </div>
 {/if}
 
 <style>
@@ -1165,6 +1352,42 @@
      strip is that disengaging (Size drag) is VISIBLE (spec Part 2 #4). */
   .pill.fit.on { color: var(--accent); }
 
+  /* Floating notation controls (fullscreen toggle; notes & lyrics while fullscreen):
+     small, semi-transparent, corner placement on the notation pane itself; above
+     alphaTab cursors (z 1000). */
+  .float-controls {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.4rem;
+  }
+  .floatbtn {
+    width: 2.2rem;
+    height: 2.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+    opacity: 0.45;
+  }
+  .floatbtn:hover,
+  .floatbtn:focus-visible {
+    opacity: 1;
+  }
+  .floatbtn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    opacity: 0.75;
+  }
+  @media (pointer: coarse) {
+    .floatbtn { width: 2.75rem; height: 2.75rem; }
+  }
+
   /* Touch screens get full-size (≥44px) targets on the controls tapped mid-practice;
      pointer precision keeps the compact sizes on desktop. */
   @media (pointer: coarse) {
@@ -1212,7 +1435,52 @@
   }
 
   .stage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .render-wrap { flex: 1 1 auto; min-height: 0; }
+  .panes {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column; /* portrait: notation over lyrics */
+  }
+  .render-wrap { position: relative; flex: 1 1 auto; min-height: 0; min-width: 0; }
+  .lyrics-pane {
+    flex: 0 0 42%;
+    min-height: 0;
+    min-width: 0;
+    /* Auto-fit usually shows the whole sheet with nothing to scroll — but when the
+       legibility floor stops the shrink (small panes), or the player pinches in, the
+       pane must pan. Scrollbars stay hidden either way (screen real estate). */
+    overflow: auto;
+    background: var(--panel);
+    /* Left padding lines the fold chevrons up with the sheet music's own left margin
+       (~15px), which also keeps them clear of the splitter — chevrons hard against the
+       edge would swallow drags meant for the divider. The right side has neither
+       constraint, so it stays tight and the words get the width. */
+    padding: 0.6rem 0.3rem 0.6rem 1rem;
+    /* Gestures: keep native panning, suppress browser pinch-zoom; no scrollbars ever. */
+    touch-action: pan-x pan-y;
+    scrollbar-width: none;
+  }
+  .lyrics-pane::-webkit-scrollbar { display: none; }
+  .pane-content { transform-origin: top left; }
+  /* The splitter: a thin visible grip with a fat touch target.
+     touch-action none — dragging it must never scroll the page. */
+  .splitter {
+    flex: 0 0 10px;
+    touch-action: none;
+    cursor: row-resize;
+    background: linear-gradient(to bottom, transparent 4px, var(--line) 4px, var(--line) 6px, transparent 6px);
+  }
+  .splitter:hover {
+    background: linear-gradient(to bottom, transparent 4px, var(--accent) 4px, var(--accent) 6px, transparent 6px);
+  }
+  .stage.split .panes.landscape { flex-direction: row; }
+  .stage.split .panes.landscape .splitter {
+    cursor: col-resize;
+    background: linear-gradient(to right, transparent 4px, var(--line) 4px, var(--line) 6px, transparent 6px);
+  }
+  .stage.split .panes.landscape .splitter:hover {
+    background: linear-gradient(to right, transparent 4px, var(--accent) 4px, var(--accent) 6px, transparent 6px);
+  }
 
   /* Minimal chart masthead above the music (alphaTab's own title is suppressed). */
   .masthead {
@@ -1231,42 +1499,6 @@
   }
   .mh-sub { color: #6b6258; font-size: 0.78rem; margin-top: 0.15rem; }
 
-  /* Full-screen modal (band feedback: the slide-over was too cramped on stage —
-     lyrics/notes want the whole screen). No scrim: there's no outside to click;
-     the close button and Escape dismiss it. */
-  .lyrics-panel {
-    position: fixed;
-    inset: 0;
-    z-index: 1002;
-    display: flex;
-    flex-direction: column;
-    background: var(--panel);
-    animation: lyrics-in 0.16s ease-out;
-  }
-  @keyframes lyrics-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  .lyrics-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.7rem 0.9rem;
-    border-bottom: 1px solid var(--line);
-    color: var(--ink);
-  }
-  .lyrics-title { margin: 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; }
-  .lyrics-body {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    padding: 1rem 1rem 2rem;
-  }
-  /* Full-screen leaves very long line lengths on tablets — cap the text column. */
-  .lyrics-col {
-    max-width: 46rem;
-    margin: 0 auto;
-  }
   .lyrics-msg {
     color: var(--muted);
   }
