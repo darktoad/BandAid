@@ -137,6 +137,28 @@
     // recomputes the page zoom once the switch's own render has landed.
   }
 
+  // Rehearsal mode: whether the transport strip (play, Fit, key, tempo) is shown.
+  // The strip is practice/rehearsal chrome — off, the app is a static sheet display
+  // for playing live. NOT solo-vs-band: in-sync band practice at the shared tempo is
+  // rehearsal mode too. Personal, per device, default on.
+  let rehearsalMode = $state(loadRehearsalPref());
+  function loadRehearsalPref(): boolean {
+    try {
+      return typeof localStorage === 'undefined' || localStorage.getItem('bandaid.rehearsalMode') !== 'off';
+    } catch {
+      return true;
+    }
+  }
+  function setRehearsalMode(on: boolean) {
+    if (on === rehearsalMode) return;
+    rehearsalMode = on;
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem('bandaid.rehearsalMode', on ? 'on' : 'off');
+    } catch {
+      /* ignore */
+    }
+  }
+
   // Fit mode: keep the whole tune sized to the view. Band feedback, twice over — players
   // kept re-tapping Fit after each song switch, and the Auto-fit toggle that fixed it read
   // as a second competing concept next to the Fit button. One toggle now owns both jobs:
@@ -862,7 +884,10 @@
 </header>
 
 <!-- The synced strip: everything band-synced lives together here — play/pause,
-     return to start, key, tempo. What a bandmate changes, changes here. -->
+     return to start, key, tempo. What a bandmate changes, changes here.
+     Rehearsal chrome: hidden entirely when rehearsal mode is off (static sheet
+     display); key/tempo stay editable through the settings sheet. -->
+{#if rehearsalMode}
 <div class="transport">
   <button class="play" onclick={togglePlay} disabled={!transport || !canPlay} aria-label={!canPlay ? 'Loading' : playing ? 'Pause' : 'Play'}>
     <Icon name={!canPlay ? 'loading' : playing ? 'pause' : 'play'} size={20} />
@@ -902,6 +927,7 @@
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,14 12,8 18,14" /></svg>
   </button>
 </div>
+{/if}
 
 <!-- Settings sheet (opened by the ☰, or the Key / Tempo pills). Inline on wide
      screens; a bottom sheet over a scrim on phones so the music stays visible. -->
@@ -939,6 +965,15 @@
         aria-label="Band name"
       />
     </label>
+
+    <!-- Rehearsal mode: shows/hides the transport strip. Off = static sheet display
+         for playing live; on covers solo practice AND in-sync band practice. -->
+    <div class="row">
+      <span class="label">Rehearsal</span>
+      <div class="chips">
+        <button class:active={rehearsalMode} aria-pressed={rehearsalMode} onclick={() => setRehearsalMode(!rehearsalMode)} title="Show the transport strip (play, Fit, key, tempo)">{rehearsalMode ? 'On' : 'Off'}</button>
+      </div>
+    </div>
 
     <div class="row">
       <span class="label">Title</span>
